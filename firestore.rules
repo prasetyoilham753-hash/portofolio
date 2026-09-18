@@ -1,0 +1,72 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    
+    // Boot connection test
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // ==========================================
+    // PRIMITIVE HELPERS
+    // ==========================================
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isSignedIn() { return request.auth != null; }
+    
+    function isAdmin() { 
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        request.auth.token.email == 'prasetyoilham753@gmail.com'
+      ); 
+    }
+
+    // ==========================================
+    // ENTITY VALIDATION HELPERS
+    // ==========================================
+    function isValidQnAMessage(data) {
+      let isCategoryValid = data.category in ["Question", "Idea", "Feedback", "Collaboration", "Other"];
+      let isMessageValid = data.message is string && data.message.size() > 0 && data.message.size() <= 500;
+      let isNicknameValid = !('nickname' in data) || (data.nickname is string && data.nickname.size() <= 50);
+      let isCreatedAtValid = data.createdAt == request.time;
+      
+      let expectedKeySize = ('nickname' in data) ? 4 : 3;
+      let hasCorrectKeys = data.keys().hasAll(['category', 'message', 'createdAt']) && data.keys().size() == expectedKeySize;
+
+      return hasCorrectKeys && isCategoryValid && isMessageValid && isNicknameValid && isCreatedAtValid;
+    }
+
+    // ==========================================
+    // COLLECTIONS
+    // ==========================================
+    
+    // 1. QnA Messages
+    match /qna_messages/{messageId} {
+      allow read: if isAdmin();
+      allow delete: if isValidId(messageId) && isAdmin();
+      allow create: if isValidId(messageId) && isValidQnAMessage(incoming());
+      allow update: if isValidId(messageId) && isAdmin();
+    }
+
+    // 2. Admins
+    match /admins/{adminId} {
+      allow read: if isValidId(adminId) && isSignedIn() && request.auth.uid == adminId;
+      allow write: if false; // System / Console only
+    }
+
+    // 3. Site Content (e.g. profile, about, projects, gallery, certificates)
+    match /site_content/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}
