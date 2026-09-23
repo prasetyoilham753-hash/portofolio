@@ -11,6 +11,7 @@ export interface SiteProfile {
   lastName?: string;
   title: string;
   heroDescription?: string;
+  projectDescription?: string;
   about: string;
   aboutLabel?: string;
   aboutHeading?: string;
@@ -27,6 +28,7 @@ export interface SiteProfile {
     email?: string;
     instagram?: string;
     twitter?: string;
+    x?: string;
     reddit?: string;
   };
   technologies?: Technology[];

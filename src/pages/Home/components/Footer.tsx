@@ -12,10 +12,12 @@ export function Footer({ profile }: FooterProps) {
       <div className="max-w-[430px] md:max-w-7xl mx-auto px-5 py-8 flex flex-col items-center gap-6">
         <span className="font-display font-bold text-2xl text-text-primary tracking-tight">BP</span>
         
-        <div className="flex items-center gap-6 text-sm text-text-secondary font-medium">
-          <a href={profile?.socialLinks?.github || "#"} className="hover:text-white transition-colors" target="_blank" rel="noreferrer">GitHub</a>
-          <a href={profile?.socialLinks?.linkedin || "#"} className="hover:text-white transition-colors" target="_blank" rel="noreferrer">LinkedIn</a>
-          <a href={`mailto:${profile?.socialLinks?.email || ""}`} className="hover:text-white transition-colors">Email</a>
+        <div className="flex flex-wrap justify-center items-center gap-6 text-sm text-text-secondary font-medium">
+          <a href={profile?.socialLinks?.instagram || "https://instagram.com/bprasety_"} className="hover:text-white transition-colors" target="_blank" rel="noreferrer">Instagram</a>
+          <a href={profile?.socialLinks?.x || profile?.socialLinks?.twitter || "https://x.com/bprasety_"} className="hover:text-white transition-colors" target="_blank" rel="noreferrer">X</a>
+          <a href={profile?.socialLinks?.reddit || "https://reddit.com/user/bprasety_"} className="hover:text-white transition-colors" target="_blank" rel="noreferrer">Reddit</a>
+          <a href={profile?.socialLinks?.linkedin || "https://linkedin.com/in/bintang-prasetyo"} className="hover:text-white transition-colors" target="_blank" rel="noreferrer">LinkedIn</a>
+          <a href={`mailto:${profile?.socialLinks?.email || "contact@bprasety.com"}`} className="hover:text-white transition-colors">Email</a>
         </div>
         
         <p className="text-xs text-text-muted">

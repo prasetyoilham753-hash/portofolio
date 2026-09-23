@@ -39,6 +39,61 @@
       },
       "required": ["email"]
     },
+    "ProjectItem": {
+      "title": "Project Item",
+      "description": "A portfolio project item created and managed by the administrator.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 120 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "mediaUrl": { "type": "string" },
+        "mediaType": { "type": "string", "enum": ["image", "video"] },
+        "badge": { "type": "string", "maxLength": 50 },
+        "categories": { "type": "array", "items": { "type": "string" } },
+        "hyperlink": { "type": "string" },
+        "githubUrl": { "type": "string" },
+        "order": { "type": "number" },
+        "createdAt": { "type": "timestamp" },
+        "updatedAt": { "type": "timestamp" }
+      },
+      "required": ["title", "description", "mediaUrl"]
+    },
+    "PublicComment": {
+      "title": "Public Comment",
+      "description": "A comment or reply submitted in the public comments space.",
+      "type": "object",
+      "properties": {
+        "authorName": {
+          "type": "string",
+          "maxLength": 60,
+          "description": "Display name or Anonymous."
+        },
+        "isAnonymous": {
+          "type": "boolean",
+          "description": "Whether the author chose to be anonymous."
+        },
+        "content": {
+          "type": "string",
+          "maxLength": 1000,
+          "description": "The text content of the comment."
+        },
+        "parentId": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "Parent comment ID if this is a reply."
+        },
+        "replyToAuthor": {
+          "type": "string",
+          "maxLength": 60,
+          "description": "Name of the parent comment author."
+        },
+        "createdAt": {
+          "type": "timestamp",
+          "description": "Server timestamp when the comment was posted."
+        }
+      },
+      "required": ["authorName", "isAnonymous", "content", "createdAt"]
+    },
     "SiteContent": {
       "title": "Site Content",
       "description": "Dynamic content for the website.",
@@ -62,6 +117,18 @@
     }
   },
   "firestore": {
+    "/projects/{projectId}": {
+      "schema": {
+        "$ref": "#/entities/ProjectItem"
+      },
+      "description": "Collection storing portfolio projects created in dashboard."
+    },
+    "/comments/{commentId}": {
+      "schema": {
+        "$ref": "#/entities/PublicComment"
+      },
+      "description": "Collection storing public comments and replies."
+    },
     "/qna_messages/{messageId}": {
       "schema": {
         "$ref": "#/entities/QnAMessage"

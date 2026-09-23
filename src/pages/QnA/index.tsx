@@ -50,9 +50,9 @@ export default function QnA() {
             <p className="text-text-secondary font-light">Thank you for sharing your thoughts.</p>
             <button 
               onClick={() => setStatus("idle")}
-              className="mt-6 text-brand-accent text-sm tracking-widest uppercase hover:opacity-80 transition-opacity"
+              className="ios-glass-btn px-6 py-2.5 text-sm cursor-pointer mt-6"
             >
-              Send Another
+              <span>Send Another</span>
             </button>
           </div>
         ) : (
@@ -110,7 +110,7 @@ export default function QnA() {
             <button 
               type="submit" 
               disabled={status === "submitting" || message.trim().length === 0}
-              className="glass-button w-full py-4 rounded-lg font-medium tracking-wide mt-2 relative overflow-hidden"
+              className="ios-glass-btn ios-glass-primary w-full py-4 text-base font-semibold mt-2 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
             >
               {status === "submitting" ? (
                 <span className="flex items-center justify-center gap-2">
@@ -121,7 +121,7 @@ export default function QnA() {
                   Sending...
                 </span>
               ) : (
-                "Send Message"
+                <span>Send Message</span>
               )}
             </button>
             {status === "error" && (

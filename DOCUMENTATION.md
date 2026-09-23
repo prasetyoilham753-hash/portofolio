@@ -175,8 +175,8 @@ Verify public site, forms, auth, and performance manually/automatically.
 *   **Phase:** Phase 1 (Audit + Foundation).
 
 ## 34. PROJECT STATE
-**CURRENT PHASE:** Phase 4 (Home)
-**LAST VERIFIED CHECKPOINT:** CP03 (Navigation)
-**NEXT TASK:** Build Phase 4 & 5 (Core Content Pages)
+**CURRENT PHASE:** Phase 4 (Home - 360° Omnidirectional 3D Profile Card Complete)
+**LAST VERIFIED CHECKPOINT:** CP04 (Content & 360° Interactive Spatial Card)
+**NEXT TASK:** Phase 4 & 5 (Core Content Pages, About, Projects, Gallery)
 **KNOWN RISKS:** None currently.
 **OPEN DECISIONS:** Firebase Project ID, Admin Authorization Strategy.

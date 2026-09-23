@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../services/firebase/config";
+import { verifyIsAdmin } from "../../features/auth/adminAuth";
 
 export default function AdminLogin() {
   const [email, setEmail] = useState("");
@@ -9,6 +10,18 @@ export default function AdminLogin() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const isAdmin = await verifyIsAdmin(user);
+        if (isAdmin) {
+          navigate("/admin/dashboard");
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,10 +36,11 @@ export default function AdminLogin() {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       
-      // Strict frontend validation - ONLY this exact email is the admin
-      if (userCredential.user.email !== "prasetyoilham753@gmail.com") {
+      // Strict verification via Firestore roles / claims / env - NO hardcoded credentials in source code
+      const isAdmin = await verifyIsAdmin(userCredential.user);
+      if (!isAdmin) {
         await signOut(auth);
-        setError("Unauthorized: This account is not an administrator.");
+        setError("Unauthorized: This account is not an authorized administrator.");
         setIsLoading(false);
         return;
       }
@@ -82,7 +96,7 @@ export default function AdminLogin() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="glass-input px-4 py-3 rounded-lg w-full text-sm"
-                placeholder="prasetyoilham753@gmail.com"
+                placeholder="admin@example.com"
                 required
               />
             </div>
@@ -101,20 +115,22 @@ export default function AdminLogin() {
 
             <button 
               type="submit"
-              className="bg-brand-accent text-bg-primary w-full py-3.5 rounded-lg font-medium tracking-wide flex items-center justify-center gap-3 hover:bg-brand-accent/90 transition-colors"
+              className="ios-glass-btn ios-glass-primary w-full py-3.5 text-sm font-semibold mt-3 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
               disabled={isLoading}
             >
-              {isLoading ? (
-                <span className="flex items-center gap-2">
-                  <svg className="animate-spin h-5 w-5 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Authenticating...
-                </span>
-              ) : (
-                "Sign In →"
-              )}
+              <span>
+                {isLoading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-5 w-5 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Authenticating...
+                  </span>
+                ) : (
+                  "Sign In →"
+                )}
+              </span>
             </button>
           </form>
         </div>

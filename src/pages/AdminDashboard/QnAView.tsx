@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { collection, query, orderBy, onSnapshot, deleteDoc, doc } from "firebase/firestore";
 import { db } from "../../services/firebase/config";
+import { DeleteConfirmModal } from "../../components/common/DeleteConfirmModal";
 
 interface QnAMessage {
   id: string;
@@ -14,6 +15,8 @@ export function QnAView() {
   const [messages, setMessages] = useState<QnAMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
+  const [messageToDelete, setMessageToDelete] = useState<QnAMessage | null>(null);
+  const [isDeletingMessage, setIsDeletingMessage] = useState(false);
 
   useEffect(() => {
     const q = query(collection(db, "qna_messages"), orderBy("createdAt", "desc"));
@@ -37,13 +40,21 @@ export function QnAView() {
     return () => unsubscribe();
   }, []);
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm("Are you sure you want to delete this message?")) {
-      try {
-        await deleteDoc(doc(db, "qna_messages", id));
-      } catch (error) {
-        console.error("Error deleting message:", error);
-      }
+  const handleDelete = (msg: QnAMessage) => {
+    setMessageToDelete(msg);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!messageToDelete) return;
+    setIsDeletingMessage(true);
+    try {
+      await deleteDoc(doc(db, "qna_messages", messageToDelete.id));
+      setMessageToDelete(null);
+    } catch (error: any) {
+      console.error("Error deleting message:", error);
+      alert("Gagal menghapus pesan: " + (error?.message || "Periksa izin akun."));
+    } finally {
+      setIsDeletingMessage(false);
     }
   };
 
@@ -80,10 +91,10 @@ export function QnAView() {
                   )}
                 </div>
                 <button 
-                  onClick={() => handleDelete(msg.id)}
-                  className="text-red-400 text-xs tracking-widest uppercase opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                  onClick={() => handleDelete(msg)}
+                  className="ios-glass-btn px-3.5 py-1 text-xs text-red-400 font-semibold cursor-pointer opacity-80 hover:opacity-100 transition-opacity"
                 >
-                  Delete
+                  <span>Delete</span>
                 </button>
               </div>
               <div className="text-text-secondary font-light whitespace-pre-wrap leading-relaxed">
@@ -93,6 +104,19 @@ export function QnAView() {
           ))}
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={Boolean(messageToDelete)}
+        title="Hapus Pesan QnA"
+        itemName={messageToDelete ? `${messageToDelete.nickname || "Anon"}: "${messageToDelete.message.slice(0, 60)}${messageToDelete.message.length > 60 ? "..." : ""}"` : undefined}
+        description="Pesan QnA ini akan dihapus secara permanen dari database Firestore."
+        isDeleting={isDeletingMessage}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => {
+          if (!isDeletingMessage) setMessageToDelete(null);
+        }}
+      />
     </div>
   );
 }

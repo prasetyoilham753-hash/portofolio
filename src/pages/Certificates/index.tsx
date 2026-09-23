@@ -17,8 +17,8 @@ export default function Certificates() {
               <h2 className="text-xl font-medium mb-1">Advanced Frontend Architecture</h2>
               <p className="text-text-secondary text-sm">Issued by Tech Institute · 2024</p>
             </div>
-            <div className="text-brand-accent text-sm tracking-widest uppercase opacity-0 group-hover:opacity-100 transition-opacity">
-              View Credential →
+            <div className="ios-glass-btn px-4 py-1.5 text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
+              <span>View Credential →</span>
             </div>
           </div>
         ))}

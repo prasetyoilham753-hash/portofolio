@@ -33,6 +33,20 @@ service cloud.firestore {
     // ==========================================
     // ENTITY VALIDATION HELPERS
     // ==========================================
+    function isValidComment(data) {
+      let isAuthorValid = data.authorName is string && data.authorName.size() > 0 && data.authorName.size() <= 60;
+      let isAnonValid = data.isAnonymous is bool;
+      let isContentValid = data.content is string && data.content.size() > 0 && data.content.size() <= 1000;
+      let isCreatedAtValid = data.createdAt == request.time;
+      let isParentValid = !('parentId' in data) || (data.parentId is string && data.parentId.size() <= 128);
+      let isReplyAuthorValid = !('replyToAuthor' in data) || (data.replyToAuthor is string && data.replyToAuthor.size() <= 60);
+
+      let hasRequiredKeys = data.keys().hasAll(['authorName', 'isAnonymous', 'content', 'createdAt']);
+      let hasOnlyAllowedKeys = data.keys().hasOnly(['authorName', 'isAnonymous', 'content', 'createdAt', 'parentId', 'replyToAuthor']);
+
+      return hasRequiredKeys && hasOnlyAllowedKeys && isAuthorValid && isAnonValid && isContentValid && isCreatedAtValid && isParentValid && isReplyAuthorValid;
+    }
+
     function isValidQnAMessage(data) {
       let isCategoryValid = data.category in ["Question", "Idea", "Feedback", "Collaboration", "Other"];
       let isMessageValid = data.message is string && data.message.size() > 0 && data.message.size() <= 500;
@@ -49,7 +63,15 @@ service cloud.firestore {
     // COLLECTIONS
     // ==========================================
     
-    // 1. QnA Messages
+    // 1. Public Comments & Replies
+    match /comments/{commentId} {
+      allow read: if true;
+      allow create: if isValidId(commentId) && isValidComment(incoming());
+      allow delete: if isValidId(commentId) && isAdmin();
+      allow update: if isValidId(commentId) && isAdmin();
+    }
+
+    // 2. QnA Messages
     match /qna_messages/{messageId} {
       allow read: if isAdmin();
       allow delete: if isValidId(messageId) && isAdmin();
@@ -63,10 +85,22 @@ service cloud.firestore {
       allow write: if false; // System / Console only
     }
 
-    // 3. Site Content (e.g. profile, about, projects, gallery, certificates)
+    // 3. Site Content (e.g. profile, about, gallery, certificates)
     match /site_content/{documentId} {
       allow read: if true;
       allow write: if isAdmin();
+    }
+
+    // 4. Portfolio Projects
+    match /projects/{projectId} {
+      allow read: if true;
+      allow write: if isValidId(projectId) && isAdmin();
+    }
+
+    // 5. Art Gallery Items
+    match /gallery/{artworkId} {
+      allow read: if true;
+      allow write: if isValidId(artworkId) && isAdmin();
     }
   }
 }

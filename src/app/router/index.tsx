@@ -7,6 +7,7 @@ import Gallery from "../../pages/Gallery";
 import Certificates from "../../pages/Certificates";
 import Commission from "../../pages/Commission";
 import QnA from "../../pages/QnA";
+import Comments from "../../pages/Comments";
 import AdminLogin from "../../pages/AdminLogin";
 import AdminDashboard from "../../pages/AdminDashboard";
 
@@ -40,8 +41,16 @@ export const router = createBrowserRouter([
         element: <Commission />,
       },
       {
+        path: "contact",
+        element: <Commission />,
+      },
+      {
+        path: "comments",
+        element: <Comments />,
+      },
+      {
         path: "qna",
-        element: <QnA />,
+        element: <Comments />,
       },
       {
         path: "admin",

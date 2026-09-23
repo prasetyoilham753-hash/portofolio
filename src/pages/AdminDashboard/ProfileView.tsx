@@ -7,6 +7,8 @@ export function ProfileView() {
     name: "",
     title: "",
     about: "",
+    heroDescription: "",
+    projectDescription: "",
     photoUrl: "",
     photoPath: "",
     socialLinks: {},
@@ -46,13 +48,22 @@ export function ProfileView() {
   const handleChange = (field: string, value: any) => {
     if (field.startsWith('social.')) {
       const socialField = field.split('.')[1];
-      setProfile(prev => ({
-        ...prev,
-        socialLinks: {
+      setProfile(prev => {
+        const nextSocial = {
           ...prev.socialLinks,
           [socialField]: value
+        };
+        // Keep x and twitter in sync so both are available
+        if (socialField === 'x') {
+          nextSocial.twitter = value;
+        } else if (socialField === 'twitter') {
+          nextSocial.x = value;
         }
-      }));
+        return {
+          ...prev,
+          socialLinks: nextSocial
+        };
+      });
     } else {
       setProfile(prev => ({ ...prev, [field]: value }));
     }
@@ -220,8 +231,13 @@ export function ProfileView() {
                 {uploading1 && <div className="absolute inset-0 bg-bg-primary/80 flex items-center justify-center">Loading...</div>}
               </div>
               <input type="file" ref={fileInputRef1} accept="image/jpeg,image/png,image/webp" onChange={(e) => handleFileUpload(e, 'photo1')} className="hidden" />
-              <button type="button" onClick={() => fileInputRef1.current?.click()} disabled={uploading1} className="glass-button px-4 py-2 rounded-lg text-sm text-center">
-                {uploading1 ? 'Uploading...' : 'Upload Photo 1'}
+              <button 
+                type="button" 
+                onClick={() => fileInputRef1.current?.click()} 
+                disabled={uploading1} 
+                className="ios-glass-btn w-full py-2.5 text-xs text-center cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
+              >
+                <span>{uploading1 ? 'Uploading...' : 'Upload Photo 1'}</span>
               </button>
             </div>
 
@@ -237,8 +253,13 @@ export function ProfileView() {
                 {uploading2 && <div className="absolute inset-0 bg-bg-primary/80 flex items-center justify-center">Loading...</div>}
               </div>
               <input type="file" ref={fileInputRef2} accept="image/jpeg,image/png,image/webp" onChange={(e) => handleFileUpload(e, 'photo2')} className="hidden" />
-              <button type="button" onClick={() => fileInputRef2.current?.click()} disabled={uploading2} className="glass-button px-4 py-2 rounded-lg text-sm text-center">
-                {uploading2 ? 'Uploading...' : 'Upload Photo 2'}
+              <button 
+                type="button" 
+                onClick={() => fileInputRef2.current?.click()} 
+                disabled={uploading2} 
+                className="ios-glass-btn w-full py-2.5 text-xs text-center cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
+              >
+                <span>{uploading2 ? 'Uploading...' : 'Upload Photo 2'}</span>
               </button>
             </div>
             
@@ -254,8 +275,13 @@ export function ProfileView() {
                 {uploadingCV && <div className="absolute inset-0 bg-bg-primary/80 flex items-center justify-center">Loading...</div>}
               </div>
               <input type="file" ref={cvInputRef} accept="application/pdf" onChange={(e) => handleFileUpload(e, 'cv')} className="hidden" />
-              <button type="button" onClick={() => cvInputRef.current?.click()} disabled={uploadingCV} className="glass-button px-4 py-2 rounded-lg text-sm text-center">
-                {uploadingCV ? 'Uploading...' : 'Upload CV PDF'}
+              <button 
+                type="button" 
+                onClick={() => cvInputRef.current?.click()} 
+                disabled={uploadingCV} 
+                className="ios-glass-btn w-full py-2.5 text-xs text-center cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
+              >
+                <span>{uploadingCV ? 'Uploading...' : 'Upload CV PDF'}</span>
               </button>
             </div>
           </div>
@@ -282,8 +308,28 @@ export function ProfileView() {
               <input type="text" value={profile.title || ''} onChange={e => handleChange('title', e.target.value)} className="glass-input px-4 py-3 rounded-lg w-full" placeholder="Full Stack Developer" />
             </div>
             <div className="flex flex-col gap-2 md:col-span-2">
-              <label className="text-sm text-text-secondary">Hero Description</label>
-              <textarea value={profile.heroDescription || ''} onChange={e => handleChange('heroDescription', e.target.value)} className="glass-input px-4 py-3 rounded-lg w-full min-h-[100px] resize-y" placeholder="I'm a passionate developer..." />
+              <div className="flex justify-between items-center">
+                <label className="text-sm text-text-secondary">Hero Description</label>
+                <span className={`text-xs font-mono ${(profile.heroDescription?.length || 0) >= 320 ? 'text-amber-400 font-semibold' : 'text-text-muted'}`}>
+                  {(profile.heroDescription?.length || 0)} / 320 karakter
+                </span>
+              </div>
+              <textarea 
+                value={profile.heroDescription || ''} 
+                maxLength={320}
+                onChange={e => {
+                  const val = e.target.value.slice(0, 320);
+                  handleChange('heroDescription', val);
+                }} 
+                className="glass-input px-4 py-3 rounded-lg w-full min-h-[110px] resize-y" 
+                placeholder="I'm a passionate developer who loves building web applications, exploring new technologies, and turning ideas into real, useful products." 
+              />
+              <div className="flex justify-between items-center text-[11px] text-text-muted">
+                <span>Dibatasi maksimal 320 karakter agar pas dengan tinggi kotak teks di beranda dan sejajar dengan tombol Download CV.</span>
+                {(profile.heroDescription?.length || 0) >= 320 && (
+                  <span className="text-amber-400 font-medium shrink-0 ml-2">Batas maksimum 320 karakter tercapai</span>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -315,7 +361,13 @@ export function ProfileView() {
         <div className="flex flex-col gap-4">
           <div className="flex justify-between items-center border-b border-white/5 pb-2">
             <h3 className="text-lg font-display">Technologies</h3>
-            <button type="button" onClick={handleAddTech} className="text-brand-accent text-sm hover:underline">+ Add Tech</button>
+            <button 
+              type="button" 
+              onClick={handleAddTech} 
+              className="ios-glass-btn px-4 py-1 text-xs font-semibold cursor-pointer"
+            >
+              <span>+ Add Tech</span>
+            </button>
           </div>
           <div className="flex flex-col gap-3">
             {profile.technologies?.map((tech, index) => (
@@ -339,17 +391,29 @@ export function ProfileView() {
 
         {/* Social Links */}
         <div className="flex flex-col gap-6">
-          <h3 className="text-lg font-display border-b border-white/5 pb-2">Social Links</h3>
+          <div className="border-b border-white/5 pb-2">
+            <h3 className="text-lg font-display">Social Links</h3>
+            <p className="text-xs text-text-secondary mt-1">
+              Configured links will show on the left profile dock (Instagram, X, Reddit, LinkedIn).
+            </p>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {['instagram', 'twitter', 'reddit', 'linkedin', 'github', 'email'].map(social => (
-              <div key={social} className="flex flex-col gap-2">
-                <label className="text-sm text-text-secondary capitalize">{social}</label>
+            {[
+              { id: 'instagram', label: 'Instagram', placeholder: 'https://instagram.com/bprasety_' },
+              { id: 'x', label: 'X (formerly Twitter)', placeholder: 'https://x.com/bprasety_' },
+              { id: 'reddit', label: 'Reddit', placeholder: 'https://reddit.com/user/bprasety_' },
+              { id: 'linkedin', label: 'LinkedIn', placeholder: 'https://linkedin.com/in/bintang-prasetyo' },
+              { id: 'github', label: 'GitHub', placeholder: 'https://github.com/bprasety' },
+              { id: 'email', label: 'Email', placeholder: 'mailto:contact@bprasety.com' },
+            ].map(({ id, label, placeholder }) => (
+              <div key={id} className="flex flex-col gap-2">
+                <label className="text-sm text-text-secondary">{label}</label>
                 <input 
                   type="text" 
-                  value={(profile.socialLinks as any)?.[social] || ""} 
-                  onChange={e => handleChange(`social.${social}`, e.target.value)}
+                  value={(profile.socialLinks as any)?.[id] ?? (id === 'x' ? (profile.socialLinks as any)?.twitter ?? '' : '')} 
+                  onChange={e => handleChange(`social.${id}`, e.target.value)}
                   className="glass-input px-4 py-2 rounded-lg w-full"
-                  placeholder={`https://${social}.com/...`}
+                  placeholder={placeholder}
                 />
               </div>
             ))}
@@ -357,8 +421,12 @@ export function ProfileView() {
         </div>
 
         <div className="flex justify-end pt-6 border-t border-white/5">
-          <button type="submit" disabled={saving || uploading1 || uploading2 || uploadingCV} className="bg-brand-accent text-bg-primary px-8 py-3 rounded-lg font-medium tracking-wide hover:bg-brand-accent/90 transition-colors disabled:opacity-50">
-            {saving ? 'Saving...' : 'Save All Changes'}
+          <button 
+            type="submit" 
+            disabled={saving || uploading1 || uploading2 || uploadingCV} 
+            className="ios-glass-btn ios-glass-primary px-8 py-3 text-sm font-semibold cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
+          >
+            <span>{saving ? 'Saving...' : 'Save All Changes'}</span>
           </button>
         </div>
       </form>

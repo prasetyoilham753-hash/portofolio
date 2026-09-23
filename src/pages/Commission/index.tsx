@@ -37,8 +37,11 @@ export default function Commission() {
             <textarea id="details" rows={5} className="glass-input px-4 py-3 rounded-lg resize-none" placeholder="Tell me about your project, timeline, and budget expectations..."></textarea>
           </div>
 
-          <button type="submit" className="glass-button w-full py-4 rounded-lg font-medium tracking-wide mt-4">
-            Submit Inquiry
+          <button 
+            type="submit" 
+            className="ios-glass-btn ios-glass-primary w-full py-4 text-base font-semibold mt-4 cursor-pointer"
+          >
+            <span>Submit Inquiry</span>
           </button>
         </form>
       </div>

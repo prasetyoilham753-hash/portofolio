@@ -1,228 +1,279 @@
-import React, { useState, useRef, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Instagram, Twitter, Linkedin, FileText, ArrowRight } from "lucide-react";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Instagram, Linkedin } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
 import { SiteProfile } from "../../../features/profile/types";
+import { ProfileCard3D } from "./ProfileCard3D";
+
+function XIcon({ size = 18, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+    </svg>
+  );
+}
+
+function RedditIcon({ size = 19, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87s-7.004-2.176-7.004-4.87c0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.703zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z" />
+    </svg>
+  );
+}
 
 interface HeroProps {
   profile: SiteProfile | null;
 }
 
 export function Hero({ profile }: HeroProps) {
-  const [photoIndex, setPhotoIndex] = useState(0);
-  const touchStartX = useRef<number | null>(null);
+  const shouldReduceMotion = useReducedMotion();
+  const navigate = useNavigate();
+  const [clickCount, setClickCount] = useState(0);
+  const clickTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  const handleNameClick = () => {
+    setClickCount(prev => {
+      const next = prev + 1;
+      if (next >= 5) {
+        if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+        navigate("/admin");
+        return 0;
+      }
+      return next;
+    });
+
+    if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+    clickTimerRef.current = setTimeout(() => {
+      setClickCount(0);
+    }, 2500);
+  };
 
   // Safe fallbacks
   const firstName = profile?.firstName || profile?.name?.split(" ")[0] || "Bintang";
   const lastName = profile?.lastName || profile?.name?.split(" ").slice(1).join(" ") || "Prasetyo";
+  const fullName = profile?.name || `${firstName} ${lastName}`;
   const role = profile?.title || "Full Stack Developer";
   const description = profile?.heroDescription || profile?.about || "I'm a passionate developer who loves building web applications, exploring new technologies, and turning ideas into real, useful products.";
   
   const photo1 = profile?.photoUrl;
   const photo2 = profile?.photoUrl2;
-  const photos = [photo1, photo2].filter(Boolean) as string[];
+  const extraPhotos = ((profile as any)?.photos || (profile as any)?.profileImages || []) as string[];
+  const photos = [photo1, photo2, ...extraPhotos].filter(Boolean) as string[];
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-  };
+  // Fallback URLs for the 4 social links
+  const instagramUrl = profile?.socialLinks?.instagram || "https://instagram.com/bprasety_";
+  const xUrl = profile?.socialLinks?.x || profile?.socialLinks?.twitter || "https://x.com/bprasety_";
+  const redditUrl = profile?.socialLinks?.reddit || "https://reddit.com/user/bprasety_";
+  const linkedinUrl = profile?.socialLinks?.linkedin || "https://linkedin.com/in/bintang-prasetyo";
 
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX.current === null) return;
-    const touchEndX = e.changedTouches[0].clientX;
-    const diff = touchStartX.current - touchEndX;
+  const leftColRef = React.useRef<HTMLDivElement>(null);
+  const [leftColHeight, setLeftColHeight] = React.useState<number | null>(null);
 
-    if (Math.abs(diff) > 50) { // swipe threshold
-      if (diff > 0) {
-        // swipe left -> next photo
-        if (photos.length > 1) {
-          setPhotoIndex((prev) => (prev + 1) % photos.length);
-        }
-      } else {
-        // swipe right -> prev photo
-        if (photos.length > 1) {
-          setPhotoIndex((prev) => (prev - 1 + photos.length) % photos.length);
-        }
+  React.useEffect(() => {
+    if (!leftColRef.current) return;
+    const updateHeight = () => {
+      if (leftColRef.current) {
+        const h = leftColRef.current.offsetHeight;
+        if (h > 0) setLeftColHeight(h);
       }
-    }
-    touchStartX.current = null;
-  };
+    };
+    updateHeight();
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(leftColRef.current);
+    window.addEventListener("resize", updateHeight);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateHeight);
+    };
+  }, []);
 
-  const nextPhoto = () => setPhotoIndex(p => (p + 1) % photos.length);
-  const prevPhoto = () => setPhotoIndex(p => (p - 1 + photos.length) % photos.length);
+  const socialItems = [
+    {
+      id: "instagram",
+      label: "Instagram",
+      url: instagramUrl,
+      icon: <Instagram size={19} className="transition-transform group-hover:scale-110" />,
+      mobileIcon: <Instagram size={16} />,
+    },
+    {
+      id: "x",
+      label: "X (Twitter)",
+      url: xUrl,
+      icon: <XIcon size={17} className="transition-transform group-hover:scale-110" />,
+      mobileIcon: <XIcon size={15} />,
+    },
+    {
+      id: "reddit",
+      label: "Reddit",
+      url: redditUrl,
+      icon: <RedditIcon size={19} className="transition-transform group-hover:scale-110" />,
+      mobileIcon: <RedditIcon size={16} />,
+    },
+    {
+      id: "linkedin",
+      label: "LinkedIn",
+      url: linkedinUrl,
+      icon: <Linkedin size={19} className="transition-transform group-hover:scale-110" />,
+      mobileIcon: <Linkedin size={16} />,
+    },
+  ];
 
   return (
-    <section className="flex flex-col md:grid md:grid-cols-[64px_minmax(300px,390px)_minmax(350px,1fr)] items-center md:items-center justify-center md:justify-start pt-[100px] md:pt-[130px] px-5 pb-[70px] max-w-[430px] mx-auto md:max-w-[1120px] lg:max-w-[1200px] gap-8 md:gap-8 lg:gap-[40px] reveal">
+    <section 
+      id="hero-section"
+      className="grid grid-cols-[175px_1fr] xs:grid-cols-[200px_1fr] sm:grid-cols-[270px_1fr] md:grid-cols-[360px_1fr] lg:grid-cols-[410px_1fr] xl:grid-cols-[440px_1fr] items-stretch justify-start mt-[1cm] pb-12 sm:pb-16 md:pb-[96px] w-full max-w-[620px] xs:max-w-[680px] sm:max-w-[840px] md:max-w-[1320px] lg:max-w-[1460px] xl:max-w-[1540px] mx-auto px-0 sm:px-1 md:px-2 lg:px-4 gap-4 xs:gap-5 sm:gap-7 md:gap-9 lg:gap-12 xl:gap-14 reveal"
+    >
       
-      {/* Social Links (Desktop Left / Mobile Top or Hidden) */}
-      <div className="hidden md:flex flex-col items-center gap-6 z-10 bg-[rgba(5,15,35,0.55)] border border-[rgba(120,160,255,0.35)] rounded-[32px] py-4 px-0 w-[64px] backdrop-blur-[16px] shadow-[0_10px_30px_rgba(0,0,0,0.2)]">
-        {profile?.socialLinks?.instagram && (
-          <a href={profile.socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="text-[#A8B8CC] hover:text-[#7DB3FF] hover:drop-shadow-[0_0_8px_rgba(91,140,255,0.6)] transition-all" aria-label="Instagram">
-            <Instagram size={22} />
-          </a>
-        )}
-        {profile?.socialLinks?.twitter && (
-          <a href={profile.socialLinks.twitter} target="_blank" rel="noopener noreferrer" className="text-[#A8B8CC] hover:text-[#7DB3FF] hover:drop-shadow-[0_0_8px_rgba(91,140,255,0.6)] transition-all" aria-label="X / Twitter">
-            <Twitter size={22} />
-          </a>
-        )}
-        {profile?.socialLinks?.reddit && (
-          <a href={profile.socialLinks.reddit} target="_blank" rel="noopener noreferrer" className="text-[#A8B8CC] hover:text-[#7DB3FF] hover:drop-shadow-[0_0_8px_rgba(91,140,255,0.6)] transition-all" aria-label="Reddit">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"></path><path d="M15.5 14.5a3.5 3.5 0 0 1-7 0"></path><circle cx="9" cy="11.5" r="1"></circle><circle cx="15" cy="11.5" r="1"></circle></svg>
-          </a>
-        )}
-        {profile?.socialLinks?.linkedin && (
-          <a href={profile.socialLinks.linkedin} target="_blank" rel="noopener noreferrer" className="text-[#A8B8CC] hover:text-[#7DB3FF] hover:drop-shadow-[0_0_8px_rgba(91,140,255,0.6)] transition-all" aria-label="LinkedIn">
-            <Linkedin size={22} />
-          </a>
-        )}
-      </div>
-
-      {/* Profile Image Area */}
-      <div className="relative mb-8 md:mb-0 w-full max-w-[320px] md:max-w-none shrink-0 aspect-[4/5] rounded-[32px] border border-[rgba(100,160,255,0.65)] shadow-[0_0_30px_rgba(60,130,255,0.3),0_0_70px_rgba(70,100,255,0.12)] z-10 group">
+      {/* Profile Image & Action Area (Card + 4 Social Icons + Download CV Button) */}
+      <div 
+        ref={leftColRef}
+        className="relative mb-0 w-full max-w-[175px] xs:max-w-[200px] sm:max-w-[270px] md:max-w-[360px] lg:max-w-[410px] xl:max-w-[440px] mx-auto md:mx-0 shrink-0 z-10 flex flex-col items-center"
+      >
+        {/* Profile Card with 3D Fly-In + Flip Animation */}
         <div 
-          className="w-full h-full relative touch-pan-y transition-transform duration-[650ms]"
-          style={{ 
-            transformStyle: "preserve-3d",
-            transform: photoIndex === 1 ? "rotateY(180deg)" : "rotateY(0deg)",
-            perspective: "1000px"
-          }}
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
+          className="w-full flex justify-center"
+          style={{ perspective: "1400px" }}
         >
-          {photos.length > 0 ? (
-            <>
-              {/* Photo 1 */}
-              <div 
-                className="absolute inset-0 w-full h-full rounded-[32px] overflow-hidden bg-[#0a182a]"
-                style={{ backfaceVisibility: "hidden" }}
+          <motion.div
+            id="hero-profile-fly-flip"
+            initial={shouldReduceMotion ? { opacity: 0 } : {
+              opacity: 0,
+              y: 80,
+              scale: 0.82,
+              rotateY: 180,
+              rotateX: 12,
+              filter: "blur(6px)",
+            }}
+            animate={shouldReduceMotion ? { opacity: 1 } : {
+              opacity: 1,
+              y: 0,
+              scale: 1,
+              rotateY: 0,
+              rotateX: 0,
+              filter: "blur(0px)",
+            }}
+            transition={{
+              duration: 1.35,
+              ease: [0.16, 1, 0.3, 1], // Apple fluid cubic bezier
+              delay: 0.08,
+            }}
+            style={{
+              transformStyle: "preserve-3d",
+            }}
+            className="relative flex justify-center"
+          >
+            <ProfileCard3D photos={photos} name={fullName} />
+          </motion.div>
+        </div>
+
+        {/* 4 Social Media Icons (Raised up, matching shape and dimensions of Download CV button) */}
+        <motion.div 
+          id="hero-social-icons"
+          initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 28, scale: 0.94 }}
+          animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.75, delay: 0.42, ease: [0.16, 1, 0.3, 1] }}
+          className="flex justify-center w-full z-20 mt-2.5 xs:mt-3 sm:mt-3.5 md:mt-4"
+        >
+          <div className="flex items-center justify-between w-full max-w-[165px] xs:max-w-[190px] sm:max-w-[240px] md:max-w-[270px] h-[38px] xs:h-[42px] sm:h-[46px] md:h-[50px] bg-[rgba(6,15,35,0.75)] border border-[rgba(120,170,255,0.28)] rounded-full px-3 xs:px-4 sm:px-5 md:px-6 backdrop-blur-xl shadow-[0_6px_20px_rgba(0,0,0,0.35)] transition-all duration-300 hover:border-[rgba(140,190,255,0.5)]">
+            {socialItems.map(item => (
+              <a
+                key={item.id}
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ios-glass-icon w-6.5 h-6.5 xs:w-7.5 xs:h-7.5 sm:w-8 sm:h-8 md:w-9 md:h-9 cursor-pointer flex items-center justify-center text-[#A8C8FF] hover:text-white transition-colors"
+                aria-label={item.label}
+                title={item.label}
               >
-                <img
-                  src={photos[0]}
-                  alt={`${name} - Photo 1`}
-                  className="w-full h-full object-cover"
-                  loading="eager"
-                />
-              </div>
-              
-              {/* Photo 2 */}
-              {photos.length > 1 && (
-                <div 
-                  className="absolute inset-0 w-full h-full rounded-[32px] overflow-hidden bg-[#0a182a]"
-                  style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
-                >
-                  <img
-                    src={photos[1]}
-                    alt={`${name} - Photo 2`}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-[#0a182a] text-text-muted rounded-[32px]">
-              No Photo
-            </div>
-          )}
-        </div>
-
-        {/* Indicators and desktop controls */}
-        {photos.length > 1 && (
-          <div className="absolute bottom-4 left-0 right-0 flex justify-center items-center gap-2 z-20">
-            <button 
-              onClick={prevPhoto} 
-              className="hidden md:flex p-1 text-white/50 hover:text-white transition-colors"
-              aria-label="Previous Photo"
-            >
-              &larr;
-            </button>
-            <div className="flex gap-1.5 bg-[rgba(5,15,35,0.5)] px-3 py-2 rounded-full backdrop-blur-md border border-[rgba(255,255,255,0.1)]">
-              {photos.map((_, i) => (
-                <div 
-                  key={i} 
-                  className={`h-1.5 rounded-full transition-all duration-300 ${i === photoIndex ? 'bg-gradient-to-r from-[#5B8CFF] to-[#8B7CFF] w-4' : 'bg-[#71839A]/60 w-1.5'}`}
-                />
-              ))}
-            </div>
-            <button 
-              onClick={nextPhoto} 
-              className="hidden md:flex p-1 text-white/50 hover:text-white transition-colors"
-              aria-label="Next Photo"
-            >
-              &rarr;
-            </button>
+                <span className="scale-[0.82] xs:scale-90 sm:scale-95 md:scale-100">{item.mobileIcon || item.icon}</span>
+              </a>
+            ))}
           </div>
-        )}
+        </motion.div>
 
-        {/* Mobile Social Links (Overlaid or below) */}
-        <div className="md:hidden absolute -bottom-6 left-0 right-0 flex justify-center z-20">
-          <div className="flex gap-5 items-center bg-[rgba(10,24,42,0.6)] border border-[rgba(130,180,255,0.15)] rounded-full px-6 py-3 backdrop-blur-xl shadow-[0_10px_30px_rgba(0,0,0,0.3)]">
-            {profile?.socialLinks?.instagram && (
-              <a href={profile.socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="text-[#A8B8CC] hover:text-[#7DB3FF] active:scale-95 transition-all" aria-label="Instagram">
-                <Instagram size={20} />
-              </a>
-            )}
-            {profile?.socialLinks?.twitter && (
-              <a href={profile.socialLinks.twitter} target="_blank" rel="noopener noreferrer" className="text-[#A8B8CC] hover:text-[#7DB3FF] active:scale-95 transition-all" aria-label="X / Twitter">
-                <Twitter size={20} />
-              </a>
-            )}
-            {profile?.socialLinks?.reddit && (
-              <a href={profile.socialLinks.reddit} target="_blank" rel="noopener noreferrer" className="text-[#A8B8CC] hover:text-[#7DB3FF] active:scale-95 transition-all" aria-label="Reddit">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"></path><path d="M15.5 14.5a3.5 3.5 0 0 1-7 0"></path><circle cx="9" cy="11.5" r="1"></circle><circle cx="15" cy="11.5" r="1"></circle></svg>
-              </a>
-            )}
-            {profile?.socialLinks?.linkedin && (
-              <a href={profile.socialLinks.linkedin} target="_blank" rel="noopener noreferrer" className="text-[#A8B8CC] hover:text-[#7DB3FF] active:scale-95 transition-all" aria-label="LinkedIn">
-                <Linkedin size={20} />
-              </a>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Text Content */}
-      <div className="flex flex-col items-center md:items-start text-center md:text-left mt-10 md:mt-0 w-full z-10">
-        <span className="text-[18px] text-[#7DB3FF] mb-2 font-medium">Hello, I'm</span>
-        
-        <h1 className="font-extrabold leading-[1.0] tracking-[-0.03em] flex flex-col gap-1" style={{ fontSize: 'clamp(46px, 7vw, 76px)' }}>
-          <span className="text-[#F7FAFF]">{firstName}</span>
-          <span className="text-gradient">{lastName}</span>
-        </h1>
-        
-        <h2 className="text-[20px] sm:text-[24px] font-semibold text-[#F7FAFF] mt-[14px]">
-          {role}
-        </h2>
-        
-        <p className="text-[16px] sm:text-[17px] text-[#A8B8CC] leading-[1.65] max-w-[540px] mt-6 mb-8">
-          {description}
-        </p>
-
-        {/* CTAs */}
-        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto px-2 md:px-0 mt-2">
+        {/* Download CV Button (Positioned underneath the social media icons with identical shape and size) */}
+        <motion.div 
+          id="hero-download-cv-container"
+          initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 24, scale: 0.94 }}
+          animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.75, delay: 0.52, ease: [0.16, 1, 0.3, 1] }}
+          className="flex justify-center w-full z-20 mt-2 xs:mt-2.5 sm:mt-3 md:mt-3.5"
+        >
           {profile?.cvUrl ? (
             <a 
+              id="hero-download-cv"
               href={profile.cvUrl}
               target="_blank" 
               rel="noopener noreferrer"
-              className="h-[52px] px-8 rounded-[28px] bg-gradient-to-br from-[#7DB3FF] to-[#5B8CFF] text-[#020914] font-semibold flex items-center justify-center shadow-[0_10px_35px_rgba(61,124,255,0.25)] active:scale-97 transition-transform hover:opacity-90 hover:-translate-y-[2px]"
+              className="ios-glass-btn ios-glass-primary w-full max-w-[165px] xs:max-w-[190px] sm:max-w-[240px] md:max-w-[270px] h-[38px] xs:h-[42px] sm:h-[46px] md:h-[50px] px-3 xs:px-4 sm:px-5 md:px-6 text-[11px] xs:text-xs sm:text-sm md:text-base font-medium whitespace-nowrap flex items-center justify-center rounded-full"
             >
-              Download CV &rarr;
+              <span>Download CV &rarr;</span>
             </a>
           ) : (
             <button 
+              id="hero-download-cv-disabled"
               disabled
-              className="h-[52px] px-8 rounded-[28px] bg-gray-700 text-gray-400 font-semibold flex items-center justify-center opacity-50 cursor-not-allowed"
+              className="ios-glass-btn w-full max-w-[165px] xs:max-w-[190px] sm:max-w-[240px] md:max-w-[270px] h-[38px] xs:h-[42px] sm:h-[46px] md:h-[50px] px-3 xs:px-4 sm:px-5 md:px-6 text-[11px] xs:text-xs sm:text-sm md:text-base font-medium whitespace-nowrap opacity-50 pointer-events-none flex items-center justify-center rounded-full"
             >
-              CV Not Available
+              <span>CV Not Available</span>
             </button>
           )}
-          <Link 
-            to="/contact"
-            className="h-[52px] px-8 rounded-[28px] bg-white/[0.025] border border-[rgba(130,180,255,0.38)] text-[#F7FAFF] font-medium flex items-center justify-center active:scale-97 transition-transform hover:bg-white/[0.05] hover:shadow-[0_0_15px_rgba(130,180,255,0.15)]"
+        </motion.div>
+      </div>
+
+      {/* Text Content */}
+      <div 
+        className="flex flex-col items-start text-left mt-0 w-full z-10 min-w-0 h-full overflow-visible"
+        style={{
+          height: leftColHeight ? `${leftColHeight}px` : undefined,
+          maxHeight: leftColHeight ? `${leftColHeight}px` : undefined,
+        }}
+      >
+        <motion.span 
+          initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 20 }}
+          animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+          transition={{ duration: 0.65, delay: 0.18, ease: [0.16, 1, 0.3, 1] }}
+          className="text-[13px] xs:text-[15px] sm:text-[18px] md:text-[21px] lg:text-[23px] text-[#7DB3FF] mb-1 sm:mb-1.5 font-medium tracking-wide pt-0.5 sm:pt-1"
+        >
+          Hello, I'm
+        </motion.span>
+        
+        <motion.div
+          initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 32, filter: "blur(4px)" }}
+          animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, filter: "blur(0px)" }}
+          transition={{ duration: 0.8, delay: 0.26, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <div 
+            onClick={handleNameClick} 
+            className="group block rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7DB3FF]/50 transition-transform active:scale-[0.99] cursor-default select-none"
+            role="heading"
+            aria-level={1}
           >
-            Contact Me
-          </Link>
-        </div>
+            <h1 className="font-extrabold leading-[1.03] tracking-[-0.03em] flex flex-col text-[26px] xs:text-[32px] sm:text-[46px] md:text-[64px] lg:text-[78px] xl:text-[88px]">
+              <span className="text-[#F7FAFF] group-hover:text-white transition-colors">{firstName}</span>
+              <span className="text-gradient">{lastName}</span>
+            </h1>
+          </div>
+        </motion.div>
+        
+        <motion.h2 
+          initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 22 }}
+          animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.34, ease: [0.16, 1, 0.3, 1] }}
+          className="text-[14px] xs:text-[16px] sm:text-[20px] md:text-[25px] lg:text-[29px] font-semibold text-[#F7FAFF] mt-1 sm:mt-1.5 md:mt-2"
+        >
+          {role}
+        </motion.h2>
+        
+        <motion.p 
+          id="hero-bio-text"
+          initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 32, scale: 0.98, filter: "blur(4px)" }}
+          animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+          transition={{ duration: 0.85, delay: 0.42, ease: [0.16, 1, 0.3, 1] }}
+          className="w-full flex-1 min-h-0 max-w-[680px] bg-[rgba(6,15,35,0.45)] border border-[rgba(120,170,255,0.18)] rounded-[20px] sm:rounded-[24px] p-3.5 xs:p-4 sm:p-5 md:p-6 backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.25)] text-[12px] xs:text-[13px] sm:text-[15px] md:text-[16px] lg:text-[17px] text-[#A8B8CC] leading-[1.6] sm:leading-[1.7] mt-2 xs:mt-2.5 sm:mt-3.5 md:mt-4 overflow-hidden break-words [overflow-wrap:anywhere] transition-all duration-300 hover:border-[rgba(140,190,255,0.35)]"
+        >
+          <span className="whitespace-pre-line block">{description}</span>
+        </motion.p>
       </div>
     </section>
   );

@@ -25,9 +25,12 @@ export function About({ profile }: AboutProps) {
     : defaultTech;
 
   return (
-    <section className="px-5 py-[64px] md:py-[100px] max-w-[430px] mx-auto md:max-w-7xl reveal">
+    <section id="about-section" className="px-5 py-[64px] md:py-[100px] max-w-[430px] mx-auto md:max-w-7xl reveal">
       
-      <div className="bg-[rgba(10,24,42,0.5)] border border-[rgba(130,180,255,0.15)] rounded-[32px] md:rounded-[40px] p-8 md:p-14 backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.3)] relative overflow-hidden group">
+      <div 
+        id="about-card"
+        className="-mt-[1.2cm] bg-[rgba(10,24,42,0.5)] border border-[rgba(130,180,255,0.15)] rounded-[32px] md:rounded-[40px] p-8 md:p-14 backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.3)] relative overflow-hidden group"
+      >
         
         {/* Subtle accent glow inside the card */}
         <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-[rgba(91,140,255,0.06)] rounded-full blur-[80px] pointer-events-none transition-opacity"></div>
@@ -47,9 +50,11 @@ export function About({ profile }: AboutProps) {
               {description}
             </p>
             
-            <Link to="/about" className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full border border-[rgba(130,180,255,0.25)] text-[#F7FAFF] font-medium hover:bg-[rgba(255,255,255,0.05)] transition-colors w-fit text-[15px] active:scale-95 shadow-[0_5px_15px_rgba(0,0,0,0.2)]">
-              {btnText} 
-              <span className="text-lg leading-none ml-1">&rarr;</span>
+            <Link to="/about" className="ios-glass-btn px-7 py-3 text-[15px] w-fit">
+              <span className="flex items-center gap-2 font-medium">
+                {btnText} 
+                <span className="text-lg leading-none ml-1">&rarr;</span>
+              </span>
             </Link>
           </div>
 
