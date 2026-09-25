@@ -91,14 +91,21 @@ export function Navigation() {
 
   return (
     <>
-      {/* 1.7cm Progressive Gradient Blur at Header Region (activates when scrolled) */}
+      {/* 1.7cm Progressive Gradient Liquid Glass Veil at Header Region */}
       <div 
         id="header-gradient-blur"
-        className={`header-gradient-blur transition-opacity duration-300 ${
+        className={`header-glass-veil transition-opacity duration-300 ${
           isScrolled ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
         aria-hidden="true"
-      />
+      >
+        {/* Layer 2: Dedicated Pure Backdrop-Blur Leaf Node */}
+        <div className="header-blur-surface" />
+        {/* Layer 1: Glass Tint Gradient */}
+        <div className="header-glass-tint" />
+        {/* Layer 3: Glass Top Specular Border */}
+        <div className="header-specular-border" />
+      </div>
 
       {/* Three-Dots Menu Button with tactile open/close animation */}
       <div ref={menuRef} className="fixed top-4 right-4 sm:top-5 sm:right-6 z-50">
@@ -161,15 +168,19 @@ export function Navigation() {
                 damping: 26, 
                 mass: 0.75 
               }}
-              className="absolute top-11 right-0 sm:top-12 w-[185px] sm:w-[195px] more-menu-dropdown rounded-xl p-1.5 z-50 flex flex-col gap-1 origin-top-right"
+              className="more-menu-dropdown absolute top-11 right-0 sm:top-12 w-[185px] sm:w-[195px] rounded-xl p-1.5 z-50 flex flex-col gap-1 origin-top-right"
             >
-              {/* Dedicated Isolated Blur & Frosted-Glass Layer */}
-              <div className="more-menu-blur-layer" aria-hidden="true" />
+              {/* Layer 2: Dedicated Pure Backdrop-Blur Leaf Node */}
+              <div className="more-menu-blur-surface" aria-hidden="true" />
 
-              {/* Ultra-Subtle Top Sheen */}
-              <div className="absolute inset-x-0 top-0 h-5 bg-gradient-to-b from-white/10 to-transparent pointer-events-none rounded-t-xl z-10" />
+              {/* Layer 1: Glass Tint Substrate */}
+              <div className="more-menu-glass-tint" aria-hidden="true" />
 
-              <div className="flex flex-col gap-0.5 relative z-10">
+              {/* Layer 3: Glass Borders, Specular Top Highlight & Shadow */}
+              <div className="more-menu-specular-border" aria-hidden="true" />
+
+              {/* Layer 4 & 5: Interactive Menu Content */}
+              <div className="relative z-10 flex flex-col gap-0.5">
                 {SECONDARY_LINKS.map((link) => (
                   <NavLink
                     key={link.path}
@@ -271,16 +282,23 @@ export function Navigation() {
         </AnimatePresence>
       </div>
 
-      {/* Glass Capsule Dock for Bottom Navigation */}
-      <div className="fixed z-50 inset-x-0 mx-auto pointer-events-none w-[calc(100%-20px)] max-w-[420px] xs:max-w-[450px] sm:max-w-[490px] md:max-w-[530px] bottom-3 sm:bottom-4 md:bottom-6 pb-[max(0px,env(safe-area-inset-bottom))]">
+      {/* Glass Capsule Dock for Bottom Navigation - Anchored without ancestor CSS transform */}
+      <div className="fixed z-50 left-0 right-0 mx-auto pointer-events-none w-[calc(100%-20px)] max-w-[420px] xs:max-w-[450px] sm:max-w-[490px] md:max-w-[530px] bottom-3 sm:bottom-4 md:bottom-6 pb-[max(0px,env(safe-area-inset-bottom))]">
         <nav 
           id="main-navigation-dock"
-          data-navigation-version="universal-frosted-glass-isolated-layer"
+          data-navigation-version="universal-5layer-frosted-glass"
           className="menu w-full pointer-events-auto"
         >
-          {/* Dedicated Isolated Blur & Glass Layer */}
-          <div className="menu-blur-layer" aria-hidden="true" />
+          {/* Layer 2: Dedicated Pure Backdrop-Blur Leaf Node */}
+          <div className="nav-blur-surface" aria-hidden="true" />
 
+          {/* Layer 1: Visual Glass Tint Substrate */}
+          <div className="nav-glass-tint" aria-hidden="true" />
+
+          {/* Layer 3: Specular Borders, Highlights & Ambient Shadows */}
+          <div className="nav-specular-border" aria-hidden="true" />
+
+          {/* Layer 4 & 5: Interactive Navigation Content & Scrolling Layer */}
           <div className="menu-scroll-container w-full overflow-x-auto no-scrollbar flex items-center justify-between">
             {NAV_LINKS.map((link) => (
               <NavLink

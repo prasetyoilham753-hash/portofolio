@@ -272,8 +272,6 @@
     font-weight: 500;
     color: #D2E3F7;
     background: rgba(255, 255, 255, 0.02);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: 
       inset 0 1px 0 0 rgba(255, 255, 255, 0.15),
@@ -286,7 +284,6 @@
       color 0.18s ease;
     text-decoration: none;
     user-select: none;
-    overflow: hidden;
   }
 
   .liquid-glass-item:hover {
@@ -313,8 +310,10 @@
     font-weight: 600;
   }
 
-  /* Progressive Header Gradient Blur (1.7cm Apple-style liquid glass veil) */
-  .header-gradient-blur {
+  /* ============================================================
+     PROGRESSIVE HEADER GRADIENT VEIL (DECOUPLED 5-LAYER GLASS)
+     ============================================================ */
+  .header-glass-veil {
     position: fixed;
     top: 0;
     left: 0;
@@ -322,6 +321,29 @@
     height: 1.7cm;
     pointer-events: none;
     z-index: 40;
+  }
+
+  @media (min-width: 640px) {
+    .header-glass-veil {
+      height: 1.7cm;
+    }
+  }
+
+  /* Layer 2: Dedicated Pure Backdrop-Blur Leaf Node */
+  .header-blur-surface {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    backdrop-filter: blur(28px) saturate(200%);
+    -webkit-backdrop-filter: blur(28px) saturate(200%);
+    z-index: 1;
+  }
+
+  /* Layer 1: Glass Tint Gradient */
+  .header-glass-tint {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
     background: linear-gradient(
       to bottom, 
       rgba(2, 9, 20, 0.82) 0%, 
@@ -329,16 +351,16 @@
       rgba(2, 9, 20, 0.12) 80%, 
       transparent 100%
     );
-    backdrop-filter: blur(28px) saturate(200%);
-    -webkit-backdrop-filter: blur(28px) saturate(200%);
-    border-top: 1px solid rgba(255, 255, 255, 0.12);
-    transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 2;
   }
 
-  @media (min-width: 640px) {
-    .header-gradient-blur {
-      height: 1.7cm;
-    }
+  /* Layer 3: Glass Top Specular Border */
+  .header-specular-border {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    z-index: 3;
   }
 
   /* Neutralize legacy button-wrap container & hide artificial button-shadow */
@@ -354,30 +376,50 @@
     display: none !important;
   }
 
-  /* More Menu Glass Dropdown Container */
+  /* ============================================================
+     MORE MENU GLASS DROPDOWN (DECOUPLED 5-LAYER GLASS)
+     ============================================================ */
   .more-menu-dropdown {
     position: absolute;
     border-radius: 0.75rem;
   }
 
-  /* Dedicated Blur Layer for Popover Menu */
-  .more-menu-blur-layer {
+  /* Layer 2: Dedicated Pure Backdrop-Blur Leaf Node */
+  .more-menu-blur-surface {
     position: absolute;
     inset: 0;
     border-radius: inherit;
+    pointer-events: none;
     backdrop-filter: blur(12px) saturate(140%);
     -webkit-backdrop-filter: blur(12px) saturate(140%);
+    z-index: 1;
+  }
+
+  /* Layer 1: Glass Tint Substrate */
+  .more-menu-glass-tint {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
     background: rgba(6, 15, 35, 0.22);
+    z-index: 2;
+  }
+
+  /* Layer 3: Glass Borders, Specular Top Highlight & Shadow */
+  .more-menu-specular-border {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
     border: 1px solid rgba(120, 170, 255, 0.20);
     box-shadow: 
       0 8px 32px rgba(0, 0, 0, 0.3),
       inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    pointer-events: none;
-    z-index: 0;
+    z-index: 3;
   }
 
   /* ============================================================
-     UIVERSE.IO BY MYMIAMO - GLASS CAPSULE DOCK MENU (UNIVERSAL FROSTED LIQUID GLASS)
+     UIVERSE.IO BY MYMIAMO - GLASS CAPSULE DOCK MENU (UNIVERSAL 5-LAYER ARCHITECTURE)
      ============================================================ */
   /* Main Container: Structural & Layout Wrapper */
   .menu {
@@ -388,38 +430,47 @@
     z-index: 50;
   }
 
-  /* Dedicated Isolated Blur & Glass Layer: Completely unencumbered by overflow or scrolling */
-  .menu-blur-layer {
+  /* Layer 2: Dedicated Pure Backdrop-Blur Leaf Node */
+  .nav-blur-surface {
     position: absolute;
     inset: 0;
     border-radius: inherit;
+    pointer-events: none;
     backdrop-filter: blur(12px) saturate(140%);
     -webkit-backdrop-filter: blur(12px) saturate(140%);
+    z-index: 1;
+  }
+
+  /* Layer 1: Visual Glass Tint Substrate */
+  .nav-glass-tint {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
     background: rgba(6, 15, 35, 0.22);
+    z-index: 2;
+  }
+
+  /* Layer 3: Glass Highlights, Specular Borders & Ambient Shadows */
+  .nav-specular-border {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
     border: 1px solid rgba(120, 170, 255, 0.20);
     box-shadow: 
       0 8px 32px rgba(0, 0, 0, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .menu-blur-layer::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.2),
       inset 1px 1px 2px rgba(255, 255, 255, 0.18),
       inset -1px -1px 2px rgba(255, 255, 255, 0.03),
       inset 0 -1px 0 rgba(255, 255, 255, 0.08);
-    pointer-events: none;
+    z-index: 3;
   }
 
-  /* Scrolling Layer: Handles horizontal scroll independently without breaking backdrop sampling */
+  /* Layer 4 & 5: Interactive Content & Scrolling Layer */
   .menu-scroll-container {
     position: relative;
-    z-index: 1;
+    z-index: 4;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -432,14 +483,17 @@
 
   /* Graceful subtle frosted-glass fallback for browsers genuinely without backdrop-filter support */
   @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-    .menu-blur-layer {
+    .nav-glass-tint,
+    .more-menu-glass-tint {
       background: rgba(6, 15, 35, 0.65);
     }
-    .more-menu-blur-layer {
-      background: rgba(6, 15, 35, 0.75);
-    }
-    .header-gradient-blur {
-      background: linear-gradient(to bottom, rgba(2, 9, 20, 0.95) 0%, rgba(2, 9, 20, 0.70) 60%, transparent 100%);
+    .header-glass-tint {
+      background: linear-gradient(
+        to bottom, 
+        rgba(2, 9, 20, 0.95) 0%, 
+        rgba(2, 9, 20, 0.70) 60%, 
+        transparent 100%
+      );
     }
   }
 
