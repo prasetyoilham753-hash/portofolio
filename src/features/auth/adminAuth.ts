@@ -15,10 +15,25 @@ const BOOTSTRAP_ADMIN_EMAILS = [
 export async function verifyIsAdmin(user: User | null): Promise<boolean> {
   if (!user) return false;
 
-  try {
-    const userEmail = user.email?.toLowerCase().trim() || "";
-    const isBootstrapped = BOOTSTRAP_ADMIN_EMAILS.includes(userEmail);
+  const userEmail = user.email?.toLowerCase().trim() || "";
+  const isBootstrapped = BOOTSTRAP_ADMIN_EMAILS.includes(userEmail);
 
+  // If email is a bootstrapped admin email, grant admin access immediately
+  if (isBootstrapped) {
+    try {
+      const adminDocRef = doc(db, "admins", user.uid);
+      await setDoc(adminDocRef, {
+        email: userEmail,
+        role: "admin",
+        createdAt: serverTimestamp()
+      }, { merge: true });
+    } catch (err) {
+      console.warn("[AdminAuth] Note: Could not auto-write admin doc (non-fatal):", err);
+    }
+    return true;
+  }
+
+  try {
     // 1. Primary Authorization: Firestore-backed Admin Role
     const adminDocRef = doc(db, "admins", user.uid);
     const adminSnap = await getDoc(adminDocRef);
@@ -26,27 +41,13 @@ export async function verifyIsAdmin(user: User | null): Promise<boolean> {
       return true;
     }
 
-    // 2. If bootstrapped admin email, ensure admin document exists in Firestore
-    if (isBootstrapped) {
-      try {
-        await setDoc(adminDocRef, {
-          email: userEmail,
-          role: "admin",
-          createdAt: serverTimestamp()
-        }, { merge: true });
-      } catch (err) {
-        console.warn("[AdminAuth] Note: Could not auto-write admin doc:", err);
-      }
-      return true;
-    }
-
-    // 3. Fallback for custom claims / token attributes if set
+    // 2. Fallback for custom claims / token attributes if set
     const tokenResult = await user.getIdTokenResult();
     if (tokenResult.claims.admin === true || tokenResult.claims.role === "admin") {
       return true;
     }
 
-    // 4. Fallback for environment-configured admin email
+    // 3. Fallback for environment-configured admin email
     const envAdminEmail = import.meta.env.VITE_ADMIN_EMAIL?.toLowerCase().trim();
     if (envAdminEmail && userEmail === envAdminEmail) {
       return true;

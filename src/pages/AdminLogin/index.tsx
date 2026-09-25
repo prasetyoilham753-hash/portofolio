@@ -50,19 +50,21 @@ export default function AdminLogin() {
       console.error("Login Error:", err);
       
       if (err.code === 'auth/invalid-email') {
-        setError(`Invalid email address format. (${err.code})`);
+        setError(`Format email tidak valid. (${err.code})`);
       } else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        setError(`Invalid email or password. (${err.code})`);
+        setError(`Email atau password salah. Silakan periksa kembali akun admin Anda. (${err.code})`);
+      } else if (err.code === 'auth/unauthorized-domain') {
+        setError(`Domain '${window.location.hostname}' belum didaftarkan di Firebase Console -> Authentication -> Settings -> Authorized Domains. (${err.code})`);
       } else if (err.code === 'auth/too-many-requests') {
-        setError(`Too many failed attempts. Please try again later. (${err.code})`);
+        setError(`Terlalu banyak percobaan gagal. Silakan coba lagi beberapa saat lagi. (${err.code})`);
       } else if (err.code === 'auth/network-request-failed') {
-        setError(`Network error. Please check your connection. (${err.code})`);
+        setError(`Gagal terhubung ke server Firebase. Periksa koneksi internet Anda. (${err.code})`);
       } else if (err.code === 'auth/user-disabled') {
-        setError(`Account has been disabled. (${err.code})`);
+        setError(`Akun ini telah dinonaktifkan. (${err.code})`);
       } else if (err.code === 'auth/operation-not-allowed') {
-        setError(`Email/password sign-in is not enabled in Firebase. (${err.code})`);
+        setError(`Metode login Email/Password belum diaktifkan di Firebase Console. (${err.code})`);
       } else {
-        setError(`Authentication failed. (${err.code || err.message})`);
+        setError(`Gagal login: ${err.message || err.code || 'Terjadi kesalahan'}`);
       }
     } finally {
       setIsLoading(false);
