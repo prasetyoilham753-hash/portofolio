@@ -98,7 +98,9 @@ export function Navigation() {
           isScrolled ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1"
         }`}
         aria-hidden="true"
-      />
+      >
+        <div className="header-gradient-blur-layer" />
+      </div>
 
       {/* Three-Dots Menu Button with tactile open/close animation */}
       <div ref={menuRef} className="fixed top-4 right-4 sm:top-5 sm:right-6 z-50">
@@ -277,19 +279,21 @@ export function Navigation() {
         <nav 
           id="main-navigation-dock"
           data-navigation-version="ai-studio-sync-test"
-          className="menu w-full no-scrollbar justify-between pointer-events-auto"
+          className="menu w-full pointer-events-auto"
         >
-          {NAV_LINKS.map((link) => (
-            <NavLink
-              key={link.path}
-              to={link.path}
-              id={`nav-item-${link.label.toLowerCase().replace(/\s+/g, '-')}`}
-              className={({ isActive }) => (isActive ? "active" : "")}
-            >
-              {link.icon}
-              <span>{link.label}</span>
-            </NavLink>
-          ))}
+          <div className="menu-scroll-container w-full overflow-x-auto no-scrollbar flex items-center justify-between">
+            {NAV_LINKS.map((link) => (
+              <NavLink
+                key={link.path}
+                to={link.path}
+                id={`nav-item-${link.label.toLowerCase().replace(/\s+/g, '-')}`}
+                className={({ isActive }) => (isActive ? "active" : "")}
+              >
+                {link.icon}
+                <span>{link.label}</span>
+              </NavLink>
+            ))}
+          </div>
         </nav>
       </div>
     </>

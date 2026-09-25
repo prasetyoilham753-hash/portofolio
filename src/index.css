@@ -323,24 +323,24 @@
     height: 1.7cm;
     pointer-events: none;
     z-index: 40;
+    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.82) 50%, rgba(0, 0, 0, 0.25) 85%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.82) 50%, rgba(0, 0, 0, 0.25) 85%, transparent 100%);
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+  }
+
+  /* Separate backdrop-filter layer from mask-image for Android Chrome compatibility */
+  .header-gradient-blur-layer {
+    position: absolute;
+    inset: 0;
     background: linear-gradient(to bottom, rgba(2, 9, 20, 0.82) 0%, rgba(2, 9, 20, 0.45) 45%, rgba(2, 9, 20, 0.12) 80%, transparent 100%);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(28px) saturate(200%);
+    -webkit-backdrop-filter: blur(28px) saturate(200%);
     transform: translateZ(0);
     -webkit-transform: translateZ(0);
     will-change: transform, backdrop-filter;
-    border-top: 1px solid rgba(255, 255, 255, 0.12);
-    transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  /* Preserve progressive gradient mask on iOS Safari (WebKit) */
-  @supports (-webkit-touch-callout: none) {
-    .header-gradient-blur {
-      backdrop-filter: blur(28px) saturate(200%);
-      -webkit-backdrop-filter: blur(28px) saturate(200%);
-      mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.82) 50%, rgba(0, 0, 0, 0.25) 85%, transparent 100%);
-      -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.82) 50%, rgba(0, 0, 0, 0.25) 85%, transparent 100%);
-    }
   }
 
   @media (min-width: 640px) {
@@ -365,6 +365,7 @@
   /* ============================================================
      UIVERSE.IO BY MYMIAMO - GLASS CAPSULE DOCK MENU (ULTRA-TRANSPARENT LIQUID GLASS)
      ============================================================ */
+  /* Blur Layer: Handles backdrop-filter, border, shadows, and capsule clipping (no scroll) */
   .menu {
     position: relative;
     width: 100%;
@@ -377,24 +378,24 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.2);
     padding: 5px 6px;
     border-radius: 99rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 2px;
+    overflow: hidden;
     z-index: 50;
     transform: translateZ(0);
     -webkit-transform: translateZ(0);
     will-change: transform, backdrop-filter;
   }
 
-  /* Graceful high-contrast fallback for environments without hardware backdrop-filter */
-  @supports not ((-webkit-backdrop-filter: blur(8px)) or (backdrop-filter: blur(8px))) {
-    .menu {
-      background: rgba(6, 15, 35, 0.88);
-    }
-    .header-gradient-blur {
-      background: linear-gradient(to bottom, rgba(2, 9, 20, 0.95) 0%, rgba(2, 9, 20, 0.70) 60%, transparent 100%);
-    }
+  /* Scrolling Layer: Handles horizontal scroll independently without breaking backdrop sampling */
+  .menu-scroll-container {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    gap: 2px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .menu::after {
