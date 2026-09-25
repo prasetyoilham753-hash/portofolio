@@ -147,13 +147,12 @@ export function Navigation() {
           {isOpen && (
             <motion.div
               id="more-menu-dropdown"
-              initial={{ opacity: 0, scale: 0.35, y: -12, filter: "blur(8px)" }}
-              animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+              initial={{ opacity: 0, scale: 0.35, y: -12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ 
                 opacity: 0, 
                 scale: 0.35, 
                 y: -10, 
-                filter: "blur(8px)",
                 transition: { duration: 0.2, ease: [0.32, 0, 0.67, 0] } 
               }}
               transition={{ 
@@ -162,8 +161,11 @@ export function Navigation() {
                 damping: 26, 
                 mass: 0.75 
               }}
-              className="absolute top-11 right-0 sm:top-12 w-[185px] sm:w-[195px] bg-[rgba(6,15,35,0.18)] border border-[rgba(120,170,255,0.20)] rounded-xl p-1.5 backdrop-blur-[8px] shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.2)] z-50 flex flex-col gap-1 overflow-hidden origin-top-right"
-              style={{ WebkitBackdropFilter: "blur(8px)" }}
+              className="absolute top-11 right-0 sm:top-12 w-[185px] sm:w-[195px] bg-[rgba(6,15,35,0.24)] border border-[rgba(120,170,255,0.22)] rounded-xl p-1.5 backdrop-blur-[12px] shadow-[0_8px_32px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.2)] z-50 flex flex-col gap-1 overflow-hidden origin-top-right"
+              style={{ 
+                WebkitBackdropFilter: "blur(12px)",
+                transform: "translateZ(0)"
+              }}
             >
               {/* Ultra-Subtle Top Sheen */}
               <div className="absolute inset-x-0 top-0 h-5 bg-gradient-to-b from-white/10 to-transparent pointer-events-none rounded-t-xl" />
@@ -275,7 +277,7 @@ export function Navigation() {
         <nav 
           id="main-navigation-dock"
           data-navigation-version="ai-studio-sync-test"
-          className="menu w-full overflow-x-auto no-scrollbar justify-between pointer-events-auto"
+          className="menu w-full no-scrollbar justify-between pointer-events-auto"
         >
           {NAV_LINKS.map((link) => (
             <NavLink
