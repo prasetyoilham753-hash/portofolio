@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Navigation } from "../../components/Navigation/Navigation";
 import { PageTransition } from "../../components/PageTransition/PageTransition";
 import { GlobalMoltenBackground } from "../../components/GlobalMoltenBackground";
@@ -9,14 +9,20 @@ import { logAnalyticsEvent } from "../../services/firebase/config";
 
 export default function AppLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
+    // If user accesses via admin subdomain (admin.bintangprasetyo.com) on root path, route to /admin
+    if (typeof window !== "undefined" && window.location.hostname === "admin.bintangprasetyo.com" && location.pathname === "/") {
+      navigate("/admin", { replace: true });
+    }
+
     logAnalyticsEvent("page_view", {
       page_path: location.pathname,
       page_location: window.location.href,
       page_title: document.title,
     });
-  }, [location.pathname]);
+  }, [location.pathname, navigate]);
 
   return (
     <BackgroundProvider>
