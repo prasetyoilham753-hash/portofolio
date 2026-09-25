@@ -5,6 +5,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { SiteProfile } from "../../../features/profile/types";
 import { ProfileCard3D } from "./ProfileCard3D";
 import { CvAccessModal } from "../../../components/common/CvAccessModal";
+import { logAnalyticsEvent } from "../../../services/firebase/config";
 
 function XIcon({ size = 18, className = "" }: { size?: number; className?: string }) {
   return (
@@ -204,6 +205,12 @@ export function Hero({ profile }: HeroProps) {
                 href={item.url}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => {
+                  if (item.id === "instagram") logAnalyticsEvent("click_instagram", { url: item.url });
+                  else if (item.id === "linkedin") logAnalyticsEvent("click_linkedin", { url: item.url });
+                  else if (item.id === "reddit") logAnalyticsEvent("click_reddit", { url: item.url });
+                  else if (item.id === "x") logAnalyticsEvent("click_x", { url: item.url });
+                }}
                 className="ios-glass-icon w-7 h-7 xs:w-8 xs:h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 cursor-pointer flex items-center justify-center text-[#A8C8FF] hover:text-white transition-colors"
                 aria-label={item.label}
                 title={item.label}

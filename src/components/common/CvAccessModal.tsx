@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Lock, KeyRound, ArrowRight, X, CheckCircle2, ShieldCheck, Download, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { logAnalyticsEvent } from "../../services/firebase/config";
 
 interface CvAccessModalProps {
   isOpen: boolean;
@@ -66,6 +67,7 @@ export function CvAccessModal({
     if (passcode.trim() === targetCode) {
       setError(null);
       setIsSuccess(true);
+      logAnalyticsEvent("click_download_cv", { candidateName });
 
       // Trigger download / view after small visual confirmation
       setTimeout(() => {

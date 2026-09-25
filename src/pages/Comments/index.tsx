@@ -199,111 +199,130 @@ export default function Comments() {
         </div>
       </header>
 
-      {/* Main Comment Input Box */}
-      <section 
-        id="comment-composer-box"
-        className="glass-card p-5 sm:p-7 rounded-2xl border border-[rgba(130,180,255,0.2)] bg-[rgba(10,20,38,0.55)] backdrop-blur-2xl shadow-[0_16px_40px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.2)] relative overflow-hidden"
-      >
-        <div className="absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-white/10 via-transparent to-transparent pointer-events-none" />
+      {/* Main Comment Input Box or Disabled Banner */}
+      {filterConfig.enabled === false ? (
+        <section 
+          id="comment-composer-box"
+          className="glass-card p-6 sm:p-7 rounded-2xl border border-amber-500/20 bg-amber-500/5 backdrop-blur-2xl flex flex-col sm:flex-row items-center gap-4 text-amber-200/90 shadow-lg"
+        >
+          <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shrink-0 text-amber-400">
+            <AlertCircle size={20} />
+          </div>
+          <div className="flex flex-col gap-1 text-center sm:text-left">
+            <h3 className="text-sm font-semibold text-amber-200">
+              Pengiriman Komentar Sedang Dinonaktifkan
+            </h3>
+            <p className="text-xs text-amber-200/70 leading-relaxed">
+              Fitur pengiriman komentar baru saat ini sedang ditutup oleh administrator. Anda tetap dapat membaca semua komentar dan diskusi yang ada di bawah ini.
+            </p>
+          </div>
+        </section>
+      ) : (
+        <section 
+          id="comment-composer-box"
+          className="glass-card p-5 sm:p-7 rounded-2xl border border-[rgba(130,180,255,0.2)] bg-[rgba(10,20,38,0.55)] backdrop-blur-2xl shadow-[0_16px_40px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.2)] relative overflow-hidden"
+        >
+          <div className="absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-white/10 via-transparent to-transparent pointer-events-none" />
 
-        <form onSubmit={handleSubmitMain} className="flex flex-col gap-4 relative z-10">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-[#7DB3FF]/90">
-              Tulis Komentar
-            </span>
-            
-            {/* Identity Mode Toggle */}
-            <div className="flex items-center gap-2 text-xs">
-              <label 
-                htmlFor="anon-toggle"
-                className="flex items-center gap-2 cursor-pointer select-none text-[#A8B8CC] hover:text-white transition-colors"
-              >
+          <form onSubmit={handleSubmitMain} className="flex flex-col gap-4 relative z-10">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#7DB3FF]/90">
+                Tulis Komentar
+              </span>
+              
+              {/* Identity Mode Toggle */}
+              <div className="flex items-center gap-2 text-xs">
+                <label 
+                  htmlFor="anon-toggle"
+                  className="flex items-center gap-2 cursor-pointer select-none text-[#A8B8CC] hover:text-white transition-colors"
+                >
+                  <input
+                    type="checkbox"
+                    id="anon-toggle"
+                    checked={isAnonymous}
+                    onChange={(e) => setIsAnonymous(e.target.checked)}
+                    className="w-4 h-4 rounded border-white/20 text-[#7DB3FF] focus:ring-0 focus:ring-offset-0 bg-white/5 cursor-pointer accent-[#7DB3FF]"
+                  />
+                  <span>Kirim secara Anonim</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Author Name Input (if not anonymous) */}
+            {!isAnonymous && (
+              <div className="flex flex-col gap-1.5">
                 <input
-                  type="checkbox"
-                  id="anon-toggle"
-                  checked={isAnonymous}
-                  onChange={(e) => setIsAnonymous(e.target.checked)}
-                  className="w-4 h-4 rounded border-white/20 text-[#7DB3FF] focus:ring-0 focus:ring-offset-0 bg-white/5 cursor-pointer accent-[#7DB3FF]"
+                  id="comment-author-name"
+                  type="text"
+                  value={authorName}
+                  onChange={(e) => setAuthorName(e.target.value)}
+                  placeholder="Nama Anda atau alias (maks 60 karakter)"
+                  maxLength={60}
+                  className="glass-input px-4 py-2.5 rounded-xl text-sm w-full bg-[rgba(255,255,255,0.04)] border border-white/15 focus:border-[#7DB3FF] focus:bg-[rgba(255,255,255,0.08)] outline-none text-white placeholder:text-white/40 transition-all"
+                  disabled={submitting}
                 />
-                <span>Kirim secara Anonim</span>
-              </label>
-            </div>
-          </div>
+              </div>
+            )}
 
-          {/* Author Name Input (if not anonymous) */}
-          {!isAnonymous && (
-            <div className="flex flex-col gap-1.5">
-              <input
-                id="comment-author-name"
-                type="text"
-                value={authorName}
-                onChange={(e) => setAuthorName(e.target.value)}
-                placeholder="Nama Anda atau alias (maks 60 karakter)"
-                maxLength={60}
-                className="glass-input px-4 py-2.5 rounded-xl text-sm w-full bg-[rgba(255,255,255,0.04)] border border-white/15 focus:border-[#7DB3FF] focus:bg-[rgba(255,255,255,0.08)] outline-none text-white placeholder:text-white/40 transition-all"
+            {/* Comment Textarea */}
+            <div className="relative">
+              <textarea
+                id="comment-content-textarea"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                rows={4}
+                maxLength={MAX_CHARS}
+                placeholder="Bagikan pemikiran, pertanyaan, ide, atau sapaan Anda..."
+                className="glass-input w-full p-4 rounded-xl text-sm leading-relaxed bg-[rgba(255,255,255,0.04)] border border-white/15 focus:border-[#7DB3FF] focus:bg-[rgba(255,255,255,0.08)] outline-none text-white placeholder:text-white/40 resize-none transition-all"
                 disabled={submitting}
+                required
               />
+              <div className={`absolute bottom-3 right-3 text-[11px] font-mono ${
+                content.length >= MAX_CHARS ? 'text-red-400' : 'text-white/40'
+              }`}>
+                {content.length}/{MAX_CHARS}
+              </div>
             </div>
-          )}
 
-          {/* Comment Textarea */}
-          <div className="relative">
-            <textarea
-              id="comment-content-textarea"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              rows={4}
-              maxLength={MAX_CHARS}
-              placeholder="Bagikan pemikiran, pertanyaan, ide, atau sapaan Anda..."
-              className="glass-input w-full p-4 rounded-xl text-sm leading-relaxed bg-[rgba(255,255,255,0.04)] border border-white/15 focus:border-[#7DB3FF] focus:bg-[rgba(255,255,255,0.08)] outline-none text-white placeholder:text-white/40 resize-none transition-all"
-              disabled={submitting}
-              required
-            />
-            <div className={`absolute bottom-3 right-3 text-[11px] font-mono ${
-              content.length >= MAX_CHARS ? 'text-red-400' : 'text-white/40'
-            }`}>
-              {content.length}/{MAX_CHARS}
+            {/* Error & Success Messages */}
+            {formError && (
+              <div className="p-3 rounded-xl bg-red-500/15 border border-red-500/30 text-red-300 text-xs flex items-center gap-2">
+                <AlertCircle size={15} className="shrink-0 text-red-400" />
+                <span>{formError}</span>
+              </div>
+            )}
+
+            {formSuccess && (
+              <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
+                <Sparkles size={15} className="shrink-0 text-emerald-400" />
+                <span>Komentar berhasil dipublikasikan! Terima kasih atas kontribusi Anda.</span>
+              </div>
+            )}
+
+            {/* Bottom Controls */}
+            <div className="flex items-center justify-end pt-1">
+              <button
+                id="submit-comment-button"
+                type="submit"
+                disabled={submitting || !content.trim()}
+                className="ios-glass-btn ios-glass-primary px-6 py-2.5 text-xs font-semibold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 ml-auto"
+              >
+                {submitting ? (
+                  <>
+                    <span className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                    <span>Mengirim...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send size={13} />
+                    <span>Kirim Komentar</span>
+                  </>
+                )}
+              </button>
             </div>
-          </div>
-
-          {/* Error & Success Messages */}
-          {formError && (
-            <div className="p-3 rounded-xl bg-red-500/15 border border-red-500/30 text-red-300 text-xs flex items-center gap-2">
-              <AlertCircle size={15} className="shrink-0 text-red-400" />
-              <span>{formError}</span>
-            </div>
-          )}
-
-          {formSuccess && (
-            <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
-              <Sparkles size={15} className="shrink-0 text-emerald-400" />
-              <span>Komentar berhasil dipublikasikan! Terima kasih atas kontribusi Anda.</span>
-            </div>
-          )}
-
-          {/* Bottom Controls */}
-          <div className="flex items-center justify-end pt-1">
-            <button
-              id="submit-comment-button"
-              type="submit"
-              disabled={submitting || !content.trim()}
-              className="ios-glass-btn ios-glass-primary px-6 py-2.5 text-xs font-semibold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 ml-auto"
-            >
-              {submitting ? (
-                <>
-                  <span className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                  <span>Mengirim...</span>
-                </>
-              ) : (
-                <>
-                  <Send size={13} />
-                  <span>Kirim Komentar</span>
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      </section>
+          </form>
+        </section>
+      )}
 
       {/* Comments List Feed */}
       <section className="flex flex-col gap-4" aria-label="Daftar Komentar Publik">
@@ -377,28 +396,30 @@ export default function Comments() {
                     </div>
 
                     {/* Reply Action Trigger */}
-                    <button
-                      id={`reply-btn-${item.id}`}
-                      type="button"
-                      onClick={() => {
-                        if (isReplying) {
-                          setReplyingTo(null);
-                        } else {
-                          setReplyingTo(item);
-                          setReplyContent("");
-                          setReplyError(null);
-                        }
-                      }}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all duration-200 border ${
-                        isReplying
-                          ? "bg-[#7DB3FF]/20 text-white border-[#7DB3FF]/50 shadow-[0_0_12px_rgba(125,179,255,0.25)]"
-                          : "bg-white/[0.04] text-[#7DB3FF] border-white/10 hover:bg-[#7DB3FF]/15 hover:border-[#7DB3FF]/30 hover:text-white active:scale-[0.98]"
-                      }`}
-                      title="Balas komentar ini"
-                    >
-                      <CornerDownRight size={13} />
-                      <span>{isReplying ? "Batal" : "Reply"}</span>
-                    </button>
+                    {filterConfig.enabled !== false && (
+                      <button
+                        id={`reply-btn-${item.id}`}
+                        type="button"
+                        onClick={() => {
+                          if (isReplying) {
+                            setReplyingTo(null);
+                          } else {
+                            setReplyingTo(item);
+                            setReplyContent("");
+                            setReplyError(null);
+                          }
+                        }}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all duration-200 border ${
+                          isReplying
+                            ? "bg-[#7DB3FF]/20 text-white border-[#7DB3FF]/50 shadow-[0_0_12px_rgba(125,179,255,0.25)]"
+                            : "bg-white/[0.04] text-[#7DB3FF] border-white/10 hover:bg-[#7DB3FF]/15 hover:border-[#7DB3FF]/30 hover:text-white active:scale-[0.98]"
+                        }`}
+                        title="Balas komentar ini"
+                      >
+                        <CornerDownRight size={13} />
+                        <span>{isReplying ? "Batal" : "Reply"}</span>
+                      </button>
+                    )}
                   </div>
 
                   {/* Comment Body */}

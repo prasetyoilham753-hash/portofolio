@@ -56,45 +56,16 @@ export default function Features() {
     setLoading(true);
     const unsubComponents = subscribeToPublishedComponents(
       (items) => {
-        // Prepare template fallbacks for any items not explicitly in Firestore
-        const defaultItems: FeatureComponent[] = COMPONENT_TEMPLATES.map((tmpl, index) => ({
-          id: `template-${index}-${tmpl.name.toLowerCase().replace(/[^a-z0-9]/g, "-")}`,
-          name: tmpl.name,
-          category: tmpl.category,
-          description: tmpl.description,
-          code: tmpl.code,
-          css: tmpl.css || "",
-          dependencies: tmpl.dependencies,
-          status: "published",
-          order: 1000 + index
-        }));
-
-        if (items && items.length > 0) {
-          const dbNames = new Set(items.map((i) => i.name.toLowerCase().trim()));
-          const remainingTemplates = defaultItems.filter(
-            (t) => !dbNames.has(t.name.toLowerCase().trim())
-          );
-          // User posted components appear first at the top, followed by curated templates
-          setComponents([...items.map(upgradeComponentCode), ...remainingTemplates]);
+        if (items) {
+          setComponents(items.map(upgradeComponentCode));
         } else {
-          setComponents(defaultItems);
+          setComponents([]);
         }
         setLoading(false);
       },
       (err) => {
         console.error("Failed to load published components:", err);
-        const defaultItems: FeatureComponent[] = COMPONENT_TEMPLATES.map((tmpl, index) => ({
-          id: `template-${index}-${tmpl.name.toLowerCase().replace(/[^a-z0-9]/g, "-")}`,
-          name: tmpl.name,
-          category: tmpl.category,
-          description: tmpl.description,
-          code: tmpl.code,
-          css: tmpl.css || "",
-          dependencies: tmpl.dependencies,
-          status: "published",
-          order: index
-        }));
-        setComponents(defaultItems);
+        setComponents([]);
         setLoading(false);
       }
     );

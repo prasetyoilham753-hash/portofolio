@@ -212,6 +212,46 @@ export function CommentsView() {
           </div>
         </div>
 
+        {/* Toggle Status Fitur Komentar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-white/[0.03] border border-white/10">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-white">Status Fitur Komentar Publik</span>
+              <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full border ${
+                filterConfig.enabled !== false
+                  ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                  : "bg-amber-500/20 text-amber-300 border-amber-500/40"
+              }`}>
+                {filterConfig.enabled !== false ? "AKTIF" : "NONAKTIF"}
+              </span>
+            </div>
+            <p className="text-[11px] text-text-tertiary">
+              Saat nonaktif, kolom pengiriman komentar dan tombol balasan ditutup, tetapi pengunjung tetap dapat membaca semua komentar yang sudah dipublikasikan.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => setFilterConfig((prev) => ({ ...prev, enabled: prev.enabled === false }))}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                filterConfig.enabled !== false ? "bg-[#7DB3FF]" : "bg-white/20"
+              }`}
+              role="switch"
+              aria-checked={filterConfig.enabled !== false}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                  filterConfig.enabled !== false ? "translate-x-5" : "translate-x-0"
+                }`}
+              />
+            </button>
+            <span className="text-xs font-medium text-white">
+              {filterConfig.enabled !== false ? "Aktif" : "Nonaktif"}
+            </span>
+          </div>
+        </div>
+
         {/* Header Description Editor */}
         <div className="flex flex-col gap-2 bg-white/[0.02] p-4 rounded-xl border border-white/5">
           <div className="flex items-center justify-between">

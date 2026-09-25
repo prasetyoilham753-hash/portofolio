@@ -1,12 +1,22 @@
+import { useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Navigation } from "../../components/Navigation/Navigation";
 import { PageTransition } from "../../components/PageTransition/PageTransition";
 import { GlobalMoltenBackground } from "../../components/GlobalMoltenBackground";
 import { BackgroundProvider } from "../../features/background/BackgroundContext";
 import { AnimatePresence } from "motion/react";
+import { logAnalyticsEvent } from "../../services/firebase/config";
 
 export default function AppLayout() {
   const location = useLocation();
+
+  useEffect(() => {
+    logAnalyticsEvent("page_view", {
+      page_path: location.pathname,
+      page_location: window.location.href,
+      page_title: document.title,
+    });
+  }, [location.pathname]);
 
   return (
     <BackgroundProvider>

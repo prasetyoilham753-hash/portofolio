@@ -13,7 +13,8 @@ import {
   MessageSquare,
   LogOut,
   Shield,
-  Boxes
+  Boxes,
+  BarChart3
 } from "lucide-react";
 import { ProfileView } from "./ProfileView";
 import { WhatIDoView } from "./WhatIDoView";
@@ -23,8 +24,10 @@ import { GalleryView } from "./GalleryView";
 import { CertificatesView } from "./CertificatesView";
 import { AboutMeView } from "./AboutMeView";
 import { FeatureComponentsView } from "./FeatureComponentsView";
+import { AnalyticsView } from "./AnalyticsView";
 
 type TabId = 
+  | 'analytics'
   | 'features'
   | 'projects' 
   | 'gallery' 
@@ -42,6 +45,7 @@ interface TabItem {
 }
 
 const DASHBOARD_TABS: TabItem[] = [
+  { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={16} /> },
   { id: 'features', label: 'Feature Components', icon: <Boxes size={16} /> },
   { id: 'projects', label: 'Projects', icon: <FolderGit2 size={16} /> },
   { id: 'gallery', label: 'Art Gallery', icon: <Palette size={16} /> },
@@ -54,7 +58,7 @@ const DASHBOARD_TABS: TabItem[] = [
 
 export default function AdminDashboard() {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<TabId>('projects');
+  const [activeTab, setActiveTab] = useState<TabId>('analytics');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -133,6 +137,7 @@ export default function AdminDashboard() {
 
       {/* Active Tab View Content */}
       <div className="min-h-[50vh] mt-2">
+        {activeTab === 'analytics' && <AnalyticsView />}
         {activeTab === 'features' && <FeatureComponentsView />}
         {activeTab === 'projects' && <ProjectsView />}
         {activeTab === 'gallery' && <GalleryView />}

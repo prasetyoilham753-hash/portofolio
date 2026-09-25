@@ -12,6 +12,7 @@ export interface CommentFilterConfig {
   bannedPhrases: string[];
   filterAction: "censor" | "reject";
   headerDescription?: string;
+  enabled?: boolean;
   updatedAt?: any;
 }
 
@@ -21,4 +22,5 @@ export const DEFAULT_FILTER_CONFIG: CommentFilterConfig = {
   bannedPhrases: ["spam", "promo", "slot", "judol", "kasar", "scam", "gacor"],
   filterAction: "censor",
   headerDescription: DEFAULT_HEADER_DESCRIPTION,
+  enabled: true,
 };

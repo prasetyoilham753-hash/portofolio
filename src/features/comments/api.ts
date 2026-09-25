@@ -111,6 +111,10 @@ export async function createComment(params: {
   filterConfig?: CommentFilterConfig;
 }): Promise<{ id: string; filteredText: string }> {
   const filter = params.filterConfig || DEFAULT_FILTER_CONFIG;
+  if (filter.enabled === false) {
+    throw new Error("Fitur komentar saat ini sedang dinonaktifkan oleh administrator.");
+  }
+
   const filterResult = checkAndFilterPhrases(
     params.content.trim(),
     filter.bannedPhrases,
@@ -180,6 +184,7 @@ export function subscribeToCommentFilters(
             bannedPhrases: Array.isArray(data.bannedPhrases) ? data.bannedPhrases : DEFAULT_FILTER_CONFIG.bannedPhrases,
             filterAction: data.filterAction === "reject" ? "reject" : "censor",
             headerDescription: typeof data.headerDescription === "string" ? data.headerDescription : DEFAULT_HEADER_DESCRIPTION,
+            enabled: data.enabled !== false,
             updatedAt: data.updatedAt
           });
         } else {
@@ -207,6 +212,7 @@ export async function saveCommentFilters(config: CommentFilterConfig): Promise<v
       bannedPhrases: config.bannedPhrases.map((s) => s.trim().toLowerCase()).filter(Boolean),
       filterAction: config.filterAction,
       headerDescription: config.headerDescription || DEFAULT_HEADER_DESCRIPTION,
+      enabled: config.enabled !== false,
       updatedAt: serverTimestamp()
     }, { merge: true });
   } catch (error) {
