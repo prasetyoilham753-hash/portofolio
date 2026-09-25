@@ -311,7 +311,7 @@
   }
 
   /* ============================================================
-     PROGRESSIVE HEADER GRADIENT VEIL (DECOUPLED 5-LAYER GLASS)
+     PROGRESSIVE HEADER GRADIENT VEIL (DECOUPLED GLASS SYSTEM)
      ============================================================ */
   .header-glass-veil {
     position: fixed;
@@ -334,20 +334,20 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    backdrop-filter: blur(28px) saturate(200%);
-    -webkit-backdrop-filter: blur(28px) saturate(200%);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
     z-index: 1;
   }
 
-  /* Layer 1: Glass Tint Gradient */
+  /* Layer 1: Volumetric Glass Veil Gradient */
   .header-glass-tint {
     position: absolute;
     inset: 0;
     pointer-events: none;
     background: linear-gradient(
       to bottom, 
-      rgba(2, 9, 20, 0.82) 0%, 
-      rgba(2, 9, 20, 0.45) 45%, 
+      rgba(2, 9, 20, 0.88) 0%, 
+      rgba(2, 9, 20, 0.50) 45%, 
       rgba(2, 9, 20, 0.12) 80%, 
       transparent 100%
     );
@@ -359,7 +359,7 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    border-top: 1px solid rgba(255, 255, 255, 0.14);
     z-index: 3;
   }
 
@@ -377,7 +377,7 @@
   }
 
   /* ============================================================
-     MORE MENU GLASS DROPDOWN (DECOUPLED 5-LAYER GLASS)
+     MORE MENU GLASS DROPDOWN (DECOUPLED GLASS SYSTEM)
      ============================================================ */
   .more-menu-dropdown {
     position: absolute;
@@ -390,18 +390,23 @@
     inset: 0;
     border-radius: inherit;
     pointer-events: none;
-    backdrop-filter: blur(12px) saturate(140%);
-    -webkit-backdrop-filter: blur(12px) saturate(140%);
+    backdrop-filter: blur(14px) saturate(150%);
+    -webkit-backdrop-filter: blur(14px) saturate(150%);
     z-index: 1;
   }
 
-  /* Layer 1: Glass Tint Substrate */
+  /* Layer 1: Volumetric Optical Glass Substrate */
   .more-menu-glass-tint {
     position: absolute;
     inset: 0;
     border-radius: inherit;
     pointer-events: none;
-    background: rgba(6, 15, 35, 0.22);
+    background: linear-gradient(
+      180deg,
+      rgba(12, 26, 52, 0.54) 0%,
+      rgba(6, 15, 35, 0.44) 50%,
+      rgba(4, 11, 26, 0.58) 100%
+    );
     z-index: 2;
   }
 
@@ -411,15 +416,16 @@
     inset: 0;
     border-radius: inherit;
     pointer-events: none;
-    border: 1px solid rgba(120, 170, 255, 0.20);
+    border: 1px solid rgba(135, 185, 255, 0.24);
     box-shadow: 
-      0 8px 32px rgba(0, 0, 0, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      0 10px 32px -4px rgba(0, 0, 0, 0.45),
+      0 4px 12px rgba(2, 8, 20, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.28);
     z-index: 3;
   }
 
   /* ============================================================
-     UIVERSE.IO BY MYMIAMO - GLASS CAPSULE DOCK MENU (UNIVERSAL 5-LAYER ARCHITECTURE)
+     UIVERSE.IO BY MYMIAMO - GLASS CAPSULE DOCK MENU (UNIVERSAL 5-LAYER SYSTEM)
      ============================================================ */
   /* Main Container: Structural & Layout Wrapper */
   .menu {
@@ -436,18 +442,23 @@
     inset: 0;
     border-radius: inherit;
     pointer-events: none;
-    backdrop-filter: blur(12px) saturate(140%);
-    -webkit-backdrop-filter: blur(12px) saturate(140%);
+    backdrop-filter: blur(14px) saturate(150%);
+    -webkit-backdrop-filter: blur(14px) saturate(150%);
     z-index: 1;
   }
 
-  /* Layer 1: Visual Glass Tint Substrate */
+  /* Layer 1: Volumetric Optical Glass Substrate */
   .nav-glass-tint {
     position: absolute;
     inset: 0;
     border-radius: inherit;
     pointer-events: none;
-    background: rgba(6, 15, 35, 0.22);
+    background: linear-gradient(
+      180deg,
+      rgba(12, 26, 52, 0.52) 0%,
+      rgba(6, 15, 35, 0.42) 50%,
+      rgba(4, 11, 26, 0.56) 100%
+    );
     z-index: 2;
   }
 
@@ -457,11 +468,12 @@
     inset: 0;
     border-radius: inherit;
     pointer-events: none;
-    border: 1px solid rgba(120, 170, 255, 0.20);
+    border: 1px solid rgba(135, 185, 255, 0.24);
     box-shadow: 
-      0 8px 32px rgba(0, 0, 0, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.2),
-      inset 1px 1px 2px rgba(255, 255, 255, 0.18),
+      0 10px 32px -4px rgba(0, 0, 0, 0.45),
+      0 4px 12px rgba(2, 8, 20, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.28),
+      inset 1px 1px 2px rgba(255, 255, 255, 0.16),
       inset -1px -1px 2px rgba(255, 255, 255, 0.03),
       inset 0 -1px 0 rgba(255, 255, 255, 0.08);
     z-index: 3;
@@ -481,11 +493,11 @@
     border-radius: inherit;
   }
 
-  /* Graceful subtle frosted-glass fallback for browsers genuinely without backdrop-filter support */
+  /* Graceful subtle frosted-glass fallback for environments without backdrop-filter support */
   @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
     .nav-glass-tint,
     .more-menu-glass-tint {
-      background: rgba(6, 15, 35, 0.65);
+      background: rgba(6, 15, 35, 0.72);
     }
     .header-glass-tint {
       background: linear-gradient(
