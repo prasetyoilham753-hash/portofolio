@@ -17,7 +17,7 @@ export function Footer({ profile }: FooterProps) {
           <a href={profile?.socialLinks?.x || profile?.socialLinks?.twitter || "https://x.com/bprasety_"} className="hover:text-white transition-colors" target="_blank" rel="noreferrer">X</a>
           <a href={profile?.socialLinks?.reddit || "https://reddit.com/user/bprasety_"} className="hover:text-white transition-colors" target="_blank" rel="noreferrer">Reddit</a>
           <a href={profile?.socialLinks?.linkedin || "https://linkedin.com/in/bintang-prasetyo"} className="hover:text-white transition-colors" target="_blank" rel="noreferrer">LinkedIn</a>
-          <a href={`mailto:${profile?.socialLinks?.email || "contact@bprasety.com"}`} className="hover:text-white transition-colors">Email</a>
+          <a href={`mailto:${profile?.socialLinks?.email || "contact@bintangprasetyo.com"}`} className="hover:text-white transition-colors">Email</a>
         </div>
         
         <p className="text-xs text-text-muted">

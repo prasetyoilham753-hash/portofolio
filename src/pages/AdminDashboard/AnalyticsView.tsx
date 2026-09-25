@@ -87,7 +87,7 @@ export function AnalyticsView() {
             </span>
           </div>
           <p className="text-xs sm:text-sm text-text-secondary font-light">
-            Statistik pengunjung real-time, lalu lintas geografis, dan lacak performa event di <code className="text-[#7DB3FF]">bprasety_.com</code>.
+            Statistik pengunjung real-time, lalu lintas geografis, dan lacak performa event di <code className="text-[#7DB3FF]">bintangprasetyo.com</code>.
           </p>
         </div>
 

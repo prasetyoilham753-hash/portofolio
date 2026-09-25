@@ -1,10 +1,10 @@
 # TECHNICAL DOCUMENTATION
-# BINTANG PRASETYO PORTFOLIO (bprasety_.com)
+# BINTANG PRASETYO PORTFOLIO (bintangprasetyo.com)
 
 ## 01. PROJECT IDENTITY
 **Project name:** Bintang Prasetyo Portfolio  
 **Owner:** Bintang Prasetyo  
-**Domain:** bprasety_.com  
+**Domain:** bintangprasetyo.com  
 **Purpose:** Premium personal portfolio, creative developer showcase, and digital studio presence.  
 **Audience:** Potential clients, employers, creative technologists, and design enthusiasts.  
 **Visual identity:** Minimalist, elegant, premium, clean, glossy, spatial, cinematic, modern, editorial, subtle, interactive.  
@@ -169,7 +169,7 @@ Verify public site, forms, auth, and performance manually/automatically.
 *   **Firebase:** Uninitialized (Current) → Integrated (Target)
 
 ## 33. AI DEVELOPMENT HANDOFF
-*   **Identity:** Premium portfolio for Bintang Prasetyo (bprasety_.com).
+*   **Identity:** Premium portfolio for Bintang Prasetyo (bintangprasetyo.com).
 *   **DNA:** Minimal, glossy, spatial, cinematic transitions.
 *   **Rules:** No Apple clones. No popups for auth. Modular structure required.
 *   **Phase:** Phase 1 (Audit + Foundation).
