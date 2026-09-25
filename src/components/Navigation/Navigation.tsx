@@ -23,7 +23,7 @@ import { useBackground } from "../../features/background/BackgroundContext";
 const NAV_LINKS = [
   { label: "Home", path: "/", icon: <Home /> },
   { label: "Projects", path: "/projects", icon: <Briefcase /> },
-  { label: "Gallery", path: "/gallery", icon: <ImageIcon /> },
+  { label: "Art Gallery", path: "/gallery", icon: <ImageIcon /> },
   { label: "Feature", path: "/features", icon: <Boxes /> },
   { label: "Comments", path: "/comments", icon: <MessageSquare /> },
 ];
@@ -271,16 +271,16 @@ export function Navigation() {
       </div>
 
       {/* Glass Capsule Dock for Bottom Navigation */}
-      <div className="fixed z-50 left-1/2 -translate-x-1/2 pointer-events-none w-[calc(100%-20px)] max-w-[390px] xs:max-w-[430px] sm:max-w-[490px] md:max-w-[530px] lg:max-w-[560px] bottom-3 sm:bottom-4 md:bottom-6 pb-[max(0px,env(safe-area-inset-bottom))]">
+      <div className="fixed z-50 left-1/2 -translate-x-1/2 pointer-events-none w-[calc(100%-20px)] max-w-[420px] xs:max-w-[450px] sm:max-w-[490px] md:max-w-[530px] bottom-3 sm:bottom-4 md:bottom-6 pb-[max(0px,env(safe-area-inset-bottom))]">
         <nav 
           id="main-navigation-dock"
-          className="menu w-full overflow-x-auto no-scrollbar justify-between sm:justify-center pointer-events-auto"
+          className="menu w-full overflow-x-auto no-scrollbar justify-between pointer-events-auto"
         >
           {NAV_LINKS.map((link) => (
             <NavLink
               key={link.path}
               to={link.path}
-              id={`nav-item-${link.label.toLowerCase()}`}
+              id={`nav-item-${link.label.toLowerCase().replace(/\s+/g, '-')}`}
               className={({ isActive }) => (isActive ? "active" : "")}
             >
               {link.icon}
