@@ -13,27 +13,71 @@ export const db = initializeFirestore(app, {
 }, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
 
-// Initialize Firebase Analytics safely
+// Initialize Google Analytics (GA4) / Firebase Analytics safely
 export let analyticsInstance: any = null;
 if (typeof window !== "undefined") {
-  isSupported().then((supported) => {
-    if (supported) {
-      const measurementId = import.meta.env.VITE_GA_MEASUREMENT_ID || firebaseConfig.measurementId;
-      if (measurementId) {
-        analyticsInstance = getAnalytics(app);
-      }
+  const measurementId = (import.meta.env.VITE_GA_MEASUREMENT_ID || firebaseConfig.measurementId || "").trim();
+
+  if (measurementId) {
+    // 1. Ensure measurementId is configured on Firebase App options for SDK compatibility
+    if (!app.options.measurementId) {
+      (app.options as any).measurementId = measurementId;
     }
-  }).catch((err) => {
-    console.warn("Firebase Analytics not supported in this browser environment:", err);
-  });
+
+    // 2. Initialize official Google tag (gtag.js) for robust GA4 collection on custom domain
+    try {
+      if (!document.getElementById("ga-gtag-script")) {
+        const script = document.createElement("script");
+        script.id = "ga-gtag-script";
+        script.async = true;
+        script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`;
+        document.head.appendChild(script);
+
+        const win = window as any;
+        win.dataLayer = win.dataLayer || [];
+        function gtag(...args: any[]) {
+          win.dataLayer.push(arguments);
+        }
+        win.gtag = win.gtag || gtag;
+        win.gtag("js", new Date());
+        win.gtag("config", measurementId, {
+          send_page_view: false, // SPA page views are cleanly dispatched by AppLayout router navigation
+        });
+      }
+    } catch {
+      // Non-blocking fallback
+    }
+
+    // 3. Initialize Firebase Analytics instance if supported
+    isSupported().then((supported) => {
+      if (supported) {
+        try {
+          analyticsInstance = getAnalytics(app);
+        } catch {
+          // Gracefully fallback to window.gtag
+        }
+      }
+    }).catch(() => {
+      // Gracefully continue with window.gtag
+    });
+  }
 }
 
 export const logAnalyticsEvent = (eventName: string, eventParams?: Record<string, any>) => {
+  // Dispatch to Firebase Analytics
   if (analyticsInstance) {
     try {
       logEvent(analyticsInstance, eventName, eventParams);
-    } catch (e) {
-      console.warn(`[Analytics] Error logging event '${eventName}':`, e);
+    } catch {
+      // Silently continue to gtag
+    }
+  }
+  // Dispatch to Google tag (gtag.js)
+  if (typeof window !== "undefined" && typeof (window as any).gtag === "function") {
+    try {
+      (window as any).gtag("event", eventName, eventParams);
+    } catch {
+      // Non-blocking
     }
   }
 };

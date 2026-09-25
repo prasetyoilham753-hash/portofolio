@@ -153,8 +153,8 @@ export function AnalyticsView() {
                 <li>Isi variable environment di server/Vercel/hosting:
                   <div className="p-2 my-1 rounded bg-black/60 text-[11px] text-[#7DB3FF]">
                     GA_PROPERTY_ID=555955840<br />
-                    GA_CLIENT_EMAIL=your-service-account@project.iam.gserviceaccount.com<br />
-                    GA_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n..."
+                    GA_CLIENT_EMAIL=&lt;service-account-email&gt;<br />
+                    GA_PRIVATE_KEY=&lt;service-account-private-key&gt;
                   </div>
                 </li>
               </ol>

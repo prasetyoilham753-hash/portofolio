@@ -82,8 +82,21 @@ Visitor → write → validate → spam protection → Firestore → success/err
 
 ## 12. ENVIRONMENT CONFIGURATION
 **Development / Preview / Production**
-*   **Variables:** `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_PROJECT_ID`, etc. (No secrets in docs).
+*   **Variables:** `VITE_ADMIN_EMAIL`, `VITE_RECAPTCHA_SITE_KEY`, `VITE_APPCHECK_DEBUG_TOKEN`, `VITE_GA_MEASUREMENT_ID` (Frontend tracking only).
 *   **Commands:** `npm run dev`, `npm run build`.
+
+## 12.1 GOOGLE ANALYTICS 4 (GA4) ARCHITECTURE
+*   **Frontend Tracking (bintangprasetyo.com):**
+    *   Measurement ID is provided via `VITE_GA_MEASUREMENT_ID` (format `G-XXXXXXXXXX`).
+    *   Dual collection via official Google tag (`gtag.js`) and Firebase Analytics SDK.
+    *   Accurate SPA route changes tracked via `page_view` in `AppLayout.tsx`.
+    *   Custom interaction events (`click_instagram`, `click_linkedin`, `click_download_cv`).
+    *   Zero credentials or private keys in the client bundle.
+*   **Backend Reporting (Admin Analytics Data API):**
+    *   Runs on `server.ts` endpoint `/api/analytics/report`.
+    *   Accesses `@google-analytics/data` (BetaAnalyticsDataClient).
+    *   Server-side environment variables: `GA_PROPERTY_ID`, `GA_CLIENT_EMAIL`, `GA_PRIVATE_KEY` (or `GA_SERVICE_ACCOUNT_KEY`).
+    *   Never exposed to Vite or client builds.
 
 ## 13. AUTHENTICATION
 *   **Mechanism:** EMAIL + PASSWORD via Firebase Auth (`signInWithEmailAndPassword`).
