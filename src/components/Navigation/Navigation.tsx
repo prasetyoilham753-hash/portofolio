@@ -274,6 +274,7 @@ export function Navigation() {
       <div className="fixed z-50 left-1/2 -translate-x-1/2 pointer-events-none w-[calc(100%-20px)] max-w-[420px] xs:max-w-[450px] sm:max-w-[490px] md:max-w-[530px] bottom-3 sm:bottom-4 md:bottom-6 pb-[max(0px,env(safe-area-inset-bottom))]">
         <nav 
           id="main-navigation-dock"
+          data-navigation-version="ai-studio-sync-test"
           className="menu w-full overflow-x-auto no-scrollbar justify-between pointer-events-auto"
         >
           {NAV_LINKS.map((link) => (
