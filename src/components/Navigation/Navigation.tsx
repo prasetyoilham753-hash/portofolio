@@ -91,7 +91,7 @@ export function Navigation() {
 
   return (
     <>
-      {/* 1.7cm Progressive Gradient Liquid Glass Veil at Header Region */}
+      {/* 1.7cm Progressive Header Glass Veil at Header Region */}
       <div 
         id="header-gradient-blur"
         className={`header-glass-veil transition-opacity duration-300 ${
@@ -99,12 +99,12 @@ export function Navigation() {
         }`}
         aria-hidden="true"
       >
-        {/* Layer 2: Dedicated Pure Backdrop-Blur Leaf Node */}
-        <div className="header-blur-surface" />
-        {/* Layer 1: Glass Tint Gradient */}
-        <div className="header-glass-tint" />
-        {/* Layer 3: Glass Top Specular Border */}
-        <div className="header-specular-border" />
+        {/* Layer 1: Volumetric Base Optical Substrate */}
+        <div className="header-glass-base" />
+        {/* Layer 2: Soft Internal Light Diffusion */}
+        <div className="header-glass-diffusion" />
+        {/* Layer 3: Glass Top Specular Border & Rim Highlight */}
+        <div className="header-glass-specular" />
       </div>
 
       {/* Three-Dots Menu Button with tactile open/close animation */}
@@ -170,16 +170,13 @@ export function Navigation() {
               }}
               className="more-menu-dropdown absolute top-11 right-0 sm:top-12 w-[185px] sm:w-[195px] rounded-xl p-1.5 z-50 flex flex-col gap-1 origin-top-right"
             >
-              {/* Layer 2: Dedicated Pure Backdrop-Blur Leaf Node */}
-              <div className="more-menu-blur-surface" aria-hidden="true" />
+              {/* Universal Self-Rendering Glass Surface Engine */}
+              <div className="glass-surface-base" aria-hidden="true" />
+              <div className="glass-surface-diffusion" aria-hidden="true" />
+              <div className="glass-surface-highlight" aria-hidden="true" />
+              <div className="glass-surface-border" aria-hidden="true" />
 
-              {/* Layer 1: Glass Tint Substrate */}
-              <div className="more-menu-glass-tint" aria-hidden="true" />
-
-              {/* Layer 3: Glass Borders, Specular Top Highlight & Shadow */}
-              <div className="more-menu-specular-border" aria-hidden="true" />
-
-              {/* Layer 4 & 5: Interactive Menu Content */}
+              {/* Interactive Menu Content */}
               <div className="relative z-10 flex flex-col gap-0.5">
                 {SECONDARY_LINKS.map((link) => (
                   <NavLink
@@ -286,19 +283,16 @@ export function Navigation() {
       <div className="fixed z-50 left-0 right-0 mx-auto pointer-events-none w-[calc(100%-20px)] max-w-[420px] xs:max-w-[450px] sm:max-w-[490px] md:max-w-[530px] bottom-3 sm:bottom-4 md:bottom-6 pb-[max(0px,env(safe-area-inset-bottom))]">
         <nav 
           id="main-navigation-dock"
-          data-navigation-version="universal-5layer-frosted-glass"
+          data-navigation-version="universal-self-rendering-glass-engine"
           className="menu w-full pointer-events-auto"
         >
-          {/* Layer 2: Dedicated Pure Backdrop-Blur Leaf Node */}
-          <div className="nav-blur-surface" aria-hidden="true" />
+          {/* Universal Self-Rendering Glass Surface Engine */}
+          <div className="glass-surface-base" aria-hidden="true" />
+          <div className="glass-surface-diffusion" aria-hidden="true" />
+          <div className="glass-surface-highlight" aria-hidden="true" />
+          <div className="glass-surface-border" aria-hidden="true" />
 
-          {/* Layer 1: Visual Glass Tint Substrate */}
-          <div className="nav-glass-tint" aria-hidden="true" />
-
-          {/* Layer 3: Specular Borders, Highlights & Ambient Shadows */}
-          <div className="nav-specular-border" aria-hidden="true" />
-
-          {/* Layer 4 & 5: Interactive Navigation Content & Scrolling Layer */}
+          {/* Interactive Navigation Content & Scrolling Layer */}
           <div className="menu-scroll-container w-full overflow-x-auto no-scrollbar flex items-center justify-between">
             {NAV_LINKS.map((link) => (
               <NavLink
