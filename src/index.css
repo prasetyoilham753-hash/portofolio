@@ -323,29 +323,16 @@
     height: 1.7cm;
     pointer-events: none;
     z-index: 40;
+    background: linear-gradient(to bottom, rgba(2, 9, 20, 0.82) 0%, rgba(2, 9, 20, 0.45) 45%, rgba(2, 9, 20, 0.12) 80%, transparent 100%);
+    backdrop-filter: blur(28px) saturate(200%);
+    -webkit-backdrop-filter: blur(28px) saturate(200%);
     border-top: 1px solid rgba(255, 255, 255, 0.12);
     transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-    transform: translateZ(0);
-    -webkit-transform: translateZ(0);
-    /* Android Chrome & Cross-Browser: Natural progressive liquid gradient without mask-image (avoids Backdrop Root bug) */
-    background: linear-gradient(
-      to bottom,
-      rgba(2, 9, 20, 0.94) 0%,
-      rgba(2, 9, 20, 0.78) 38%,
-      rgba(2, 9, 20, 0.40) 70%,
-      rgba(2, 9, 20, 0.10) 90%,
-      transparent 100%
-    );
-    backdrop-filter: blur(16px) saturate(160%);
-    -webkit-backdrop-filter: blur(16px) saturate(160%);
   }
 
-  /* Preserve exact progressive gradient mask on iOS Safari (WebKit Metal compositor) */
+  /* Progressive gradient mask on iOS Safari (WebKit) */
   @supports (-webkit-touch-callout: none) {
     .header-gradient-blur {
-      background: linear-gradient(to bottom, rgba(2, 9, 20, 0.82) 0%, rgba(2, 9, 20, 0.45) 45%, rgba(2, 9, 20, 0.12) 80%, transparent 100%);
-      backdrop-filter: blur(28px) saturate(200%);
-      -webkit-backdrop-filter: blur(28px) saturate(200%);
       mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.82) 50%, rgba(0, 0, 0, 0.25) 85%, transparent 100%);
       -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.82) 50%, rgba(0, 0, 0, 0.25) 85%, transparent 100%);
     }
@@ -372,79 +359,35 @@
 
   /* More Menu Glass Dropdown */
   .more-menu-dropdown {
-    background: linear-gradient(180deg, rgba(14, 28, 56, 0.85) 0%, rgba(6, 16, 36, 0.92) 100%);
-    backdrop-filter: blur(16px) saturate(160%);
-    -webkit-backdrop-filter: blur(16px) saturate(160%);
-    border: 1px solid rgba(120, 170, 255, 0.25);
+    background: rgba(6, 15, 35, 0.18);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(120, 170, 255, 0.20);
     box-shadow: 
-      0 12px 36px rgba(0, 0, 0, 0.45),
-      inset 0 1px 0 rgba(255, 255, 255, 0.25);
-  }
-
-  @supports (-webkit-touch-callout: none) {
-    .more-menu-dropdown {
-      background: rgba(6, 15, 35, 0.24);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-    }
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
   }
 
   /* ============================================================
-     UIVERSE.IO BY MYMIAMO - GLASS CAPSULE DOCK MENU (TRANSLUCENT FROSTED LIQUID GLASS)
+     UIVERSE.IO BY MYMIAMO - GLASS CAPSULE DOCK MENU (ORIGINAL ULTRA-TRANSPARENT LIQUID GLASS)
      ============================================================ */
-  /* Blur Layer: Handles backdrop-filter, translucent glass gradient, borders, and specular shadows */
+  /* Blur Layer: Original colors, transparency, borders, shadows, and blur */
   .menu {
     position: relative;
     width: 100%;
-    /* High-fidelity translucent frosted-glass substrate for Android Chrome & universal devices */
-    background: linear-gradient(
-      180deg,
-      rgba(15, 32, 60, 0.78) 0%,
-      rgba(8, 20, 42, 0.82) 48%,
-      rgba(4, 12, 28, 0.88) 100%
-    );
-    backdrop-filter: blur(16px) saturate(160%);
-    -webkit-backdrop-filter: blur(16px) saturate(160%);
-    border: 1px solid rgba(130, 185, 255, 0.25);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    background: rgba(6, 15, 35, 0.18);
+    border: 1px solid rgba(120, 170, 255, 0.20);
     box-shadow: 
-      0 10px 32px rgba(0, 0, 0, 0.45),
-      0 2px 8px rgba(0, 0, 0, 0.3),
-      inset 0 1.5px 0 rgba(255, 255, 255, 0.35),
-      inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
     padding: 5px 6px;
     border-radius: 99rem;
     z-index: 50;
-    transform: translateZ(0);
-    -webkit-transform: translateZ(0);
   }
 
-  /* Internal specular light diffusion sheen */
-  .menu::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: radial-gradient(ellipse at 50% 0%, rgba(130, 190, 255, 0.16) 0%, transparent 72%);
-    pointer-events: none;
-    z-index: 1;
-  }
-
-  /* Preserve exact original ultra-sheer liquid glass on iOS Safari (Metal compositor) */
-  @supports (-webkit-touch-callout: none) {
-    .menu {
-      background: rgba(6, 15, 35, 0.22);
-      backdrop-filter: blur(12px) saturate(140%);
-      -webkit-backdrop-filter: blur(12px) saturate(140%);
-      box-shadow: 
-        0 8px 32px rgba(0, 0, 0, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    }
-    .menu::before {
-      display: none;
-    }
-  }
-
-  /* Scrolling Layer: Handles horizontal scroll independently without breaking backdrop sampling */
+  /* Scrolling Layer: Handles horizontal scroll independently without breaking backdrop sampling on Android */
   .menu-scroll-container {
     position: relative;
     z-index: 2;
