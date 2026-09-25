@@ -1,5 +1,5 @@
-import { NavLink, useLocation } from "react-router-dom";
-import React, { useState, useRef, useEffect } from "react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { 
   Home, 
   Briefcase, 
@@ -19,13 +19,13 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import { useBackground } from "../../features/background/BackgroundContext";
 
-// Primary navigation links for the bottom dock
+// Primary navigation links for the liquid glass bottom dock
 const NAV_LINKS = [
-  { label: "Home", path: "/", icon: <Home /> },
-  { label: "Projects", path: "/projects", icon: <Briefcase /> },
-  { label: "Art Gallery", path: "/gallery", icon: <ImageIcon /> },
-  { label: "Feature", path: "/features", icon: <Boxes /> },
-  { label: "Comments", path: "/comments", icon: <MessageSquare /> },
+  { id: "home", label: "Home", path: "/", icon: <Home /> },
+  { id: "projects", label: "Projects", path: "/projects", icon: <Briefcase /> },
+  { id: "gallery", label: "Gallery", path: "/gallery", icon: <ImageIcon /> },
+  { id: "features", label: "Feature", path: "/features", icon: <Boxes /> },
+  { id: "comments", label: "Comments", path: "/comments", icon: <MessageSquare /> },
 ];
 
 // Secondary navigation links stored inside the three-dots button
@@ -38,26 +38,122 @@ export function Navigation() {
   const { backgroundType, setBackgroundType } = useBackground();
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isCompact, setIsCompact] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const lastScrollY = useRef(0);
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
   const location = useLocation();
+  const navigate = useNavigate();
 
-  // Monitor window scroll to activate progressive gradient blur when scrolled down
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 8);
-    };
-
-    handleScroll();
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  // Find index of current primary route for horizontal slide transitions
+  const currentPrimaryIndex = NAV_LINKS.findIndex((link) => link.path === location.pathname);
 
   // Check if any secondary link is currently active
   const isSecondaryActive = SECONDARY_LINKS.some(
     (link) => location.pathname === link.path || (link.id === "certificates" && location.pathname === "/certificate")
   );
 
-  // Close menu when route changes
+  // 1. Vertical Scroll Adaptation: Auto-compact on scroll down, expand on scroll up / near top
+  useEffect(() => {
+    let ticking = false;
+
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentY = window.scrollY;
+          const deltaY = currentY - lastScrollY.current;
+
+          // Header blur veil threshold
+          setIsScrolled(currentY > 8);
+
+          // Liquid glass navigation compacting behavior
+          if (currentY < 32) {
+            setIsCompact(false);
+          } else if (deltaY > 5) {
+            // Scrolling down -> compact mode
+            setIsCompact(true);
+          } else if (deltaY < -6) {
+            // Scrolling up -> expand mode
+            setIsCompact(false);
+          }
+
+          lastScrollY.current = currentY;
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // 2. Horizontal Slide / Swipe Gesture Adaptation (slide kesamping antar halaman utama)
+  const handleTouchStart = useCallback((e: TouchEvent) => {
+    // Only track single touch points
+    if (e.touches.length === 1) {
+      touchStartRef.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+        time: Date.now()
+      };
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback((e: TouchEvent) => {
+    if (!touchStartRef.current || e.changedTouches.length !== 1) return;
+
+    const touchEnd = {
+      x: e.changedTouches[0].clientX,
+      y: e.changedTouches[0].clientY,
+      time: Date.now()
+    };
+
+    const deltaX = touchEnd.x - touchStartRef.current.x;
+    const deltaY = touchEnd.y - touchStartRef.current.y;
+    const duration = touchEnd.time - touchStartRef.current.time;
+
+    // Check if touch originated from an interactive element like textarea, input, or horizontal scrollable container
+    const target = e.target as HTMLElement | null;
+    const isInteractive = target?.closest('textarea, input, [data-prevent-swipe], .scrollable-carousel, .no-swipe');
+
+    if (!isInteractive && duration < 450 && Math.abs(deltaX) > 65 && Math.abs(deltaY) < 50) {
+      // Horizontal swipe detected
+      if (currentPrimaryIndex !== -1) {
+        if (deltaX < 0 && currentPrimaryIndex < NAV_LINKS.length - 1) {
+          // Swipe Left -> Navigate to next tab
+          navigate(NAV_LINKS[currentPrimaryIndex + 1].path);
+        } else if (deltaX > 0 && currentPrimaryIndex > 0) {
+          // Swipe Right -> Navigate to previous tab
+          navigate(NAV_LINKS[currentPrimaryIndex - 1].path);
+        }
+      }
+    }
+
+    touchStartRef.current = null;
+  }, [currentPrimaryIndex, navigate]);
+
+  useEffect(() => {
+    window.addEventListener("touchstart", handleTouchStart, { passive: true });
+    window.addEventListener("touchend", handleTouchEnd, { passive: true });
+    return () => {
+      window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, [handleTouchStart, handleTouchEnd]);
+
+  // Center active item in scroll track when path changes
+  useEffect(() => {
+    if (trackRef.current) {
+      const activeEl = trackRef.current.querySelector(".lg-item.active, .lg-item.is-active") as HTMLElement | null;
+      if (activeEl) {
+        activeEl.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+      }
+    }
+  }, [location.pathname]);
+
+  // Close more menu when route changes
   useEffect(() => {
     setIsOpen(false);
   }, [location.pathname]);
@@ -91,7 +187,7 @@ export function Navigation() {
 
   return (
     <>
-      {/* 1.7cm Progressive Header Glass Veil at Header Region */}
+      {/* 1.7cm Progressive Header Glass Veil */}
       <div 
         id="header-gradient-blur"
         className={`header-glass-veil transition-opacity duration-300 ${
@@ -99,11 +195,8 @@ export function Navigation() {
         }`}
         aria-hidden="true"
       >
-        {/* Layer 1: Volumetric Base Optical Substrate */}
         <div className="header-glass-base" />
-        {/* Layer 2: Soft Internal Light Diffusion */}
         <div className="header-glass-diffusion" />
-        {/* Layer 3: Glass Top Specular Border & Rim Highlight */}
         <div className="header-glass-specular" />
       </div>
 
@@ -149,7 +242,7 @@ export function Navigation() {
           )}
         </motion.button>
 
-        {/* Ultra-Transparent Dropdown Popover Menu with Pronounced Zoom In/Out Spring Animation */}
+        {/* Liquid Glass Dropdown Popover Menu */}
         <AnimatePresence>
           {isOpen && (
             <motion.div
@@ -170,7 +263,7 @@ export function Navigation() {
               }}
               className="more-menu-dropdown absolute top-11 right-0 sm:top-12 w-[185px] sm:w-[195px] rounded-xl p-1.5 z-50 flex flex-col gap-1 origin-top-right"
             >
-              {/* Universal Self-Rendering Glass Surface Engine */}
+              {/* Universal Self-Rendering Glass Surface */}
               <div className="glass-surface-base" aria-hidden="true" />
               <div className="glass-surface-diffusion" aria-hidden="true" />
               <div className="glass-surface-highlight" aria-hidden="true" />
@@ -279,35 +372,30 @@ export function Navigation() {
         </AnimatePresence>
       </div>
 
-      {/* Glass Capsule Dock for Bottom Navigation - Anchored without ancestor CSS transform */}
-      <div className="fixed z-50 left-0 right-0 mx-auto pointer-events-none w-[calc(100%-20px)] max-w-[420px] xs:max-w-[450px] sm:max-w-[490px] md:max-w-[530px] bottom-3 sm:bottom-4 md:bottom-6 pb-[max(0px,env(safe-area-inset-bottom))]">
-        <nav 
-          id="main-navigation-dock"
-          data-navigation-version="universal-self-rendering-glass-engine"
-          className="menu w-full pointer-events-auto"
-        >
-          {/* Universal Self-Rendering Glass Surface Engine */}
-          <div className="glass-surface-base" aria-hidden="true" />
-          <div className="glass-surface-diffusion" aria-hidden="true" />
-          <div className="glass-surface-highlight" aria-hidden="true" />
-          <div className="glass-surface-border" aria-hidden="true" />
-
-          {/* Interactive Navigation Content & Scrolling Layer */}
-          <div className="menu-scroll-container w-full overflow-x-auto no-scrollbar flex items-center justify-between">
-            {NAV_LINKS.map((link) => (
-              <NavLink
-                key={link.path}
-                to={link.path}
-                id={`nav-item-${link.label.toLowerCase().replace(/\s+/g, '-')}`}
-                className={({ isActive }) => (isActive ? "active" : "")}
-              >
-                {link.icon}
-                <span>{link.label}</span>
-              </NavLink>
-            ))}
-          </div>
-        </nav>
-      </div>
+      {/* Liquid Glass Navigation Dock: Responsive to both vertical scrolling & horizontal sliding */}
+      <nav 
+        id="main-navigation-dock"
+        aria-label="Navigasi utama"
+        className={`liquid-glass-nav ${isCompact ? "is-compact" : ""}`}
+      >
+        {/* Scroll / Slide Track for seamless touch swiping and equal-width tabs */}
+        <div ref={trackRef} className="lg-scroll-track">
+          {NAV_LINKS.map((link) => (
+            <NavLink
+              key={link.path}
+              to={link.path}
+              id={`nav-item-${link.id}`}
+              className={({ isActive }) => `lg-item ${isActive ? "active is-active" : ""}`}
+            >
+              {/* Melt-in Active Highlight Layer */}
+              <span className="lg-highlight" aria-hidden="true" />
+              {link.icon}
+              <span className="lg-label">{link.label}</span>
+            </NavLink>
+          ))}
+        </div>
+      </nav>
     </>
   );
 }
+
