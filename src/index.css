@@ -455,23 +455,24 @@
 
   /* ============================================================
      LIQUID GLASS NAVIGATION DOCK (DUAL SCROLL & SLIDE ADAPTIVE)
+     Connected to Navigation Customization Engine
      ============================================================ */
   .liquid-glass-nav {
     position: fixed;
     left: 50%;
-    bottom: max(16px, calc(10px + env(safe-area-inset-bottom, 0px)));
+    bottom: var(--nav-bottom-offset, max(16px, calc(10px + env(safe-area-inset-bottom, 0px))));
     transform: translateX(-50%);
     display: flex;
     align-items: center;
-    width: min(92vw, 430px);
-    padding: 6px 8px;
-    border-radius: 999px;
+    width: min(92vw, var(--nav-max-width, 430px));
+    padding: var(--nav-padding-y, 6px) var(--nav-padding-x, 8px);
+    border-radius: var(--nav-border-radius, 999px);
     background: 
       linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 100%),
       linear-gradient(180deg, rgba(12, 24, 50, 0.28) 0%, rgba(3, 8, 20, 0.35) 100%);
-    backdrop-filter: blur(13px) saturate(145%);
-    -webkit-backdrop-filter: blur(13px) saturate(145%);
-    border: 1px solid rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(var(--nav-backdrop-blur, 13px)) saturate(var(--nav-saturation, 145%)) brightness(var(--nav-brightness, 100%)) contrast(var(--nav-contrast, 100%));
+    -webkit-backdrop-filter: blur(var(--nav-backdrop-blur, 13px)) saturate(var(--nav-saturation, 145%)) brightness(var(--nav-brightness, 100%)) contrast(var(--nav-contrast, 100%));
+    border: var(--nav-border-width, 1px) var(--nav-border-style, solid) rgba(255, 255, 255, var(--nav-border-opacity, 0.18));
     box-shadow: 
       0 12px 36px rgba(0, 0, 0, 0.35),
       0 2px 10px rgba(0, 0, 0, 0.2),
@@ -479,7 +480,7 @@
       inset 0 -1px 2px rgba(0, 0, 0, 0.15);
     z-index: 50;
     transition: 
-      width 0.52s cubic-bezier(0.16, 1, 0.3, 1), 
+      width var(--nav-transition-duration, 0.52s) cubic-bezier(0.16, 1, 0.3, 1), 
       padding 0.48s cubic-bezier(0.16, 1, 0.3, 1), 
       transform 0.42s cubic-bezier(0.16, 1, 0.3, 1),
       box-shadow 0.4s ease;
@@ -513,7 +514,7 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    gap: 2px;
+    gap: var(--nav-item-spacing, 2px);
     overflow-x: auto;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
@@ -532,11 +533,11 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 3px;
+    gap: var(--nav-icon-spacing, 3px);
     font-family: inherit;
-    color: rgba(255, 255, 255, 0.65);
-    padding: 7px 4px;
-    border-radius: 999px;
+    color: var(--nav-text-color, rgba(255, 255, 255, 0.65));
+    padding: var(--nav-item-padding-y, 7px) var(--nav-item-padding-x, 4px);
+    border-radius: var(--nav-item-radius, 999px);
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     background: transparent;
@@ -544,7 +545,7 @@
     text-decoration: none;
     user-select: none;
     transition: 
-      color 0.38s cubic-bezier(0.16, 1, 0.3, 1), 
+      color var(--nav-transition-speed, 0.38s) cubic-bezier(0.16, 1, 0.3, 1), 
       transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), 
       background 0.35s ease;
   }
@@ -578,13 +579,14 @@
   .lg-item svg {
     position: relative;
     z-index: 1;
-    width: 20px;
-    height: 20px;
+    width: var(--nav-icon-size, 20px);
+    height: var(--nav-icon-size, 20px);
     display: block;
     flex-shrink: 0;
     stroke-width: 2.1;
+    opacity: var(--nav-icon-opacity, 0.85);
     transition: 
-      filter 0.38s cubic-bezier(0.16, 1, 0.3, 1), 
+      filter var(--nav-transition-speed, 0.38s) cubic-bezier(0.16, 1, 0.3, 1), 
       transform 0.38s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
@@ -592,15 +594,15 @@
     position: relative;
     z-index: 1;
     display: block;
-    font-size: 10.5px;
-    font-weight: 600;
-    letter-spacing: 0.01em;
+    font-size: var(--nav-font-size, 10.5px);
+    font-weight: var(--nav-font-weight, 600);
+    letter-spacing: var(--nav-letter-spacing, 0.01em);
     width: 100%;
     text-align: center;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    opacity: 1;
+    opacity: var(--nav-text-opacity, 1);
     max-height: 14px;
     transform: scale(1);
     transition: 
@@ -619,13 +621,14 @@
 
   .lg-item.is-active,
   .lg-item.active {
-    color: #ffffff;
+    color: var(--nav-active-text-color, #ffffff);
   }
 
   .lg-item.is-active svg,
   .lg-item.active svg {
     filter: drop-shadow(0 1px 4px rgba(160, 195, 255, 0.40));
     transform: translateY(-1px);
+    opacity: 1;
   }
 
   .lg-item:active {
@@ -639,8 +642,8 @@
 
   @media (hover: hover) {
     .lg-item:not(.is-active):not(.active):hover {
-      color: rgba(255, 255, 255, 0.88);
-      background: rgba(255, 255, 255, 0.08);
+      color: var(--nav-hover-text-color, rgba(255, 255, 255, 0.88));
+      background: var(--nav-hover-bg-color, rgba(255, 255, 255, 0.08));
     }
   }
 

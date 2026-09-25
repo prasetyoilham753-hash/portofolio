@@ -1,5 +1,5 @@
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { 
   Home, 
   Briefcase, 
@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useBackground } from "../../features/background/BackgroundContext";
+import { useNavigationCustomization } from "../../features/navigation/NavigationCustomizationContext";
+import { hexToRgba, buildNavBoxShadow } from "../../features/navigation/colorUtils";
 
 // Primary navigation links for the liquid glass bottom dock
 const NAV_LINKS = [
@@ -36,15 +38,27 @@ const SECONDARY_LINKS = [
 
 export function Navigation() {
   const { backgroundType, setBackgroundType } = useBackground();
+  const { config } = useNavigationCustomization();
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isCompact, setIsCompact] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const lastScrollY = useRef(0);
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Detect mobile viewport
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 640);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // Find index of current primary route for horizontal slide transitions
   const currentPrimaryIndex = NAV_LINKS.findIndex((link) => link.path === location.pathname);
@@ -184,6 +198,90 @@ export function Navigation() {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen]);
+
+  // Compute live dynamic inline styles for the bottom liquid glass dock
+  const dockStyle = useMemo<React.CSSProperties>(() => {
+    const useMobile = isMobile && config.mobileCustomEnabled;
+
+    const bgOpacity = (useMobile ? config.mobileBgOpacity : config.bgOpacity) / 100;
+    const bgColor = useMobile ? config.mobileBgColor : config.bgColor;
+    const backdropBlur = useMobile ? config.mobileBackdropBlur : config.backdropBlur;
+    const borderEnabled = useMobile ? config.mobileBorderEnabled : config.borderEnabled;
+    const borderColor = useMobile ? config.mobileBorderColor : config.borderColor;
+    const borderOpacity = (useMobile ? config.mobileBorderOpacity : config.borderOpacity) / 100;
+    const borderRadius = useMobile ? config.mobileRadius : config.borderRadius;
+    const paddingY = useMobile ? config.mobilePaddingY : config.verticalPadding;
+    const paddingX = useMobile ? config.mobilePaddingX : config.horizontalPadding;
+    const maxWidth = useMobile ? config.mobileMaxWidth : config.maxWidth;
+
+    // Background generation
+    let background = "";
+    if (config.bgType === "color") {
+      background = hexToRgba(bgColor, bgOpacity);
+    } else if (config.bgGradientEnabled) {
+      background = `linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 100%), linear-gradient(${config.bgGradientDirection}, ${hexToRgba(config.bgGradientStart, bgOpacity)}, ${hexToRgba(config.bgGradientEnd, bgOpacity)})`;
+    } else {
+      background = `linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 100%), ${hexToRgba(bgColor, bgOpacity)}`;
+    }
+
+    if (config.bgImageUrl) {
+      background = `url("${config.bgImageUrl}") center/cover no-repeat, ${background}`;
+    }
+
+    // Border generation
+    const border = borderEnabled 
+      ? `${config.borderWidth}px ${config.borderStyle} ${hexToRgba(borderColor, borderOpacity)}`
+      : "none";
+
+    // Shadow generation
+    const boxShadow = buildNavBoxShadow(config);
+
+    return {
+      background,
+      backdropFilter: `blur(${backdropBlur}px) saturate(${config.saturation}%) brightness(${config.brightness}%) contrast(${config.contrast}%)`,
+      WebkitBackdropFilter: `blur(${backdropBlur}px) saturate(${config.saturation}%) brightness(${config.brightness}%) contrast(${config.contrast}%)`,
+      border,
+      borderRadius: `${borderRadius}px`,
+      boxShadow,
+      padding: `${paddingY}px ${paddingX}px`,
+      bottom: `${config.bottomOffset}px`,
+      maxWidth: isCompact ? "min(60vw, 260px)" : `min(92vw, ${maxWidth}px)`,
+      transition: `width ${config.transitionDuration}ms cubic-bezier(0.16, 1, 0.3, 1), padding 0.48s cubic-bezier(0.16, 1, 0.3, 1), transform 0.42s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease`,
+    };
+  }, [config, isMobile, isCompact]);
+
+  // Compute dynamic highlight pill style for active item
+  const highlightStyle = useMemo<React.CSSProperties>(() => {
+    const activeBgColor = hexToRgba(config.activeBgColor, config.activeBgOpacity / 100);
+    return {
+      background: `linear-gradient(165deg, ${activeBgColor}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity * 0.6) / 100)})`,
+      border: `1px solid ${hexToRgba("#ffffff", 0.35)}`,
+      boxShadow: config.activeIndicatorGlow 
+        ? `0 4px 14px ${hexToRgba(config.activeBgColor, 0.35)}, inset 0 1px 1px rgba(255, 255, 255, 0.45)`
+        : "inset 0 1px 1px rgba(255, 255, 255, 0.35)",
+      borderRadius: `${config.activeIndicatorRadius}px`,
+      opacity: config.activeIndicatorEnabled ? (config.activeIndicatorOpacity / 100) : 0,
+      display: config.activeIndicatorEnabled ? "block" : "none",
+    };
+  }, [config]);
+
+  // Item style
+  const itemStyle = useMemo<React.CSSProperties>(() => {
+    return {
+      padding: `${config.itemPaddingY}px ${config.itemPaddingX}px`,
+      borderRadius: `${config.itemBorderRadius}px`,
+      gap: `${config.iconSpacing}px`,
+      transition: `color ${config.transitionSpeed}ms ease, transform 0.25s ease, background ${config.transitionSpeed}ms ease`,
+    };
+  }, [config]);
+
+  const labelStyle = useMemo<React.CSSProperties>(() => {
+    return {
+      fontSize: `${config.fontSize}px`,
+      fontWeight: config.fontWeight,
+      letterSpacing: `${config.letterSpacing}em`,
+    };
+  }, [config]);
 
   return (
     <>
@@ -377,20 +475,28 @@ export function Navigation() {
         id="main-navigation-dock"
         aria-label="Navigasi utama"
         className={`liquid-glass-nav ${isCompact ? "is-compact" : ""}`}
+        style={dockStyle}
       >
         {/* Scroll / Slide Track for seamless touch swiping and equal-width tabs */}
-        <div ref={trackRef} className="lg-scroll-track">
+        <div 
+          ref={trackRef} 
+          className="lg-scroll-track"
+          style={{ gap: `${isMobile && config.mobileCustomEnabled ? config.mobileItemSpacing : config.itemSpacing}px` }}
+        >
           {NAV_LINKS.map((link) => (
             <NavLink
               key={link.path}
               to={link.path}
               id={`nav-item-${link.id}`}
+              style={itemStyle}
               className={({ isActive }) => `lg-item ${isActive ? "active is-active" : ""}`}
             >
               {/* Melt-in Active Highlight Layer */}
-              <span className="lg-highlight" aria-hidden="true" />
-              {link.icon}
-              <span className="lg-label">{link.label}</span>
+              <span className="lg-highlight" style={highlightStyle} aria-hidden="true" />
+              {React.cloneElement(link.icon as React.ReactElement<{ size?: number }>, {
+                size: config.iconSize,
+              })}
+              <span className="lg-label" style={labelStyle}>{link.label}</span>
             </NavLink>
           ))}
         </div>
