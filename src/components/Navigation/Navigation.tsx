@@ -98,9 +98,7 @@ export function Navigation() {
           isScrolled ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1"
         }`}
         aria-hidden="true"
-      >
-        <div className="header-gradient-blur-layer" />
-      </div>
+      />
 
       {/* Three-Dots Menu Button with tactile open/close animation */}
       <div ref={menuRef} className="fixed top-4 right-4 sm:top-5 sm:right-6 z-50">
@@ -163,11 +161,7 @@ export function Navigation() {
                 damping: 26, 
                 mass: 0.75 
               }}
-              className="absolute top-11 right-0 sm:top-12 w-[185px] sm:w-[195px] bg-[rgba(6,15,35,0.24)] border border-[rgba(120,170,255,0.22)] rounded-xl p-1.5 backdrop-blur-[12px] shadow-[0_8px_32px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.2)] z-50 flex flex-col gap-1 overflow-hidden origin-top-right"
-              style={{ 
-                WebkitBackdropFilter: "blur(12px)",
-                transform: "translateZ(0)"
-              }}
+              className="absolute top-11 right-0 sm:top-12 w-[185px] sm:w-[195px] more-menu-dropdown rounded-xl p-1.5 z-50 flex flex-col gap-1 overflow-hidden origin-top-right"
             >
               {/* Ultra-Subtle Top Sheen */}
               <div className="absolute inset-x-0 top-0 h-5 bg-gradient-to-b from-white/10 to-transparent pointer-events-none rounded-t-xl" />
@@ -278,7 +272,7 @@ export function Navigation() {
       <div className="fixed z-50 left-1/2 -translate-x-1/2 pointer-events-none w-[calc(100%-20px)] max-w-[420px] xs:max-w-[450px] sm:max-w-[490px] md:max-w-[530px] bottom-3 sm:bottom-4 md:bottom-6 pb-[max(0px,env(safe-area-inset-bottom))]">
         <nav 
           id="main-navigation-dock"
-          data-navigation-version="ai-studio-sync-test"
+          data-navigation-version="2.0-android-frosted-glass"
           className="menu w-full pointer-events-auto"
         >
           <div className="menu-scroll-container w-full overflow-x-auto no-scrollbar flex items-center justify-between">
