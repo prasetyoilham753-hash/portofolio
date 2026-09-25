@@ -80,19 +80,20 @@ const CORNER_SEGMENTS = [
 
 export function ProfileCard3D({ photos, name }: ProfileCard3DProps) {
   const validPhotos = photos.filter(Boolean);
-  const photoList = validPhotos.length > 0 
-    ? validPhotos 
-    : [
-        "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80",
-        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=800&q=80"
-      ];
-
+  const photoList = validPhotos;
   const totalPhotos = photoList.length;
 
   // Face indices: front face index and back face index
   const [frontIndex, setFrontIndex] = useState(0);
   const [backIndex, setBackIndex] = useState(totalPhotos > 1 ? 1 : 0);
   const [activeSide, setActiveSide] = useState<"front" | "back">("front");
+
+  // Keep backIndex synced if totalPhotos changes
+  useEffect(() => {
+    if (totalPhotos > 1) {
+      setBackIndex(prev => (prev === 0 ? 1 : prev % totalPhotos));
+    }
+  }, [totalPhotos]);
 
   // Tilt settings from reference
   const BASE_TILT_X = 3;   // Subtle resting tilt angle
@@ -385,20 +386,31 @@ export function ProfileCard3D({ photos, name }: ProfileCard3DProps) {
 
                   {/* Photo Container */}
                   <div
-                    className="w-full h-full relative rounded-[20px] overflow-hidden"
+                    className="w-full h-full relative rounded-[20px] overflow-hidden bg-[#0e1b38]"
                     style={{
                       boxShadow:
                         "0 5px 16px -6px rgba(0,0,0,0.65), 0 0 0 1px rgba(0,0,0,0.35), 0 0 0 2px rgba(150,190,255,0.28), 0 1px 0 rgba(255,255,255,0.12) inset",
                     }}
                   >
-                    <img
-                      src={photoList[frontIndex % totalPhotos]}
-                      alt={`${name} - Front view`}
-                      className="w-full h-full object-cover block pointer-events-none select-none"
-                      referrerPolicy="no-referrer"
-                      draggable={false}
-                      loading="eager"
-                    />
+                    {totalPhotos > 0 ? (
+                      <img
+                        src={photoList[frontIndex % totalPhotos]}
+                        alt={`${name} - Front view`}
+                        className="w-full h-full object-cover block pointer-events-none select-none"
+                        referrerPolicy="no-referrer"
+                        draggable={false}
+                        loading="eager"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-[#182a56] to-[#0a1226]">
+                        <div className="w-24 h-24 rounded-full bg-[rgba(120,170,255,0.12)] border border-[rgba(130,180,255,0.25)] flex items-center justify-center text-[#7DB3FF] shadow-[0_0_24px_rgba(90,140,255,0.2)]">
+                          <svg className="w-12 h-12 opacity-80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
+                          </svg>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Gloss & dynamic specular reflection overlay */}
                     <div
@@ -435,20 +447,31 @@ export function ProfileCard3D({ photos, name }: ProfileCard3DProps) {
 
                   {/* Photo Container */}
                   <div
-                    className="w-full h-full relative rounded-[20px] overflow-hidden"
+                    className="w-full h-full relative rounded-[20px] overflow-hidden bg-[#0e1b38]"
                     style={{
                       boxShadow:
                         "0 5px 16px -6px rgba(0,0,0,0.65), 0 0 0 1px rgba(0,0,0,0.35), 0 0 0 2px rgba(150,190,255,0.28), 0 1px 0 rgba(255,255,255,0.12) inset",
                     }}
                   >
-                    <img
-                      src={photoList[backIndex % totalPhotos]}
-                      alt={`${name} - Back view`}
-                      className="w-full h-full object-cover block pointer-events-none select-none"
-                      referrerPolicy="no-referrer"
-                      draggable={false}
-                      loading="lazy"
-                    />
+                    {totalPhotos > 0 ? (
+                      <img
+                        src={photoList[backIndex % totalPhotos]}
+                        alt={`${name} - Back view`}
+                        className="w-full h-full object-cover block pointer-events-none select-none"
+                        referrerPolicy="no-referrer"
+                        draggable={false}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-[#182a56] to-[#0a1226]">
+                        <div className="w-24 h-24 rounded-full bg-[rgba(120,170,255,0.12)] border border-[rgba(130,180,255,0.25)] flex items-center justify-center text-[#7DB3FF] shadow-[0_0_24px_rgba(90,140,255,0.2)]">
+                          <svg className="w-12 h-12 opacity-80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
+                          </svg>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Gloss & dynamic specular reflection overlay */}
                     <div
@@ -559,27 +582,6 @@ export function ProfileCard3D({ photos, name }: ProfileCard3DProps) {
                   <span>Reset</span>
                 </span>
               </button>
-            )}
-
-            {/* Photo Pagination Indicators */}
-            {totalPhotos > 1 && (
-              <div
-                id="profile-photo-pagination"
-                className="absolute bottom-3 left-0 right-0 flex justify-center items-center gap-1.5 z-20 pointer-events-none"
-              >
-                <div className="flex gap-1.5 bg-[rgba(5,14,32,0.65)] px-2.5 py-1 rounded-full backdrop-blur-md border border-[rgba(130,180,255,0.2)] shadow-[0_4px_12px_rgba(0,0,0,0.35)]">
-                  {photoList.map((_, i) => (
-                    <div
-                      key={i}
-                      className={`h-1.5 rounded-full transition-all duration-300 ${
-                        i === currentActiveIndex
-                          ? "bg-gradient-to-r from-[#7DB3FF] to-[#5B8CFF] w-4 shadow-[0_0_8px_rgba(110,170,255,0.8)]"
-                          : "bg-[#71839A]/60 w-1.5"
-                      }`}
-                    />
-                  ))}
-                </div>
-              </div>
             )}
           </div>
         </div>

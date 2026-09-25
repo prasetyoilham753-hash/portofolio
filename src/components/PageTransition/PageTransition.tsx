@@ -75,12 +75,12 @@ export function PageTransition({ children }: PageTransitionProps) {
   const transitionConfig = isInitialLaunch && !shouldReduceMotion
     ? {
         duration: 1.2,
-        ease: [0.16, 1, 0.3, 1], // Apple fluid cubic-bezier curve
+        ease: [0.16, 1, 0.3, 1] as [number, number, number, number], // Apple fluid cubic-bezier curve
         delay: 0.05,
       }
     : {
         duration: 0.7,
-        ease: [0.22, 1, 0.36, 1],
+        ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
       };
 
   return (
@@ -91,7 +91,7 @@ export function PageTransition({ children }: PageTransitionProps) {
       exit="exit"
       transition={transitionConfig}
       style={{ transformStyle: "preserve-3d" }}
-      className="w-full h-full pt-6 sm:pt-8 md:pt-[96px] pb-24 md:pb-16 px-4 sm:px-6 md:px-12 max-w-[1540px] mx-auto relative"
+      className="w-full h-full pt-6 sm:pt-8 md:pt-10 lg:pt-12 pb-24 md:pb-20 px-4 sm:px-6 md:px-10 lg:px-12 xl:px-16 max-w-[1600px] 2xl:max-w-[1740px] mx-auto relative"
     >
       {/* Subtle cinematic horizon light beam on initial site opening */}
       {isInitialLaunch && !shouldReduceMotion && (

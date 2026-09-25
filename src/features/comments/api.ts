@@ -12,7 +12,12 @@ import {
 } from "firebase/firestore";
 import { db } from "../../services/firebase/config";
 import { handleFirestoreError, OperationType } from "../../services/firebase/errors";
-import { CommentItem, CommentFilterConfig, DEFAULT_FILTER_CONFIG } from "./types";
+import { 
+  CommentItem, 
+  CommentFilterConfig, 
+  DEFAULT_FILTER_CONFIG,
+  DEFAULT_HEADER_DESCRIPTION 
+} from "./types";
 
 const COMMENTS_COLLECTION = "comments";
 const FILTERS_DOC_PATH = "site_content";
@@ -159,7 +164,7 @@ export async function deleteComment(commentId: string): Promise<void> {
 }
 
 /**
- * Subscribe to phrase filters config stored in site_content/comment_filters.
+ * Subscribe to phrase filters and page config stored in site_content/comment_filters.
  */
 export function subscribeToCommentFilters(
   onUpdate: (config: CommentFilterConfig) => void
@@ -174,6 +179,7 @@ export function subscribeToCommentFilters(
           onUpdate({
             bannedPhrases: Array.isArray(data.bannedPhrases) ? data.bannedPhrases : DEFAULT_FILTER_CONFIG.bannedPhrases,
             filterAction: data.filterAction === "reject" ? "reject" : "censor",
+            headerDescription: typeof data.headerDescription === "string" ? data.headerDescription : DEFAULT_HEADER_DESCRIPTION,
             updatedAt: data.updatedAt
           });
         } else {
@@ -192,7 +198,7 @@ export function subscribeToCommentFilters(
 }
 
 /**
- * Update phrase filters config (Admin only).
+ * Update phrase filters and page config (Admin only).
  */
 export async function saveCommentFilters(config: CommentFilterConfig): Promise<void> {
   try {
@@ -200,6 +206,7 @@ export async function saveCommentFilters(config: CommentFilterConfig): Promise<v
     await setDoc(docRef, {
       bannedPhrases: config.bannedPhrases.map((s) => s.trim().toLowerCase()).filter(Boolean),
       filterAction: config.filterAction,
+      headerDescription: config.headerDescription || DEFAULT_HEADER_DESCRIPTION,
       updatedAt: serverTimestamp()
     }, { merge: true });
   } catch (error) {

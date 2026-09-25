@@ -1,12 +1,11 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import AppLayout from "./AppLayout";
 import Home from "../../pages/Home";
 import About from "../../pages/About";
 import Projects from "../../pages/Projects";
 import Gallery from "../../pages/Gallery";
 import Certificates from "../../pages/Certificates";
-import Commission from "../../pages/Commission";
-import QnA from "../../pages/QnA";
+import Features from "../../pages/Features";
 import Comments from "../../pages/Comments";
 import AdminLogin from "../../pages/AdminLogin";
 import AdminDashboard from "../../pages/AdminDashboard";
@@ -37,19 +36,19 @@ export const router = createBrowserRouter([
         element: <Certificates />,
       },
       {
+        path: "features",
+        element: <Features />,
+      },
+      {
         path: "commission",
-        element: <Commission />,
+        element: <Navigate to="/about" replace />,
       },
       {
         path: "contact",
-        element: <Commission />,
+        element: <Navigate to="/about" replace />,
       },
       {
         path: "comments",
-        element: <Comments />,
-      },
-      {
-        path: "qna",
         element: <Comments />,
       },
       {

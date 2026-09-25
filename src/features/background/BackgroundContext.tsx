@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
 
-export type BackgroundType = 'molten' | 'ghost-fibers';
+export type BackgroundType = 'molten' | 'ghost-fibers' | 'light-pillar';
 
 interface BackgroundContextType {
   backgroundType: BackgroundType;
@@ -15,7 +15,7 @@ export const BackgroundProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [backgroundType, setBackgroundTypeState] = useState<BackgroundType>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved === 'ghost-fibers' || saved === 'molten') {
+      if (saved === 'ghost-fibers' || saved === 'molten' || saved === 'light-pillar') {
         return saved;
       }
     } catch {

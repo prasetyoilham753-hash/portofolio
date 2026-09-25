@@ -1,32 +1,5 @@
 {
   "entities": {
-    "QnAMessage": {
-      "title": "QnA Message",
-      "description": "A message submitted through the public QnA form.",
-      "type": "object",
-      "properties": {
-        "nickname": {
-          "type": "string",
-          "maxLength": 50,
-          "description": "Optional nickname of the sender."
-        },
-        "category": {
-          "type": "string",
-          "enum": ["Question", "Idea", "Feedback", "Collaboration", "Other"],
-          "description": "Category of the message."
-        },
-        "message": {
-          "type": "string",
-          "maxLength": 500,
-          "description": "The body of the message."
-        },
-        "createdAt": {
-          "type": "timestamp",
-          "description": "Server timestamp when the message was created."
-        }
-      },
-      "required": ["category", "message", "createdAt"]
-    },
     "Admin": {
       "title": "Admin Configuration",
       "description": "A document identifying an administrator. The document ID is the admin's UID.",
@@ -57,6 +30,28 @@
         "updatedAt": { "type": "timestamp" }
       },
       "required": ["title", "description", "mediaUrl"]
+    },
+    "CertificateItem": {
+      "title": "Certificate Item",
+      "description": "A verified credential or certificate managed by the administrator.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 150 },
+        "issuer": { "type": "string", "maxLength": 100 },
+        "issueDate": { "type": "string", "maxLength": 50 },
+        "expirationDate": { "type": "string", "maxLength": 50 },
+        "credentialId": { "type": "string", "maxLength": 100 },
+        "credentialUrl": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "category": { "type": "string", "maxLength": 50 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "skills": { "type": "array", "items": { "type": "string" } },
+        "order": { "type": "number" },
+        "featured": { "type": "boolean" },
+        "createdAt": { "type": "timestamp" },
+        "updatedAt": { "type": "timestamp" }
+      },
+      "required": ["title", "issuer", "imageUrl"]
     },
     "PublicComment": {
       "title": "Public Comment",
@@ -112,28 +107,67 @@
             "email": { "type": "string" }
           }
         },
+        "whatIDoCategories": {
+          "type": "array",
+          "description": "List of What I Do categories/div cards.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "title": { "type": "string" },
+              "description": { "type": "string" },
+              "order": { "type": "number" },
+              "visible": { "type": "boolean" }
+            }
+          }
+        },
         "updatedAt": { "type": "timestamp" }
       }
+    },
+    "FeatureComponent": {
+      "title": "Feature Component",
+      "description": "An interactive UI/animation component stored in the component library.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 100 },
+        "category": { "type": "string", "maxLength": 50 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "code": { "type": "string" },
+        "css": { "type": "string" },
+        "dependencies": { "type": "array", "items": { "type": "string" } },
+        "status": { "type": "string", "enum": ["published", "draft"] },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "order": { "type": "number" },
+        "createdAt": { "type": "timestamp" },
+        "updatedAt": { "type": "timestamp" }
+      },
+      "required": ["name", "category", "code", "status"]
     }
   },
   "firestore": {
+    "/features/{componentId}": {
+      "schema": {
+        "$ref": "#/entities/FeatureComponent"
+      },
+      "description": "Collection storing interactive feature components and animations."
+    },
     "/projects/{projectId}": {
       "schema": {
         "$ref": "#/entities/ProjectItem"
       },
       "description": "Collection storing portfolio projects created in dashboard."
     },
+    "/certificates/{certificateId}": {
+      "schema": {
+        "$ref": "#/entities/CertificateItem"
+      },
+      "description": "Collection storing verified credentials and certificates."
+    },
     "/comments/{commentId}": {
       "schema": {
         "$ref": "#/entities/PublicComment"
       },
       "description": "Collection storing public comments and replies."
-    },
-    "/qna_messages/{messageId}": {
-      "schema": {
-        "$ref": "#/entities/QnAMessage"
-      },
-      "description": "Collection storing public QnA submissions."
     },
     "/admins/{adminId}": {
       "schema": {

@@ -4,6 +4,7 @@ import { Instagram, Linkedin } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { SiteProfile } from "../../../features/profile/types";
 import { ProfileCard3D } from "./ProfileCard3D";
+import { CvAccessModal } from "../../../components/common/CvAccessModal";
 
 function XIcon({ size = 18, className = "" }: { size?: number; className?: string }) {
   return (
@@ -29,18 +30,19 @@ export function Hero({ profile }: HeroProps) {
   const shouldReduceMotion = useReducedMotion();
   const navigate = useNavigate();
   const [clickCount, setClickCount] = useState(0);
+  const [isCvModalOpen, setIsCvModalOpen] = useState(false);
   const clickTimerRef = React.useRef<NodeJS.Timeout | null>(null);
 
   const handleNameClick = () => {
-    setClickCount(prev => {
-      const next = prev + 1;
-      if (next >= 5) {
-        if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
-        navigate("/admin");
-        return 0;
-      }
-      return next;
-    });
+    const next = clickCount + 1;
+    if (next >= 5) {
+      if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+      setClickCount(0);
+      navigate("/admin");
+      return;
+    }
+
+    setClickCount(next);
 
     if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
     clickTimerRef.current = setTimeout(() => {
@@ -54,6 +56,21 @@ export function Hero({ profile }: HeroProps) {
   const fullName = profile?.name || `${firstName} ${lastName}`;
   const role = profile?.title || "Full Stack Developer";
   const description = profile?.heroDescription || profile?.about || "I'm a passionate developer who loves building web applications, exploring new technologies, and turning ideas into real, useful products.";
+  const bioAlign = profile?.heroDescriptionAlign || "left";
+
+  const getAlignClass = (align?: string) => {
+    switch (align) {
+      case "right":
+        return "text-right";
+      case "justify":
+        return "text-justify [text-align-last:left]";
+      case "center":
+        return "text-center";
+      case "left":
+      default:
+        return "text-left";
+    }
+  };
   
   const photo1 = profile?.photoUrl;
   const photo2 = profile?.photoUrl2;
@@ -74,14 +91,20 @@ export function Hero({ profile }: HeroProps) {
     const updateHeight = () => {
       if (leftColRef.current) {
         const h = leftColRef.current.offsetHeight;
-        if (h > 0) setLeftColHeight(h);
+        if (h > 0) {
+          setLeftColHeight(prev => (prev === h ? prev : h));
+        }
       }
     };
-    updateHeight();
-    const observer = new ResizeObserver(updateHeight);
+    
+    const rafId = requestAnimationFrame(updateHeight);
+    const observer = new ResizeObserver(() => {
+      requestAnimationFrame(updateHeight);
+    });
     observer.observe(leftColRef.current);
     window.addEventListener("resize", updateHeight);
     return () => {
+      cancelAnimationFrame(rafId);
       observer.disconnect();
       window.removeEventListener("resize", updateHeight);
     };
@@ -121,7 +144,7 @@ export function Hero({ profile }: HeroProps) {
   return (
     <section 
       id="hero-section"
-      className="grid grid-cols-[175px_1fr] xs:grid-cols-[200px_1fr] sm:grid-cols-[270px_1fr] md:grid-cols-[360px_1fr] lg:grid-cols-[410px_1fr] xl:grid-cols-[440px_1fr] items-stretch justify-start mt-[1cm] pb-12 sm:pb-16 md:pb-[96px] w-full max-w-[620px] xs:max-w-[680px] sm:max-w-[840px] md:max-w-[1320px] lg:max-w-[1460px] xl:max-w-[1540px] mx-auto px-0 sm:px-1 md:px-2 lg:px-4 gap-4 xs:gap-5 sm:gap-7 md:gap-9 lg:gap-12 xl:gap-14 reveal"
+      className="grid grid-cols-[175px_1fr] xs:grid-cols-[200px_1fr] sm:grid-cols-[270px_1fr] md:grid-cols-[340px_1fr] lg:grid-cols-[390px_1fr] xl:grid-cols-[440px_1fr] items-stretch justify-start mt-[0.5cm] sm:mt-[0.8cm] pb-4 sm:pb-6 md:pb-8 w-full max-w-[620px] xs:max-w-[680px] sm:max-w-[840px] md:max-w-[1320px] lg:max-w-[1480px] xl:max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-0 sm:px-1 md:px-2 lg:px-4 gap-4 xs:gap-5 sm:gap-7 md:gap-9 lg:gap-12 xl:gap-14"
     >
       
       {/* Profile Image & Action Area (Card + 4 Social Icons + Download CV Button) */}
@@ -138,11 +161,11 @@ export function Hero({ profile }: HeroProps) {
             id="hero-profile-fly-flip"
             initial={shouldReduceMotion ? { opacity: 0 } : {
               opacity: 0,
-              y: 80,
-              scale: 0.82,
-              rotateY: 180,
-              rotateX: 12,
-              filter: "blur(6px)",
+              y: 50,
+              scale: 0.9,
+              rotateY: 120,
+              rotateX: 8,
+              filter: "blur(4px)",
             }}
             animate={shouldReduceMotion ? { opacity: 1 } : {
               opacity: 1,
@@ -153,9 +176,9 @@ export function Hero({ profile }: HeroProps) {
               filter: "blur(0px)",
             }}
             transition={{
-              duration: 1.35,
+              duration: 1.0,
               ease: [0.16, 1, 0.3, 1], // Apple fluid cubic bezier
-              delay: 0.08,
+              delay: 0.04,
             }}
             style={{
               transformStyle: "preserve-3d",
@@ -169,23 +192,23 @@ export function Hero({ profile }: HeroProps) {
         {/* 4 Social Media Icons (Raised up, matching shape and dimensions of Download CV button) */}
         <motion.div 
           id="hero-social-icons"
-          initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 28, scale: 0.94 }}
+          initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 16, scale: 0.96 }}
           animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.75, delay: 0.42, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.55, delay: 0.22, ease: [0.16, 1, 0.3, 1] }}
           className="flex justify-center w-full z-20 mt-2.5 xs:mt-3 sm:mt-3.5 md:mt-4"
         >
-          <div className="flex items-center justify-between w-full max-w-[165px] xs:max-w-[190px] sm:max-w-[240px] md:max-w-[270px] h-[38px] xs:h-[42px] sm:h-[46px] md:h-[50px] bg-[rgba(6,15,35,0.75)] border border-[rgba(120,170,255,0.28)] rounded-full px-3 xs:px-4 sm:px-5 md:px-6 backdrop-blur-xl shadow-[0_6px_20px_rgba(0,0,0,0.35)] transition-all duration-300 hover:border-[rgba(140,190,255,0.5)]">
+          <div className="flex items-center justify-between w-full max-w-[175px] xs:max-w-[200px] sm:max-w-[270px] md:max-w-[340px] lg:max-w-[380px] xl:max-w-[400px] h-[42px] xs:h-[46px] sm:h-[52px] md:h-[56px] lg:h-[58px] bg-[rgba(6,15,35,0.75)] border border-[rgba(120,170,255,0.28)] rounded-full px-3.5 xs:px-4 sm:px-6 md:px-7 backdrop-blur-xl shadow-[0_6px_20px_rgba(0,0,0,0.35)] transition-all duration-300 hover:border-[rgba(140,190,255,0.5)]">
             {socialItems.map(item => (
               <a
                 key={item.id}
                 href={item.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="ios-glass-icon w-6.5 h-6.5 xs:w-7.5 xs:h-7.5 sm:w-8 sm:h-8 md:w-9 md:h-9 cursor-pointer flex items-center justify-center text-[#A8C8FF] hover:text-white transition-colors"
+                className="ios-glass-icon w-7 h-7 xs:w-8 xs:h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 cursor-pointer flex items-center justify-center text-[#A8C8FF] hover:text-white transition-colors"
                 aria-label={item.label}
                 title={item.label}
               >
-                <span className="scale-[0.82] xs:scale-90 sm:scale-95 md:scale-100">{item.mobileIcon || item.icon}</span>
+                <span className="scale-90 xs:scale-95 sm:scale-105 md:scale-115">{item.mobileIcon || item.icon}</span>
               </a>
             ))}
           </div>
@@ -194,31 +217,39 @@ export function Hero({ profile }: HeroProps) {
         {/* Download CV Button (Positioned underneath the social media icons with identical shape and size) */}
         <motion.div 
           id="hero-download-cv-container"
-          initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 24, scale: 0.94 }}
+          initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 16, scale: 0.96 }}
           animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.75, delay: 0.52, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.55, delay: 0.26, ease: [0.16, 1, 0.3, 1] }}
           className="flex justify-center w-full z-20 mt-2 xs:mt-2.5 sm:mt-3 md:mt-3.5"
         >
           {profile?.cvUrl ? (
-            <a 
+            <button 
               id="hero-download-cv"
-              href={profile.cvUrl}
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="ios-glass-btn ios-glass-primary w-full max-w-[165px] xs:max-w-[190px] sm:max-w-[240px] md:max-w-[270px] h-[38px] xs:h-[42px] sm:h-[46px] md:h-[50px] px-3 xs:px-4 sm:px-5 md:px-6 text-[11px] xs:text-xs sm:text-sm md:text-base font-medium whitespace-nowrap flex items-center justify-center rounded-full"
+              type="button"
+              onClick={() => setIsCvModalOpen(true)}
+              className="ios-glass-btn ios-glass-primary w-full max-w-[175px] xs:max-w-[200px] sm:max-w-[270px] md:max-w-[340px] lg:max-w-[380px] xl:max-w-[400px] h-[42px] xs:h-[46px] sm:h-[52px] md:h-[56px] lg:h-[58px] px-3.5 xs:px-4 sm:px-6 md:px-7 text-[12px] xs:text-[13px] sm:text-[15px] md:text-[16px] lg:text-[17px] font-medium whitespace-nowrap flex items-center justify-center rounded-full cursor-pointer hover:shadow-[0_0_24px_rgba(125,179,255,0.4)] transition-all"
             >
               <span>Download CV &rarr;</span>
-            </a>
+            </button>
           ) : (
             <button 
               id="hero-download-cv-disabled"
               disabled
-              className="ios-glass-btn w-full max-w-[165px] xs:max-w-[190px] sm:max-w-[240px] md:max-w-[270px] h-[38px] xs:h-[42px] sm:h-[46px] md:h-[50px] px-3 xs:px-4 sm:px-5 md:px-6 text-[11px] xs:text-xs sm:text-sm md:text-base font-medium whitespace-nowrap opacity-50 pointer-events-none flex items-center justify-center rounded-full"
+              className="ios-glass-btn w-full max-w-[175px] xs:max-w-[200px] sm:max-w-[270px] md:max-w-[340px] lg:max-w-[380px] xl:max-w-[400px] h-[42px] xs:h-[46px] sm:h-[52px] md:h-[56px] lg:h-[58px] px-3.5 xs:px-4 sm:px-6 md:px-7 text-[12px] xs:text-[13px] sm:text-[15px] md:text-[16px] lg:text-[17px] font-medium whitespace-nowrap opacity-50 pointer-events-none flex items-center justify-center rounded-full"
             >
               <span>CV Not Available</span>
             </button>
           )}
         </motion.div>
+
+        {/* Modal Kode Akses CV */}
+        <CvAccessModal
+          isOpen={isCvModalOpen}
+          onClose={() => setIsCvModalOpen(false)}
+          cvUrl={profile?.cvUrl}
+          correctCode={profile?.cvAccessCode || "19112191"}
+          candidateName={fullName}
+        />
       </div>
 
       {/* Text Content */}
@@ -226,22 +257,23 @@ export function Hero({ profile }: HeroProps) {
         className="flex flex-col items-start text-left mt-0 w-full z-10 min-w-0 h-full overflow-visible"
         style={{
           height: leftColHeight ? `${leftColHeight}px` : undefined,
+          minHeight: leftColHeight ? `${leftColHeight}px` : undefined,
           maxHeight: leftColHeight ? `${leftColHeight}px` : undefined,
         }}
       >
         <motion.span 
-          initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 20 }}
+          initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 14 }}
           animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-          transition={{ duration: 0.65, delay: 0.18, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.45, delay: 0.06, ease: [0.16, 1, 0.3, 1] }}
           className="text-[13px] xs:text-[15px] sm:text-[18px] md:text-[21px] lg:text-[23px] text-[#7DB3FF] mb-1 sm:mb-1.5 font-medium tracking-wide pt-0.5 sm:pt-1"
         >
           Hello, I'm
         </motion.span>
         
         <motion.div
-          initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 32, filter: "blur(4px)" }}
-          animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, filter: "blur(0px)" }}
-          transition={{ duration: 0.8, delay: 0.26, ease: [0.16, 1, 0.3, 1] }}
+          initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 20 }}
+          animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, delay: 0.10, ease: [0.16, 1, 0.3, 1] }}
         >
           <div 
             onClick={handleNameClick} 
@@ -257,9 +289,9 @@ export function Hero({ profile }: HeroProps) {
         </motion.div>
         
         <motion.h2 
-          initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 22 }}
+          initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 16 }}
           animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.34, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.5, delay: 0.14, ease: [0.16, 1, 0.3, 1] }}
           className="text-[14px] xs:text-[16px] sm:text-[20px] md:text-[25px] lg:text-[29px] font-semibold text-[#F7FAFF] mt-1 sm:mt-1.5 md:mt-2"
         >
           {role}
@@ -267,12 +299,14 @@ export function Hero({ profile }: HeroProps) {
         
         <motion.p 
           id="hero-bio-text"
-          initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 32, scale: 0.98, filter: "blur(4px)" }}
-          animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
-          transition={{ duration: 0.85, delay: 0.42, ease: [0.16, 1, 0.3, 1] }}
-          className="w-full flex-1 min-h-0 max-w-[680px] bg-[rgba(6,15,35,0.45)] border border-[rgba(120,170,255,0.18)] rounded-[20px] sm:rounded-[24px] p-3.5 xs:p-4 sm:p-5 md:p-6 backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.25)] text-[12px] xs:text-[13px] sm:text-[15px] md:text-[16px] lg:text-[17px] text-[#A8B8CC] leading-[1.6] sm:leading-[1.7] mt-2 xs:mt-2.5 sm:mt-3.5 md:mt-4 overflow-hidden break-words [overflow-wrap:anywhere] transition-all duration-300 hover:border-[rgba(140,190,255,0.35)]"
+          initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 20 }}
+          animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, delay: 0.18, ease: [0.16, 1, 0.3, 1] }}
+          className={`w-full flex-1 min-h-0 bg-[rgba(6,15,35,0.45)] border border-[rgba(120,170,255,0.18)] rounded-[20px] sm:rounded-[24px] p-3.5 xs:p-4 sm:p-5 md:p-6 lg:p-7 backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.25)] mt-2 xs:mt-2.5 sm:mt-3.5 md:mt-4 overflow-y-auto no-scrollbar break-words [overflow-wrap:anywhere] transition-all duration-300 hover:border-[rgba(140,190,255,0.35)] flex flex-col justify-center ${getAlignClass(bioAlign)}`}
         >
-          <span className="whitespace-pre-line block">{description}</span>
+          <span className={`whitespace-pre-line block ${getAlignClass(bioAlign)} text-[13px] xs:text-[14px] sm:text-[16px] md:text-[18px] lg:text-[20px] xl:text-[22px] text-[#A8B8CC] leading-[1.6] sm:leading-[1.65] md:leading-[1.65] lg:leading-[1.7] font-light`}>
+            {description}
+          </span>
         </motion.p>
       </div>
     </section>

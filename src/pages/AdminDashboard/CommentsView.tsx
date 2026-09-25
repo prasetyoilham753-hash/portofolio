@@ -12,7 +12,9 @@ import {
   Save, 
   RefreshCw,
   Sliders,
-  AlertTriangle
+  AlertTriangle,
+  FileText,
+  RotateCcw
 } from "lucide-react";
 import { 
   subscribeToComments, 
@@ -23,7 +25,8 @@ import {
 import { 
   CommentItem, 
   CommentFilterConfig, 
-  DEFAULT_FILTER_CONFIG 
+  DEFAULT_FILTER_CONFIG,
+  DEFAULT_HEADER_DESCRIPTION
 } from "../../features/comments/types";
 import { DeleteConfirmModal } from "../../components/common/DeleteConfirmModal";
 
@@ -178,13 +181,13 @@ export function CommentsView() {
         </div>
       </div>
 
-      {/* Phrase Filter Settings Box */}
-      <div className="glass-card p-6 rounded-2xl border border-[rgba(130,180,255,0.2)] bg-[rgba(10,20,38,0.5)] backdrop-blur-xl flex flex-col gap-5">
+      {/* Phrase Filter & Page Description Settings Box */}
+      <div className="glass-card p-6 rounded-2xl border border-[rgba(130,180,255,0.2)] bg-[rgba(10,20,38,0.5)] backdrop-blur-xl flex flex-col gap-6">
         <div className="flex items-center justify-between flex-wrap gap-2 border-b border-white/10 pb-3">
           <div className="flex items-center gap-2">
-            <ShieldAlert size={18} className="text-[#7DB3FF]" />
+            <Sliders size={18} className="text-[#7DB3FF]" />
             <h3 className="text-base font-semibold text-white">
-              Filter Frasa & Kata Terlarang
+              Pengaturan Halaman & Filter Komentar
             </h3>
           </div>
 
@@ -204,9 +207,38 @@ export function CommentsView() {
               ) : (
                 <Save size={12} />
               )}
-              <span>Simpan Pengaturan Filter</span>
+              <span>Simpan Perubahan</span>
             </button>
           </div>
+        </div>
+
+        {/* Header Description Editor */}
+        <div className="flex flex-col gap-2 bg-white/[0.02] p-4 rounded-xl border border-white/5">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium text-white/90 flex items-center gap-1.5">
+              <FileText size={13} className="text-[#7DB3FF]" />
+              <span>Deskripsi / Subtitle Halaman Komentar (&lt;p&gt;)</span>
+            </label>
+            <button
+              type="button"
+              onClick={() => setFilterConfig((prev) => ({ ...prev, headerDescription: DEFAULT_HEADER_DESCRIPTION }))}
+              className="text-[11px] text-white/40 hover:text-[#7DB3FF] flex items-center gap-1 transition-colors"
+              title="Kembalikan teks deskripsi bawaan"
+            >
+              <RotateCcw size={11} />
+              <span>Reset Default</span>
+            </button>
+          </div>
+          <textarea
+            rows={2}
+            value={filterConfig.headerDescription || ""}
+            onChange={(e) => setFilterConfig((prev) => ({ ...prev, headerDescription: e.target.value }))}
+            placeholder="Tulis deskripsi pengantar yang muncul di bawah judul Comments..."
+            className="glass-input w-full p-3 rounded-xl text-xs leading-relaxed bg-white/5 border border-white/15 focus:border-[#7DB3FF] outline-none text-white resize-none"
+          />
+          <span className="text-[11px] text-text-tertiary">
+            Teks ini langsung tampil secara real-time pada paragraf header di halaman publik <code>/comments</code>.
+          </span>
         </div>
 
         {/* Action Mode Radio */}

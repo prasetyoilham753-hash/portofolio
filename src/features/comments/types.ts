@@ -11,10 +11,14 @@ export interface CommentItem {
 export interface CommentFilterConfig {
   bannedPhrases: string[];
   filterAction: "censor" | "reject";
+  headerDescription?: string;
   updatedAt?: any;
 }
 
+export const DEFAULT_HEADER_DESCRIPTION = "Ruang percakapan publik terbuka. Tinggalkan pesan, sapaan, feedback, atau tanggapi komentar pengunjung lainnya.";
+
 export const DEFAULT_FILTER_CONFIG: CommentFilterConfig = {
   bannedPhrases: ["spam", "promo", "slot", "judol", "kasar", "scam", "gacor"],
-  filterAction: "censor"
+  filterAction: "censor",
+  headerDescription: DEFAULT_HEADER_DESCRIPTION,
 };

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { 
-  MessageSquare, 
   Send, 
   CornerDownRight, 
   User, 
@@ -9,7 +8,8 @@ import {
   Clock,
   X,
   Smile,
-  AlertCircle
+  AlertCircle,
+  MessageSquare
 } from "lucide-react";
 import { 
   subscribeToComments, 
@@ -19,7 +19,8 @@ import {
 import { 
   CommentItem, 
   CommentFilterConfig, 
-  DEFAULT_FILTER_CONFIG 
+  DEFAULT_FILTER_CONFIG,
+  DEFAULT_HEADER_DESCRIPTION
 } from "../../features/comments/types";
 
 export default function Comments() {
@@ -178,30 +179,21 @@ export default function Comments() {
   };
 
   return (
-    <div className="flex flex-col gap-10 pb-28 pt-2 sm:pt-4 max-w-4xl mx-auto px-4 sm:px-6">
+    <div className="flex flex-col gap-10 pb-28 pt-2 sm:pt-4 w-full max-w-5xl lg:max-w-6xl 2xl:max-w-7xl mx-auto">
       {/* Header Section */}
-      <header className="flex flex-col gap-3">
-        <div className="flex items-center gap-2">
-          <span className="p-1.5 rounded-lg bg-[#7DB3FF]/15 border border-[#7DB3FF]/30 text-[#7DB3FF]">
-            <MessageSquare size={16} />
-          </span>
-          <span className="text-xs font-semibold tracking-widest text-[#7DB3FF] uppercase">
-            Public Discussion Space
-          </span>
-        </div>
-
+      <header className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-          <div>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white mb-2 font-display">
+          <div className="max-w-3xl flex flex-col gap-4">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-medium text-white tracking-tight leading-[1.12]">
               Comments
             </h1>
             <p className="text-[#A8B8CC] text-base sm:text-lg font-light max-w-2xl leading-relaxed">
-              Ruang percakapan publik terbuka. Tinggalkan pesan, sapaan, feedback, atau tanggapi komentar pengunjung lainnya.
+              {filterConfig.headerDescription || DEFAULT_HEADER_DESCRIPTION}
             </p>
           </div>
 
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[rgba(10,24,42,0.6)] border border-white/10 text-xs text-[#7DB3FF] shrink-0 self-start sm:self-auto backdrop-blur-md">
-            <Sparkles size={13} />
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[rgba(10,24,42,0.6)] border border-white/10 text-xs text-[#7DB3FF] shrink-0 self-start sm:self-auto backdrop-blur-md mb-2">
+            <MessageSquare size={13} className="text-[#7DB3FF]" />
             <span>{comments.length} Komentar</span>
           </div>
         </div>
@@ -239,7 +231,7 @@ export default function Comments() {
           </div>
 
           {/* Author Name Input (if not anonymous) */}
-          {!isAnonymous ? (
+          {!isAnonymous && (
             <div className="flex flex-col gap-1.5">
               <input
                 id="comment-author-name"
@@ -251,11 +243,6 @@ export default function Comments() {
                 className="glass-input px-4 py-2.5 rounded-xl text-sm w-full bg-[rgba(255,255,255,0.04)] border border-white/15 focus:border-[#7DB3FF] focus:bg-[rgba(255,255,255,0.08)] outline-none text-white placeholder:text-white/40 transition-all"
                 disabled={submitting}
               />
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/10 text-xs text-[#A8B8CC] w-fit">
-              <ShieldCheck size={14} className="text-[#7DB3FF]" />
-              <span>Identitas Anda akan disamarkan sebagai <strong>Anonymous</strong></span>
             </div>
           )}
 
@@ -295,12 +282,7 @@ export default function Comments() {
           )}
 
           {/* Bottom Controls */}
-          <div className="flex items-center justify-between pt-1 flex-wrap gap-3">
-            <div className="text-[11px] text-[#A8B8CC]/60 flex items-center gap-1.5">
-              <ShieldCheck size={13} className="text-[#7DB3FF]" />
-              <span>Filter frasa aktif untuk menjaga percakapan tetap ramah.</span>
-            </div>
-
+          <div className="flex items-center justify-end pt-1">
             <button
               id="submit-comment-button"
               type="submit"
@@ -330,7 +312,6 @@ export default function Comments() {
             <span>Diskusi Terkini</span>
             <span className="text-[11px] font-normal text-white/40">({comments.length})</span>
           </h2>
-          <span className="text-[11px] text-white/40 font-mono">Real-time sync</span>
         </div>
 
         {loading ? (
@@ -408,7 +389,11 @@ export default function Comments() {
                           setReplyError(null);
                         }
                       }}
-                      className="ios-glass-btn px-3 py-1.5 text-xs text-[#7DB3FF] hover:text-white cursor-pointer flex items-center gap-1.5 transition-colors"
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all duration-200 border ${
+                        isReplying
+                          ? "bg-[#7DB3FF]/20 text-white border-[#7DB3FF]/50 shadow-[0_0_12px_rgba(125,179,255,0.25)]"
+                          : "bg-white/[0.04] text-[#7DB3FF] border-white/10 hover:bg-[#7DB3FF]/15 hover:border-[#7DB3FF]/30 hover:text-white active:scale-[0.98]"
+                      }`}
                       title="Balas komentar ini"
                     >
                       <CornerDownRight size={13} />

@@ -26,17 +26,23 @@ service cloud.firestore {
     function isAdmin() { 
       return isSignedIn() && (
         exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
-        request.auth.token.email == 'prasetyoilham753@gmail.com'
-      ); 
+        request.auth.token.email == 'prasetyoilham753@gmail.com' ||
+        request.auth.token.email == 'contact@bintangprasetyo.com'
+      );
+    }
+
+    // Server-side forbidden phrase filter (stops direct SDK calls with spam, gambling, or script injections)
+    function hasNoServerBannedPhrases(text) {
+      return !text.matches('(?i).*(slot|judol|judi|gacor|scam|porn|casino|togel|<script|javascript:).*');
     }
 
     // ==========================================
     // ENTITY VALIDATION HELPERS
     // ==========================================
     function isValidComment(data) {
-      let isAuthorValid = data.authorName is string && data.authorName.size() > 0 && data.authorName.size() <= 60;
+      let isAuthorValid = data.authorName is string && data.authorName.size() >= 1 && data.authorName.size() <= 60 && hasNoServerBannedPhrases(data.authorName);
       let isAnonValid = data.isAnonymous is bool;
-      let isContentValid = data.content is string && data.content.size() > 0 && data.content.size() <= 1000;
+      let isContentValid = data.content is string && data.content.size() >= 1 && data.content.size() <= 1000 && hasNoServerBannedPhrases(data.content);
       let isCreatedAtValid = data.createdAt == request.time;
       let isParentValid = !('parentId' in data) || (data.parentId is string && data.parentId.size() <= 128);
       let isReplyAuthorValid = !('replyToAuthor' in data) || (data.replyToAuthor is string && data.replyToAuthor.size() <= 60);
@@ -45,18 +51,6 @@ service cloud.firestore {
       let hasOnlyAllowedKeys = data.keys().hasOnly(['authorName', 'isAnonymous', 'content', 'createdAt', 'parentId', 'replyToAuthor']);
 
       return hasRequiredKeys && hasOnlyAllowedKeys && isAuthorValid && isAnonValid && isContentValid && isCreatedAtValid && isParentValid && isReplyAuthorValid;
-    }
-
-    function isValidQnAMessage(data) {
-      let isCategoryValid = data.category in ["Question", "Idea", "Feedback", "Collaboration", "Other"];
-      let isMessageValid = data.message is string && data.message.size() > 0 && data.message.size() <= 500;
-      let isNicknameValid = !('nickname' in data) || (data.nickname is string && data.nickname.size() <= 50);
-      let isCreatedAtValid = data.createdAt == request.time;
-      
-      let expectedKeySize = ('nickname' in data) ? 4 : 3;
-      let hasCorrectKeys = data.keys().hasAll(['category', 'message', 'createdAt']) && data.keys().size() == expectedKeySize;
-
-      return hasCorrectKeys && isCategoryValid && isMessageValid && isNicknameValid && isCreatedAtValid;
     }
 
     // ==========================================
@@ -71,18 +65,10 @@ service cloud.firestore {
       allow update: if isValidId(commentId) && isAdmin();
     }
 
-    // 2. QnA Messages
-    match /qna_messages/{messageId} {
-      allow read: if isAdmin();
-      allow delete: if isValidId(messageId) && isAdmin();
-      allow create: if isValidId(messageId) && isValidQnAMessage(incoming());
-      allow update: if isValidId(messageId) && isAdmin();
-    }
-
     // 2. Admins
     match /admins/{adminId} {
-      allow read: if isValidId(adminId) && isSignedIn() && request.auth.uid == adminId;
-      allow write: if false; // System / Console only
+      allow read: if isValidId(adminId) && isSignedIn() && (request.auth.uid == adminId || isAdmin());
+      allow write: if isValidId(adminId) && (isAdmin() || (isSignedIn() && request.auth.uid == adminId && (request.auth.token.email == 'prasetyoilham753@gmail.com' || request.auth.token.email == 'contact@bintangprasetyo.com')));
     }
 
     // 3. Site Content (e.g. profile, about, gallery, certificates)
@@ -101,6 +87,18 @@ service cloud.firestore {
     match /gallery/{artworkId} {
       allow read: if true;
       allow write: if isValidId(artworkId) && isAdmin();
+    }
+
+    // 6. Verified Certificates & Credentials
+    match /certificates/{certificateId} {
+      allow read: if true;
+      allow write: if isValidId(certificateId) && isAdmin();
+    }
+
+    // 7. Feature Components (UI/UX Component Library)
+    match /features/{componentId} {
+      allow read: if true;
+      allow write: if isValidId(componentId) && isAdmin();
     }
   }
 }

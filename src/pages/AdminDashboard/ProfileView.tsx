@@ -1,18 +1,21 @@
 import React, { useState, useEffect, useRef } from "react";
+import { AlignLeft, AlignCenter, AlignRight, AlignJustify } from "lucide-react";
 import { getProfile, updateProfile, uploadFileToCloudinary } from "../../features/profile/api";
-import { SiteProfile, Technology } from "../../features/profile/types";
+import { SiteProfile } from "../../features/profile/types";
 
 export function ProfileView() {
   const [profile, setProfile] = useState<SiteProfile>({
     name: "",
+    firstName: "",
+    lastName: "",
     title: "",
-    about: "",
     heroDescription: "",
+    heroDescriptionAlign: "left",
     projectDescription: "",
+    about: "",
     photoUrl: "",
     photoPath: "",
-    socialLinks: {},
-    technologies: []
+    socialLinks: {}
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -31,10 +34,7 @@ export function ProfileView() {
       try {
         const data = await getProfile();
         if (data) {
-          setProfile({
-            ...data,
-            technologies: data.technologies || []
-          });
+          setProfile(data);
         }
       } catch (err) {
         console.error("Failed to load profile:", err);
@@ -53,7 +53,6 @@ export function ProfileView() {
           ...prev.socialLinks,
           [socialField]: value
         };
-        // Keep x and twitter in sync so both are available
         if (socialField === 'x') {
           nextSocial.twitter = value;
         } else if (socialField === 'twitter') {
@@ -145,7 +144,7 @@ export function ProfileView() {
     setMessage(null);
     try {
       await updateProfile(profile);
-      setMessage({ type: 'success', text: 'Profile saved successfully!' });
+      setMessage({ type: 'success', text: 'Site Content saved successfully!' });
     } catch (err: any) {
       console.error("Failed to save profile:", err);
       setMessage({ type: 'error', text: `Failed to save changes: ${err.code || err.message}` });
@@ -154,54 +153,16 @@ export function ProfileView() {
     }
   };
 
-  const handleAddTech = () => {
-    const newTech: Technology = {
-      id: Date.now().toString(),
-      name: "New Technology",
-      order: (profile.technologies?.length || 0) + 1,
-      visible: true
-    };
-    setProfile(prev => ({
-      ...prev,
-      technologies: [...(prev.technologies || []), newTech]
-    }));
-  };
-
-  const handleUpdateTech = (id: string, name: string) => {
-    setProfile(prev => ({
-      ...prev,
-      technologies: prev.technologies?.map(t => t.id === id ? { ...t, name } : t)
-    }));
-  };
-
-  const handleDeleteTech = (id: string) => {
-    setProfile(prev => ({
-      ...prev,
-      technologies: prev.technologies?.filter(t => t.id !== id)
-    }));
-  };
-
-  const handleMoveTech = (index: number, direction: 'up' | 'down') => {
-    const techs = [...(profile.technologies || [])];
-    if (direction === 'up' && index > 0) {
-      const temp = techs[index];
-      techs[index] = techs[index - 1];
-      techs[index - 1] = temp;
-    } else if (direction === 'down' && index < techs.length - 1) {
-      const temp = techs[index];
-      techs[index] = techs[index + 1];
-      techs[index + 1] = temp;
-    }
-    // Update orders
-    techs.forEach((t, i) => t.order = i + 1);
-    setProfile(prev => ({ ...prev, technologies: techs }));
-  };
-
-  if (loading) return <div className="text-text-secondary animate-pulse">Loading profile...</div>;
+  if (loading) return <div className="text-text-secondary animate-pulse p-4">Loading profile...</div>;
 
   return (
-    <div className="glass-card p-8 rounded-2xl max-w-4xl mx-auto">
-      <h2 className="text-2xl font-display font-medium mb-6">Home Content Settings</h2>
+    <div className="glass-card p-6 sm:p-8 rounded-2xl max-w-4xl mx-auto">
+      <div className="border-b border-white/5 pb-4 mb-6">
+        <h2 className="text-2xl font-display font-medium text-white">Site Content Settings</h2>
+        <p className="text-sm text-text-secondary mt-1">
+          Kelola foto profil, file CV, teks hero & identitas, serta tautan media sosial.
+        </p>
+      </div>
       
       {message && (
         <div className={`p-4 rounded-lg text-sm mb-6 ${
@@ -213,11 +174,11 @@ export function ProfileView() {
         </div>
       )}
 
-      <form onSubmit={handleSave} className="flex flex-col gap-12">
+      <form onSubmit={handleSave} className="flex flex-col gap-10">
         
         {/* Media Section */}
         <div className="flex flex-col gap-6">
-          <h3 className="text-lg font-display border-b border-white/5 pb-2">Media & Files</h3>
+          <h3 className="text-lg font-display border-b border-white/5 pb-2 text-[#7DB3FF]">Media & Files</h3>
           <div className="flex flex-wrap gap-8 items-start">
             {/* Photo 1 */}
             <div className="flex flex-col gap-4 w-full sm:w-48 shrink-0">
@@ -283,13 +244,26 @@ export function ProfileView() {
               >
                 <span>{uploadingCV ? 'Uploading...' : 'Upload CV PDF'}</span>
               </button>
+
+              {/* CV Access Code Setting */}
+              <div className="flex flex-col gap-1.5 mt-1 text-left">
+                <label className="text-[11px] text-text-secondary font-medium">Kode Akses Unduh CV (Visitor PIN)</label>
+                <input 
+                  type="text" 
+                  value={profile.cvAccessCode ?? '19112191'} 
+                  onChange={e => handleChange('cvAccessCode', e.target.value)} 
+                  className="glass-input px-3 py-2 rounded-lg w-full text-xs font-mono text-[#7DB3FF]" 
+                  placeholder="19112191" 
+                />
+                <span className="text-[10px] text-text-muted">Kode akses 8 digit yang wajib dimasukkan pengunjung untuk mengunduh CV.</span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Identity */}
+        {/* Identity & Hero Section */}
         <div className="flex flex-col gap-6">
-          <h3 className="text-lg font-display border-b border-white/5 pb-2">Hero Section</h3>
+          <h3 className="text-lg font-display border-b border-white/5 pb-2 text-[#7DB3FF]">Hero & Identity</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="flex flex-col gap-2">
               <label className="text-sm text-text-secondary">First Name</label>
@@ -308,8 +282,38 @@ export function ProfileView() {
               <input type="text" value={profile.title || ''} onChange={e => handleChange('title', e.target.value)} className="glass-input px-4 py-3 rounded-lg w-full" placeholder="Full Stack Developer" />
             </div>
             <div className="flex flex-col gap-2 md:col-span-2">
-              <div className="flex justify-between items-center">
-                <label className="text-sm text-text-secondary">Hero Description</label>
+              <div className="flex flex-wrap justify-between items-center gap-2">
+                <label className="text-sm text-text-secondary font-medium">Hero Description</label>
+                
+                {/* Text Alignment Toolbar */}
+                <div className="flex items-center gap-1 bg-black/40 border border-white/10 rounded-lg p-1">
+                  <span className="text-[11px] text-text-muted px-1.5 hidden sm:inline">Perataan Teks:</span>
+                  {[
+                    { id: 'left' as const, label: 'Kiri', icon: AlignLeft },
+                    { id: 'center' as const, label: 'Tengah', icon: AlignCenter },
+                    { id: 'right' as const, label: 'Kanan', icon: AlignRight },
+                    { id: 'justify' as const, label: 'Justify', icon: AlignJustify },
+                  ].map(({ id, label, icon: Icon }) => {
+                    const isActive = (profile.heroDescriptionAlign || 'left') === id;
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => handleChange('heroDescriptionAlign', id)}
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-all cursor-pointer ${
+                          isActive
+                            ? 'bg-[#00F0FF]/20 text-[#00F0FF] border border-[#00F0FF]/40 shadow-[0_0_10px_rgba(0,240,255,0.2)]'
+                            : 'text-text-muted hover:text-white hover:bg-white/5 border border-transparent'
+                        }`}
+                        title={`Format: Rata ${label}`}
+                      >
+                        <Icon size={14} />
+                        <span className="text-[11px]">{label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
                 <span className={`text-xs font-mono ${(profile.heroDescription?.length || 0) >= 320 ? 'text-amber-400 font-semibold' : 'text-text-muted'}`}>
                   {(profile.heroDescription?.length || 0)} / 320 karakter
                 </span>
@@ -321,11 +325,24 @@ export function ProfileView() {
                   const val = e.target.value.slice(0, 320);
                   handleChange('heroDescription', val);
                 }} 
-                className="glass-input px-4 py-3 rounded-lg w-full min-h-[110px] resize-y" 
-                placeholder="I'm a passionate developer who loves building web applications, exploring new technologies, and turning ideas into real, useful products." 
+                style={{
+                  textAlign: profile.heroDescriptionAlign === 'justify' ? 'justify' : (profile.heroDescriptionAlign || 'left')
+                }}
+                className={`glass-input px-4 py-3 rounded-lg w-full min-h-[110px] resize-y transition-all ${
+                  profile.heroDescriptionAlign === 'right'
+                    ? 'text-right'
+                    : profile.heroDescriptionAlign === 'justify'
+                    ? 'text-justify'
+                    : profile.heroDescriptionAlign === 'center'
+                    ? 'text-center'
+                    : 'text-left'
+                }`} 
+                placeholder="I'm a passionate developer who loves building web applications..." 
               />
-              <div className="flex justify-between items-center text-[11px] text-text-muted">
-                <span>Dibatasi maksimal 320 karakter agar pas dengan tinggi kotak teks di beranda dan sejajar dengan tombol Download CV.</span>
+              <div className="flex flex-wrap justify-between items-center gap-2 text-[11px] text-text-muted">
+                <span>
+                  Format saat ini: <strong className="text-white capitalize">{profile.heroDescriptionAlign === 'justify' ? 'Rata Kiri-Kanan (Justify)' : profile.heroDescriptionAlign === 'right' ? 'Rata Kanan (Right)' : profile.heroDescriptionAlign === 'center' ? 'Rata Tengah (Center)' : 'Rata Kiri (Left)'}</strong>. Dibatasi maks 320 karakter.
+                </span>
                 {(profile.heroDescription?.length || 0) >= 320 && (
                   <span className="text-amber-400 font-medium shrink-0 ml-2">Batas maksimum 320 karakter tercapai</span>
                 )}
@@ -334,67 +351,12 @@ export function ProfileView() {
           </div>
         </div>
 
-        {/* About Me Section */}
-        <div className="flex flex-col gap-6">
-          <h3 className="text-lg font-display border-b border-white/5 pb-2">About Me Section</h3>
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <label className="text-sm text-text-secondary">About Label</label>
-              <input type="text" value={profile.aboutLabel || ''} onChange={e => handleChange('aboutLabel', e.target.value)} className="glass-input px-4 py-3 rounded-lg w-full" placeholder="About Me" />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="text-sm text-text-secondary">About Heading</label>
-              <input type="text" value={profile.aboutHeading || ''} onChange={e => handleChange('aboutHeading', e.target.value)} className="glass-input px-4 py-3 rounded-lg w-full" placeholder="Turning Ideas Into Real Products" />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="text-sm text-text-secondary">About Description</label>
-              <textarea value={profile.about || ''} onChange={e => handleChange('about', e.target.value)} className="glass-input px-4 py-3 rounded-lg w-full min-h-[120px] resize-y" placeholder="Write a brief introduction..." />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="text-sm text-text-secondary">Button Text</label>
-              <input type="text" value={profile.aboutButtonText || ''} onChange={e => handleChange('aboutButtonText', e.target.value)} className="glass-input px-4 py-3 rounded-lg w-full" placeholder="Learn More" />
-            </div>
-          </div>
-        </div>
-
-        {/* Technologies List */}
-        <div className="flex flex-col gap-4">
-          <div className="flex justify-between items-center border-b border-white/5 pb-2">
-            <h3 className="text-lg font-display">Technologies</h3>
-            <button 
-              type="button" 
-              onClick={handleAddTech} 
-              className="ios-glass-btn px-4 py-1 text-xs font-semibold cursor-pointer"
-            >
-              <span>+ Add Tech</span>
-            </button>
-          </div>
-          <div className="flex flex-col gap-3">
-            {profile.technologies?.map((tech, index) => (
-              <div key={tech.id} className="flex items-center gap-3 bg-white/5 p-3 rounded-lg">
-                <div className="flex flex-col gap-1">
-                  <button type="button" onClick={() => handleMoveTech(index, 'up')} disabled={index === 0} className="text-text-tertiary hover:text-white disabled:opacity-30">↑</button>
-                  <button type="button" onClick={() => handleMoveTech(index, 'down')} disabled={index === (profile.technologies?.length || 0) - 1} className="text-text-tertiary hover:text-white disabled:opacity-30">↓</button>
-                </div>
-                <input 
-                  type="text" 
-                  value={tech.name} 
-                  onChange={e => handleUpdateTech(tech.id, e.target.value)} 
-                  className="glass-input px-3 py-2 rounded flex-1" 
-                />
-                <button type="button" onClick={() => handleDeleteTech(tech.id)} className="text-red-400 text-sm hover:underline px-2">Remove</button>
-              </div>
-            ))}
-            {!profile.technologies?.length && <p className="text-sm text-text-secondary">No technologies added.</p>}
-          </div>
-        </div>
-
         {/* Social Links */}
         <div className="flex flex-col gap-6">
           <div className="border-b border-white/5 pb-2">
-            <h3 className="text-lg font-display">Social Links</h3>
+            <h3 className="text-lg font-display text-[#7DB3FF]">Social Links</h3>
             <p className="text-xs text-text-secondary mt-1">
-              Configured links will show on the left profile dock (Instagram, X, Reddit, LinkedIn).
+              Tautan yang dikonfigurasi akan muncul pada dock profil kiri (Instagram, X, Reddit, LinkedIn, GitHub, Email).
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -404,7 +366,7 @@ export function ProfileView() {
               { id: 'reddit', label: 'Reddit', placeholder: 'https://reddit.com/user/bprasety_' },
               { id: 'linkedin', label: 'LinkedIn', placeholder: 'https://linkedin.com/in/bintang-prasetyo' },
               { id: 'github', label: 'GitHub', placeholder: 'https://github.com/bprasety' },
-              { id: 'email', label: 'Email', placeholder: 'mailto:contact@bprasety.com' },
+              { id: 'email', label: 'Email', placeholder: 'mailto:contact@bintangprasetyo.com' },
             ].map(({ id, label, placeholder }) => (
               <div key={id} className="flex flex-col gap-2">
                 <label className="text-sm text-text-secondary">{label}</label>
@@ -412,7 +374,7 @@ export function ProfileView() {
                   type="text" 
                   value={(profile.socialLinks as any)?.[id] ?? (id === 'x' ? (profile.socialLinks as any)?.twitter ?? '' : '')} 
                   onChange={e => handleChange(`social.${id}`, e.target.value)}
-                  className="glass-input px-4 py-2 rounded-lg w-full"
+                  className="glass-input px-4 py-2.5 rounded-lg w-full"
                   placeholder={placeholder}
                 />
               </div>
@@ -426,7 +388,7 @@ export function ProfileView() {
             disabled={saving || uploading1 || uploading2 || uploadingCV} 
             className="ios-glass-btn ios-glass-primary px-8 py-3 text-sm font-semibold cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
           >
-            <span>{saving ? 'Saving...' : 'Save All Changes'}</span>
+            <span>{saving ? 'Saving...' : 'Save Site Content'}</span>
           </button>
         </div>
       </form>

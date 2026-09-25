@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { 
-  Sparkles, 
   Maximize2, 
   X, 
   ChevronLeft, 
@@ -130,14 +129,10 @@ export default function Gallery() {
     <div className="flex flex-col gap-10 pb-28">
       {/* Header Section */}
       <header className="max-w-3xl flex flex-col gap-4">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 w-fit text-xs text-[#7DB3FF]">
-          <Sparkles size={13} />
-          <span className="tracking-wide uppercase font-mono text-[11px]">Curated Visual Portfolio</span>
-        </div>
-        <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-medium text-white tracking-tight">
+        <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-medium text-white tracking-tight leading-[1.12]">
           {title}
         </h1>
-        <p className="text-text-secondary text-base sm:text-lg font-light leading-relaxed max-w-2xl">
+        <p className="text-[#A8B8CC] text-base sm:text-lg font-light leading-relaxed max-w-2xl">
           {description}
         </p>
       </header>
@@ -149,10 +144,10 @@ export default function Gallery() {
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`ios-glass-btn px-4 py-2 text-xs font-medium cursor-pointer whitespace-nowrap transition-all ${
+              className={`px-4 py-2 text-xs font-medium cursor-pointer whitespace-nowrap rounded-full transition-all duration-200 ${
                 selectedCategory === cat
-                  ? "ios-glass-primary text-white border-white/30"
-                  : "text-text-secondary hover:text-white"
+                  ? "bg-transparent border border-[#7DB3FF] text-[#7DB3FF] shadow-[0_0_12px_rgba(125,179,255,0.25)]"
+                  : "bg-transparent border border-white/15 text-text-secondary hover:text-white hover:border-white/30"
               }`}
             >
               <span>{cat}</span>
