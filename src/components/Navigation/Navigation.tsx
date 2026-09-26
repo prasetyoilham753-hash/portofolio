@@ -54,85 +54,105 @@ export function Navigation() {
   const [heldIndex, setHeldIndex] = useState<number | null>(null);
   const [dragGlassX, setDragGlassX] = useState<number>(0);
   const [dragGlassWidth, setDragGlassWidth] = useState<number>(0);
-  const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
   const startPosRef = useRef<{ x: number; y: number } | null>(null);
-
-  // Helper to find closest NAV_LINKS item index from client X position
-  const getIndexFromClientX = useCallback((clientX: number): number | null => {
-    if (!trackRef.current) return null;
-    const items = Array.from(trackRef.current.querySelectorAll<HTMLElement>(".lg-item"));
-    if (items.length === 0) return null;
-
-    let closestIndex = 0;
-    let minDistance = Infinity;
-
-    items.forEach((item, index) => {
-      const rect = item.getBoundingClientRect();
-      const itemCenterX = rect.left + rect.width / 2;
-      const distance = Math.abs(clientX - itemCenterX);
-      if (distance < minDistance) {
-        minDistance = distance;
-        closestIndex = index;
-      }
-    });
-
-    return closestIndex;
-  }, []);
+  const rafRef = useRef<number | null>(null);
+  const cachedLayoutRef = useRef<{
+    trackLeft: number;
+    trackWidth: number;
+    items: { index: number; left: number; width: number; centerX: number }[];
+  } | null>(null);
 
   const handlePointerDown = useCallback((index: number, e: React.PointerEvent) => {
     startPosRef.current = { x: e.clientX, y: e.clientY };
     setHeldIndex(index);
     setIsHolding(true);
 
+    const target = e.currentTarget as HTMLElement;
+    try {
+      target.setPointerCapture(e.pointerId);
+    } catch {
+      // Ignore if setPointerCapture fails on older browsers
+    }
+
     if (trackRef.current) {
       const trackRect = trackRef.current.getBoundingClientRect();
-      const items = Array.from(trackRef.current.querySelectorAll<HTMLElement>(".lg-item"));
+      const itemElems = Array.from(trackRef.current.querySelectorAll<HTMLElement>(".lg-item"));
+      
+      const items = itemElems.map((item, idx) => {
+        const r = item.getBoundingClientRect();
+        return {
+          index: idx,
+          left: r.left - trackRect.left,
+          width: r.width,
+          centerX: r.left + r.width / 2,
+        };
+      });
+
+      cachedLayoutRef.current = {
+        trackLeft: trackRect.left,
+        trackWidth: trackRect.width,
+        items,
+      };
+
       if (items[index]) {
-        const itemRect = items[index].getBoundingClientRect();
-        setDragGlassX(itemRect.left - trackRect.left);
-        setDragGlassWidth(itemRect.width);
+        setDragGlassX(items[index].left);
+        setDragGlassWidth(items[index].width);
       }
     }
   }, []);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (startPosRef.current) {
-      const dist = Math.hypot(e.clientX - startPosRef.current.x, e.clientY - startPosRef.current.y);
-      if (dist > 5 && !isHolding) {
-        setIsHolding(true);
+    if (!cachedLayoutRef.current) return;
+
+    const layout = cachedLayoutRef.current;
+    const clientX = e.clientX;
+    const cursorRelativeX = clientX - layout.trackLeft;
+
+    // Fast O(N) lookup from cached item centers without calling getBoundingClientRect()
+    let closestIndex = 0;
+    let minDistance = Infinity;
+    for (let i = 0; i < layout.items.length; i++) {
+      const dist = Math.abs(clientX - layout.items[i].centerX);
+      if (dist < minDistance) {
+        minDistance = dist;
+        closestIndex = i;
       }
     }
 
-    if ((isHolding || startPosRef.current) && trackRef.current) {
-      const trackRect = trackRef.current.getBoundingClientRect();
-      const cursorRelativeX = e.clientX - trackRect.left;
-      
-      // Calculate target item under pointer
-      const targetIdx = getIndexFromClientX(e.clientX);
-      if (targetIdx !== null) {
-        setHeldIndex(targetIdx);
-        
-        const items = Array.from(trackRef.current.querySelectorAll<HTMLElement>(".lg-item"));
-        const targetItemWidth = items[targetIdx] ? items[targetIdx].getBoundingClientRect().width : (dragGlassWidth || 60);
-        setDragGlassWidth(targetItemWidth);
+    const targetItem = layout.items[closestIndex];
+    const targetWidth = targetItem ? targetItem.width : 60;
 
-        // Calculate smooth continuous position centered around pointer clamped within track bounds
-        const rawLeft = cursorRelativeX - targetItemWidth / 2;
-        const clampedLeft = Math.max(0, Math.min(trackRect.width - targetItemWidth, rawLeft));
-        setDragGlassX(clampedLeft);
-      }
+    // Calculate clamped continuous position
+    const rawLeft = cursorRelativeX - targetWidth / 2;
+    const clampedLeft = Math.max(0, Math.min(layout.trackWidth - targetWidth, rawLeft));
+
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => {
+      setHeldIndex(closestIndex);
+      setDragGlassWidth(targetWidth);
+      setDragGlassX(clampedLeft);
+    });
+  }, []);
+
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
     }
-  }, [isHolding, dragGlassWidth, getIndexFromClientX]);
 
-  const handlePointerUp = useCallback(() => {
-    if (holdTimerRef.current) {
-      clearTimeout(holdTimerRef.current);
-      holdTimerRef.current = null;
+    const target = e.currentTarget as HTMLElement;
+    try {
+      if (target.hasPointerCapture(e.pointerId)) {
+        target.releasePointerCapture(e.pointerId);
+      }
+    } catch {
+      // Ignore
     }
 
     if (isHolding && heldIndex !== null) {
       const targetLink = NAV_LINKS[heldIndex];
-      if (targetLink) {
+      if (targetLink && targetLink.path !== location.pathname) {
         navigate(targetLink.path);
       }
     }
@@ -140,7 +160,8 @@ export function Navigation() {
     setIsHolding(false);
     setHeldIndex(null);
     startPosRef.current = null;
-  }, [isHolding, heldIndex, navigate]);
+    cachedLayoutRef.current = null;
+  }, [isHolding, heldIndex, location.pathname, navigate]);
 
   // Detect mobile viewport
   useEffect(() => {
@@ -751,6 +772,12 @@ export function Navigation() {
                 to={link.path}
                 id={`nav-item-${link.id}`}
                 onPointerDown={(e) => handlePointerDown(index, e)}
+                onClick={(e) => {
+                  if (isHolding) {
+                    e.preventDefault();
+                  }
+                }}
+                onDragStart={(e) => e.preventDefault()}
                 style={{
                   ...itemStyle,
                   color: (isActive || isTargetHeld) 
