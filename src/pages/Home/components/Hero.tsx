@@ -234,17 +234,31 @@ export function Hero({ profile }: HeroProps) {
               id="hero-download-cv"
               type="button"
               onClick={() => setIsCvModalOpen(true)}
-              className="ios-glass-btn ios-glass-primary w-full max-w-[175px] xs:max-w-[200px] sm:max-w-[270px] md:max-w-[340px] lg:max-w-[380px] xl:max-w-[400px] h-[42px] xs:h-[46px] sm:h-[52px] md:h-[56px] lg:h-[58px] px-3.5 xs:px-4 sm:px-6 md:px-7 text-[12px] xs:text-[13px] sm:text-[15px] md:text-[16px] lg:text-[17px] font-medium whitespace-nowrap flex items-center justify-center rounded-full cursor-pointer hover:shadow-[0_0_24px_rgba(125,179,255,0.4)] transition-all"
+              className="tactile-start-btn box start-btn w-full max-w-[175px] xs:max-w-[200px] sm:max-w-[270px] md:max-w-[340px] lg:max-w-[380px] xl:max-w-[400px] h-[42px] xs:h-[46px] sm:h-[52px] md:h-[56px] lg:h-[58px] px-3.5 xs:px-4 sm:px-6 md:px-7 text-[12px] xs:text-[13px] sm:text-[15px] md:text-[16px] lg:text-[17px] font-medium whitespace-nowrap flex items-center justify-between rounded-full cursor-pointer transition-all relative overflow-hidden group"
             >
-              <span>Download CV &rarr;</span>
+              <span className="text font-semibold tracking-wide text-[#F7FAFF] group-hover:text-white transition-colors z-10">Download CV</span>
+              <div className="btn-icon w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 bg-[#3D7CFF] rounded-full flex items-center justify-center shadow-md transition-transform duration-300 group-hover:scale-110 z-10 shrink-0">
+                <svg
+                  className="svg w-3.5 h-3.5 sm:w-4 sm:h-4 fill-white"
+                  viewBox="0 0 1024 1024"
+                  version="1.1"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M779.180132 473.232045 322.354755 16.406668c-21.413706-21.413706-56.121182-21.413706-77.534887 0-21.413706 21.413706-21.413706 56.122205 0 77.534887l418.057421 418.057421L244.819868 930.057421c-21.413706 21.413706-21.413706 56.122205 0 77.534887 10.706853 10.706853 24.759917 16.059767 38.767955 16.059767s28.061103-5.353938 38.767955-16.059767L779.180132 550.767955C800.593837 529.35425 800.593837 494.64575 779.180132 473.232045z"
+                  ></path>
+                </svg>
+              </div>
+              <div className="circle-overlay pointer-events-none"></div>
             </button>
           ) : (
             <button 
               id="hero-download-cv-disabled"
               disabled
-              className="ios-glass-btn w-full max-w-[175px] xs:max-w-[200px] sm:max-w-[270px] md:max-w-[340px] lg:max-w-[380px] xl:max-w-[400px] h-[42px] xs:h-[46px] sm:h-[52px] md:h-[56px] lg:h-[58px] px-3.5 xs:px-4 sm:px-6 md:px-7 text-[12px] xs:text-[13px] sm:text-[15px] md:text-[16px] lg:text-[17px] font-medium whitespace-nowrap opacity-50 pointer-events-none flex items-center justify-center rounded-full"
+              className="tactile-start-btn box start-btn w-full max-w-[175px] xs:max-w-[200px] sm:max-w-[270px] md:max-w-[340px] lg:max-w-[380px] xl:max-w-[400px] h-[42px] xs:h-[46px] sm:h-[52px] md:h-[56px] lg:h-[58px] px-3.5 xs:px-4 sm:px-6 md:px-7 text-[12px] xs:text-[13px] sm:text-[15px] md:text-[16px] lg:text-[17px] font-medium whitespace-nowrap opacity-50 pointer-events-none flex items-center justify-between rounded-full relative overflow-hidden"
             >
-              <span>CV Not Available</span>
+              <span className="text font-semibold text-[#A8B8CC] z-10">CV Not Available</span>
+              <div className="circle-overlay pointer-events-none"></div>
             </button>
           )}
         </motion.div>

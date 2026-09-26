@@ -455,6 +455,7 @@
      LIQUID GLASS NAVIGATION DOCK (DUAL SCROLL & SLIDE ADAPTIVE)
      Connected to Navigation Customization Engine
      ============================================================ */
+  nav#main-navigation-dock,
   .liquid-glass-nav {
     position: fixed;
     left: 50%;
@@ -480,7 +481,9 @@
     transition: 
       width var(--nav-transition-duration, 0.52s) cubic-bezier(0.16, 1, 0.3, 1), 
       padding 0.48s cubic-bezier(0.16, 1, 0.3, 1), 
-      box-shadow 0.4s ease;
+      box-shadow 0.4s ease,
+      background 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .liquid-glass-nav::before {
@@ -711,7 +714,108 @@
     background: rgba(255, 255, 255, 0.12);
   }
 
-  /* Liquid Glass Sub Tag / Column */
+  /* Custom Tactile Glass Start Button (User Component Integration) */
+  .tactile-start-btn.box {
+    --w: 100%;
+    --r: 9999px;
+    --tr: 15%;
+    z-index: 20;
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: var(--r);
+    border: 1px double rgba(140, 190, 255, 0.35);
+
+    box-shadow:
+      inset 2px -2px 1px -1px rgba(255, 255, 255, 0.45),
+      inset -2px 2px 1px -1px rgba(255, 255, 255, 0.45),
+      inset 6px -6px 1px -6px rgba(255, 255, 255, 0.25),
+      inset -6px 6px 1px -6px rgba(255, 255, 255, 0.25),
+      inset 0 0 2px rgba(0, 0, 0, 0.6),
+      0 4px 12px rgba(0, 0, 0, 0.3);
+
+    background: linear-gradient(180deg, rgba(35, 90, 200, 0.88) 0%, rgba(20, 65, 175, 0.92) 100%);
+    backdrop-filter: blur(12px) saturate(160%);
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
+    cursor: pointer;
+    filter: brightness(1.0);
+    user-select: none;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .tactile-start-btn.box .svg {
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  }
+
+  .tactile-start-btn.box .text {
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
+  }
+
+  .tactile-start-btn.box:before {
+    content: "";
+    position: absolute;
+    z-index: 1;
+    top: 35%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 16px);
+    height: calc(100% - 16px);
+    border-radius: var(--r);
+    border: 1px solid rgba(120, 180, 255, 0.3);
+    filter: blur(6px);
+    pointer-events: none;
+  }
+
+  .tactile-start-btn.box:after {
+    z-index: 2;
+    content: "";
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: var(--r);
+    filter: blur(5px);
+    background: linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.45) 0%,
+      transparent var(--tr),
+      transparent calc(100% - var(--tr)),
+      rgba(255, 255, 255, 0.45) 100%
+    );
+    pointer-events: none;
+  }
+
+  .tactile-start-btn .circle-overlay {
+    position: absolute;
+    inset: 4.5px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: var(--r);
+    filter: blur(1px);
+    pointer-events: none;
+  }
+
+  .tactile-start-btn:hover {
+    background: linear-gradient(180deg, rgba(45, 105, 220, 0.95) 0%, rgba(25, 80, 195, 0.95) 100%);
+    transform: translateY(-2px);
+    border-color: rgba(160, 210, 255, 0.6);
+  }
+
+  .tactile-start-btn:hover .btn-icon {
+    transform: scale(1.08);
+  }
+
+  .tactile-start-btn:active {
+    transform: scale(0.97);
+  }
+
+  .tactile-start-btn:active .text {
+    color: #ffffff;
+  }
+
+  .tactile-start-btn:active .btn-icon {
+    transform: scale(0.94);
+  }
   .liquid-glass-sub-tag {
     position: relative;
     display: flex;
@@ -751,6 +855,221 @@
         0 3px 8px rgba(0, 0, 0, 0.2);
       transform: translateY(-1px);
     }
+  }
+
+  /* Dedicated Dropdown Popover (div#more-menu-dropdown) Glass Surface Rules */
+  div#more-menu-dropdown,
+  .more-menu-dropdown {
+    transition: 
+      background 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+      backdrop-filter 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  div#more-menu-dropdown .liquid-glass-item {
+    transition: 
+      background 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+      color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  div#more-menu-dropdown .liquid-glass-item:hover {
+    transform: translateX(2px);
+  }
+
+  /* ============================================================
+     LIQUID GOO SWITCH (CSS FILTER & MASK SWITCH)
+     ============================================================ */
+  .liquid-toggle {
+    --unchecked: hsl(218, 12%, 75%);
+    --checked: hsl(var(--hue, 144), calc((8 + (var(--complete, 0) / 100 * (92))) * 1%), calc((81 - (var(--complete, 0) / 100 * (81 - 43))) * 1%));
+    --control: #ffffff;
+    --border: 4px;
+    --width: 110;
+    --height: 52;
+    height: calc(var(--height) * 1px);
+    width: calc(var(--width) * 1px);
+    border-radius: 999px;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    position: relative;
+    overflow: visible;
+    container-type: inline-size;
+    background: transparent;
+    transition: outline 0.2s ease, transform 0.2s ease;
+    outline-offset: 2px;
+    user-select: none;
+    touch-action: none;
+  }
+
+  .liquid-toggle * {
+    pointer-events: none;
+  }
+
+  .liquid-toggle:focus-visible {
+    outline: 3px solid var(--checked);
+  }
+
+  .liquid-toggle:active {
+    outline: none;
+  }
+
+  .liquid-toggle-indicator {
+    border-radius: 999px;
+    pointer-events: none;
+    height: 100%;
+    width: 100%;
+    background: var(--checked);
+    position: absolute;
+    top: 50%;
+    scale: 1;
+    left: 50%;
+    translate: -50% -50%;
+    transition: background 0.25s ease-out;
+  }
+
+  .liquid-toggle-knockout {
+    height: calc(var(--height) * 1px);
+    width: calc(var(--width) * 1px);
+    border-radius: 999px;
+    filter: url(#remove-black);
+    position: absolute;
+    inset: 0;
+    will-change: filter, scale;
+    transform: translate3d(0, 0, 0);
+  }
+
+  .liquid-toggle-indicator-masked {
+    background: var(--checked);
+    z-index: 12;
+    height: 100%;
+    width: 100%;
+    translate: -50% -50%;
+    container-type: inline-size;
+    transition: background 0.25s ease-out;
+  }
+
+  .liquid-toggle-indicator-masked .liquid-toggle-mask {
+    position: absolute;
+    height: calc(100% - (2 * var(--border)));
+    width: calc(60% - (2 * var(--border)));
+    top: 50%;
+    background: #000;
+    left: var(--border);
+    border-radius: 999px;
+    translate: calc((var(--complete, 0) / 100) * (100cqi - 60cqi - (0 * var(--border)))) -50%;
+    transition: translate 0.2s cubic-bezier(0.16, 1, 0.3, 1), height 0.2s ease, width 0.2s ease, margin 0.2s ease;
+  }
+
+  .liquid-toggle-wrapper {
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    clip-path: inset(0 0 0 0 round 999px);
+    filter: blur(4px);
+    transition: filter 0.2s ease;
+  }
+
+  .liquid-toggle[data-active='true'] .liquid-toggle-wrapper {
+    filter: blur(0px);
+  }
+
+  .liquid-toggle-liquids {
+    position: absolute;
+    inset: 0;
+    transform: translate3d(0, 0, 0);
+    border-radius: 999px;
+    overflow: hidden;
+    filter: url(#goo);
+  }
+
+  .liquid-toggle-liquids .liquid-toggle-liquid-shadow {
+    position: absolute;
+    inset: 0;
+    box-shadow: inset 0px 0px 3px 4px var(--checked),
+      inset calc(((var(--complete, 0) / 100) * 8px) + -4px) 0px 3px 4px var(--checked);
+    border-radius: 999px;
+    transition: box-shadow 0.25s ease-out;
+  }
+
+  .liquid-toggle-liquids .liquid-toggle-liquid-track {
+    content: '';
+    height: calc((var(--height) * 1px) - (0 * var(--border)));
+    width: calc((var(--width) * 1px) - (0 * var(--border)));
+    background: var(--checked);
+    border-radius: 999px;
+    position: absolute;
+    top: 50%;
+    left: 0;
+    translate: calc((var(--complete, 0) / 100) * (100cqi - 100% - (6 * var(--border)))) -50%;
+    transition: translate 0.2s cubic-bezier(0.16, 1, 0.3, 1), height 0.2s ease, left 0.2s ease, background 0.25s ease-out;
+  }
+
+  .liquid-toggle-indicator-liquid {
+    position: absolute;
+    height: calc(100% - (2 * var(--border)));
+    width: calc(60% - (2 * var(--border)));
+    container-type: inline-size;
+    top: 50%;
+    background: transparent;
+    left: var(--border);
+    border-radius: 999px;
+    translate: calc((var(--complete, 0) / 100) * (100cqi - 100% - (2 * var(--border)))) -50%;
+    transition: translate 0.2s cubic-bezier(0.16, 1, 0.3, 1), scale 0.2s ease;
+  }
+
+  .liquid-toggle-indicator-liquid .liquid-toggle-shadow {
+    opacity: 0;
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    box-shadow: 
+      1px -1px 2px hsl(0 0% 100% / 0.5) inset,
+      0px -1px 2px hsl(0 0% 100% / 0.5) inset,
+      -1px -1px 2px hsl(0 0% 100% / 0.5) inset,
+      1px 1px 2px hsl(0 0% 30% / 0.5) inset,
+      -8px 4px 10px -6px hsl(0 0% 30% / 0.25) inset,
+      -1px 1px 6px hsl(0 0% 30% / 0.25) inset,
+      -1px -1px 8px hsl(0 0% 60% / 0.15), 
+      1px 1px 2px hsl(0 0% 30% / 0.15),
+      2px 2px 6px hsl(0 0% 30% / 0.15),
+      -2px -1px 2px hsl(0 0% 100% / 0.25) inset,
+      3px 6px 16px -6px hsl(0 0% 30% / 0.5);
+    z-index: 20;
+    transition: opacity 0.2s ease;
+  }
+
+  .liquid-toggle-indicator-liquid .liquid-toggle-cover {
+    position: absolute;
+    inset: 0;
+    background: #ffffff;
+    border-radius: 999px;
+    transition: opacity 0.2s ease;
+  }
+
+  .liquid-toggle[data-active='true'] .liquid-toggle-indicator-liquid .liquid-toggle-shadow,
+  .liquid-toggle:active .liquid-toggle-indicator-liquid .liquid-toggle-shadow {
+    opacity: 1;
+  }
+
+  .liquid-toggle[data-active='true'] .liquid-toggle-indicator-liquid .liquid-toggle-cover,
+  .liquid-toggle:active .liquid-toggle-indicator-liquid .liquid-toggle-cover {
+    opacity: 0;
+  }
+
+  .liquid-toggle[data-active='true'] .liquid-toggle-indicator-masked .liquid-toggle-mask,
+  .liquid-toggle:active .liquid-toggle-indicator-masked .liquid-toggle-mask {
+    height: calc((100% - (2 * var(--border))) * 1.55);
+    width: calc((60% - (2 * var(--border))) * 1.55);
+    margin-left: calc((60% - (2 * var(--border))) * -0.275);
+  }
+
+  .liquid-toggle[data-active='true'] .liquid-toggle-indicator-liquid,
+  .liquid-toggle:active .liquid-toggle-indicator-liquid {
+    scale: 1.25;
   }
 
   .text-gradient {

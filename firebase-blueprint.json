@@ -124,6 +124,23 @@
         "updatedAt": { "type": "timestamp" }
       }
     },
+    "NavigationConfig": {
+      "title": "Global Navigation Configuration",
+      "description": "Global customization settings for website navigation dock and dropdown menu.",
+      "type": "object",
+      "properties": {
+        "bgType": { "type": "string" },
+        "bgColor": { "type": "string" },
+        "bgOpacity": { "type": "number" },
+        "backdropBlur": { "type": "number" },
+        "borderRadius": { "type": "number" },
+        "textColor": { "type": "string" },
+        "activeTextColor": { "type": "string" },
+        "activeBgColor": { "type": "string" },
+        "activeBgOpacity": { "type": "number" },
+        "updatedAt": { "type": "string" }
+      }
+    },
     "FeatureComponent": {
       "title": "Feature Component",
       "description": "An interactive UI/animation component stored in the component library.",

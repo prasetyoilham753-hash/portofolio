@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { hexToRgba } from "./colorUtils";
+import { db } from "../../services/firebase/config";
+import { doc, setDoc, onSnapshot } from "firebase/firestore";
 
 export interface NavigationConfig {
   // Background
@@ -403,26 +405,72 @@ export const PRESET_CONFIGS: Record<string, Partial<NavigationConfig>> = {
     shadowBlur: 32,
     glassPreset: "luxury",
   },
+  "liquid-glass": {
+    bgType: "glass",
+    bgColor: "#0f3460",
+    bgOpacity: 32,
+    bgGradientEnabled: true,
+    bgGradientStart: "#16213e",
+    bgGradientEnd: "#0f3460",
+    bgGradientDirection: "180deg",
+    backdropBlur: 20,
+    saturation: 175,
+    brightness: 105,
+    contrast: 105,
+    borderEnabled: true,
+    borderColor: "#4f82f8",
+    borderOpacity: 38,
+    borderWidth: 1,
+    borderRadius: 999,
+    activeBgColor: "#3b82f6",
+    activeBgOpacity: 40,
+    textColor: "#ffffff",
+    textOpacity: 85,
+    activeTextColor: "#ffffff",
+    activeIconColor: "#ffffff",
+    shadowEnabled: true,
+    shadowColor: "#0f3460",
+    shadowOpacity: 45,
+    shadowBlur: 35,
+    glassPreset: "glass",
+    dropdownBgType: "glass",
+    dropdownBgColor: "#16213e",
+    dropdownBgOpacity: 88,
+    dropdownBackdropBlur: 24,
+    dropdownBorderEnabled: true,
+    dropdownBorderColor: "#60a5fa",
+    dropdownBorderOpacity: 35,
+    dropdownBorderRadius: 20,
+    dropdownActiveBgColor: "#3b82f6",
+    dropdownActiveBgOpacity: 35,
+  },
 };
 
 const STORAGE_KEY = "bp_navigation_config_v1";
 const PRESETS_STORAGE_KEY = "bp_navigation_saved_presets_v1";
 
+const NAV_DOC_REF = doc(db, "site_content", "navigation");
+const NAV_PRESETS_DOC_REF = doc(db, "site_content", "navigation_presets");
+
 interface NavigationCustomizationContextType {
   config: NavigationConfig;
   updateConfig: (updates: Partial<NavigationConfig>) => void;
-  resetConfig: () => void;
+  resetConfig: () => Promise<void>;
   applyPreset: (presetName: string) => void;
   savedPresets: CustomPreset[];
-  saveCustomPreset: (name: string) => void;
-  deleteCustomPreset: (id: string) => void;
+  saveCustomPreset: (name: string) => Promise<void>;
+  deleteCustomPreset: (id: string) => Promise<void>;
   loadCustomPreset: (preset: CustomPreset) => void;
   activePresetKey: string;
+  saveGlobalConfig: (customConfig?: Partial<NavigationConfig>) => Promise<void>;
+  isSavingGlobal: boolean;
+  isServerSynced: boolean;
 }
 
 const NavigationCustomizationContext = createContext<NavigationCustomizationContextType | undefined>(undefined);
 
 export const NavigationCustomizationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Synchronous initial state from localStorage cache for instant zero-FCLS paint
   const [config, setConfig] = useState<NavigationConfig>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -437,6 +485,8 @@ export const NavigationCustomizationProvider: React.FC<{ children: React.ReactNo
   });
 
   const [activePresetKey, setActivePresetKey] = useState<string>("default");
+  const [isSavingGlobal, setIsSavingGlobal] = useState<boolean>(false);
+  const [isServerSynced, setIsServerSynced] = useState<boolean>(false);
 
   const [savedPresets, setSavedPresets] = useState<CustomPreset[]>(() => {
     try {
@@ -449,6 +499,55 @@ export const NavigationCustomizationProvider: React.FC<{ children: React.ReactNo
     }
     return [];
   });
+
+  // 1. Realtime Firestore Listener for Global Navigation Configuration across all devices
+  useEffect(() => {
+    const unsubscribeNav = onSnapshot(
+      NAV_DOC_REF,
+      (docSnap) => {
+        if (docSnap.exists()) {
+          const remoteData = docSnap.data();
+          const mergedConfig: NavigationConfig = { ...DEFAULT_NAVIGATION_CONFIG, ...remoteData };
+          setConfig(mergedConfig);
+          setIsServerSynced(true);
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedConfig));
+          } catch (e) {
+            // Ignore storage quota error
+          }
+        } else {
+          setIsServerSynced(true);
+        }
+      },
+      (error) => {
+        console.warn("Firestore navigation config listener error:", error);
+      }
+    );
+
+    // Realtime Listener for Global Custom Presets
+    const unsubscribePresets = onSnapshot(
+      NAV_PRESETS_DOC_REF,
+      (docSnap) => {
+        if (docSnap.exists()) {
+          const remotePresets = docSnap.data().presets || [];
+          setSavedPresets(remotePresets);
+          try {
+            localStorage.setItem(PRESETS_STORAGE_KEY, JSON.stringify(remotePresets));
+          } catch (e) {
+            // Ignore
+          }
+        }
+      },
+      (error) => {
+        console.warn("Firestore navigation presets listener error:", error);
+      }
+    );
+
+    return () => {
+      unsubscribeNav();
+      unsubscribePresets();
+    };
+  }, []);
 
   // Apply CSS Variables to Document Root for immediate reactive styling everywhere
   useEffect(() => {
@@ -519,7 +618,7 @@ export const NavigationCustomizationProvider: React.FC<{ children: React.ReactNo
     root.style.setProperty("--nav-transition-speed", `${config.transitionSpeed}ms`);
     root.style.setProperty("--nav-hover-scale", "1");
 
-    // Persist to localStorage
+    // Local cache
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
     } catch (e) {
@@ -532,24 +631,60 @@ export const NavigationCustomizationProvider: React.FC<{ children: React.ReactNo
     setActivePresetKey("custom");
   };
 
-  const resetConfig = () => {
+  // Save current config globally to Firestore so ALL visitors receive it instantly
+  const saveGlobalConfig = async (customConfig?: Partial<NavigationConfig>) => {
+    const targetConfig = customConfig ? { ...config, ...customConfig } : config;
+    setIsSavingGlobal(true);
+    try {
+      await setDoc(NAV_DOC_REF, {
+        ...targetConfig,
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
+      setConfig(targetConfig);
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(targetConfig));
+      } catch (e) {
+        // Ignore
+      }
+    } catch (err) {
+      console.error("Failed to save global navigation config to Firestore:", err);
+      throw err;
+    } finally {
+      setIsSavingGlobal(false);
+    }
+  };
+
+  // Reset navigation config globally on server and for all devices
+  const resetConfig = async () => {
     setConfig(DEFAULT_NAVIGATION_CONFIG);
     setActivePresetKey("default");
+    setIsSavingGlobal(true);
     try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch (e) {
-      console.error(e);
+      await setDoc(NAV_DOC_REF, {
+        ...DEFAULT_NAVIGATION_CONFIG,
+        updatedAt: new Date().toISOString(),
+      });
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_NAVIGATION_CONFIG));
+      } catch (e) {
+        // Ignore
+      }
+    } catch (err) {
+      console.error("Failed to reset global navigation config in Firestore:", err);
+    } finally {
+      setIsSavingGlobal(false);
     }
   };
 
   const applyPreset = (presetName: string) => {
     if (PRESET_CONFIGS[presetName]) {
-      setConfig((prev) => ({ ...prev, ...PRESET_CONFIGS[presetName] }));
+      const updated = { ...config, ...PRESET_CONFIGS[presetName] };
+      setConfig(updated);
       setActivePresetKey(presetName);
     }
   };
 
-  const saveCustomPreset = (name: string) => {
+  const saveCustomPreset = async (name: string) => {
     const newPreset: CustomPreset = {
       id: `preset_${Date.now()}`,
       name: name.trim() || `Preset ${savedPresets.length + 1}`,
@@ -560,18 +695,20 @@ export const NavigationCustomizationProvider: React.FC<{ children: React.ReactNo
     setSavedPresets(updated);
     try {
       localStorage.setItem(PRESETS_STORAGE_KEY, JSON.stringify(updated));
+      await setDoc(NAV_PRESETS_DOC_REF, { presets: updated }, { merge: true });
     } catch (e) {
-      console.error(e);
+      console.error("Failed to save custom preset to Firestore:", e);
     }
   };
 
-  const deleteCustomPreset = (id: string) => {
+  const deleteCustomPreset = async (id: string) => {
     const updated = savedPresets.filter((p) => p.id !== id);
     setSavedPresets(updated);
     try {
       localStorage.setItem(PRESETS_STORAGE_KEY, JSON.stringify(updated));
+      await setDoc(NAV_PRESETS_DOC_REF, { presets: updated }, { merge: true });
     } catch (e) {
-      console.error(e);
+      console.error("Failed to delete custom preset in Firestore:", e);
     }
   };
 
@@ -592,6 +729,9 @@ export const NavigationCustomizationProvider: React.FC<{ children: React.ReactNo
         deleteCustomPreset,
         loadCustomPreset,
         activePresetKey,
+        saveGlobalConfig,
+        isSavingGlobal,
+        isServerSynced,
       }}
     >
       {children}

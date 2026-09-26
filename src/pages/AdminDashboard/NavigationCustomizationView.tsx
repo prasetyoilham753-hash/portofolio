@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { 
   Sliders, 
@@ -33,6 +33,7 @@ import {
 } from "../../features/navigation/NavigationCustomizationContext";
 import { hexToRgba, buildNavBoxShadow } from "../../features/navigation/colorUtils";
 import { Home, Briefcase, Image as ImageIcon, MessageSquare, Boxes, Waves } from "lucide-react";
+import { GlassSwitch } from "../../components/ui/GlassSwitch";
 
 // Mock links for Live Preview
 const PREVIEW_LINKS = [
@@ -54,6 +55,9 @@ export function NavigationCustomizationView() {
     deleteCustomPreset,
     loadCustomPreset,
     activePresetKey,
+    saveGlobalConfig,
+    isSavingGlobal,
+    isServerSynced,
   } = useNavigationCustomization();
 
   // Collapsible section states
@@ -65,6 +69,7 @@ export function NavigationCustomizationView() {
     items: false,
     icons: false,
     position: false,
+    dropdown: false,
     animation: false,
     mobile: true, // Collapsed by default
   });
@@ -87,21 +92,31 @@ export function NavigationCustomizationView() {
     }));
   };
 
-  const handleSavePreset = (e: React.FormEvent) => {
+  const handleSavePreset = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!presetNameInput.trim()) return;
-    saveCustomPreset(presetNameInput.trim());
+    await saveCustomPreset(presetNameInput.trim());
     setPresetNameInput("");
     setShowSavePresetModal(false);
-    setSavedSuccessMsg("Preset berhasil disimpan!");
+    setSavedSuccessMsg("Preset berhasil disimpan ke database!");
     setTimeout(() => setSavedSuccessMsg(null), 3000);
   };
 
-  const handleReset = () => {
-    resetConfig();
+  const handleReset = async () => {
+    await resetConfig();
     setShowResetConfirmModal(false);
-    setSavedSuccessMsg("Pengaturan navigasi telah direset ke default.");
+    setSavedSuccessMsg("Pengaturan navigasi telah direset ke default secara global.");
     setTimeout(() => setSavedSuccessMsg(null), 3000);
+  };
+
+  const handleSaveGlobal = async () => {
+    try {
+      await saveGlobalConfig();
+      setSavedSuccessMsg("Konfigurasi Navigasi Berhasil Diterapkan Global ke Seluruh Perangkat & Pengunjung Website!");
+      setTimeout(() => setSavedSuccessMsg(null), 4000);
+    } catch (err) {
+      alert("Gagal menyimpan ke server/database Firebase. Pastikan koneksi internet stabil dan Anda terautentikasi sebagai Admin.");
+    }
   };
 
   // Compute live preview dock style
@@ -147,6 +162,39 @@ export function NavigationCustomizationView() {
     letterSpacing: `${config.letterSpacing}em`,
   };
 
+  const previewDropdownStyle = useMemo<React.CSSProperties>(() => {
+    const bgOpacity = config.dropdownBgOpacity / 100;
+    const borderOpacity = config.dropdownBorderOpacity / 100;
+
+    let background = "";
+    if (config.dropdownBgType === "color") {
+      background = hexToRgba(config.dropdownBgColor, bgOpacity);
+    } else if (config.dropdownBgType === "gradient") {
+      background = `linear-gradient(${config.dropdownBgGradientDirection}, ${hexToRgba(config.dropdownBgGradientStart, bgOpacity)}, ${hexToRgba(config.dropdownBgGradientEnd, bgOpacity)})`;
+    } else {
+      background = `linear-gradient(180deg, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.02) 100%), ${hexToRgba(config.dropdownBgColor, bgOpacity)}`;
+    }
+
+    const border = config.dropdownBorderEnabled 
+      ? `${config.dropdownBorderWidth}px ${config.dropdownBorderStyle} ${hexToRgba(config.dropdownBorderColor, borderOpacity)}`
+      : "none";
+
+    const shadowY = Math.round(config.dropdownShadowBlur / 2.5);
+    const boxShadow = `0 ${shadowY}px ${config.dropdownShadowBlur}px ${hexToRgba(config.dropdownShadowColor, config.dropdownShadowOpacity / 100)}`;
+
+    return {
+      background,
+      backdropFilter: `blur(${config.dropdownBackdropBlur}px)`,
+      WebkitBackdropFilter: `blur(${config.dropdownBackdropBlur}px)`,
+      border,
+      borderRadius: `${config.dropdownBorderRadius}px`,
+      boxShadow,
+      maxWidth: "215px",
+      width: "100%",
+      padding: "6px",
+    };
+  }, [config]);
+
   return (
     <div className="flex flex-col gap-8">
       {/* Top Banner / Info */}
@@ -168,7 +216,7 @@ export function NavigationCustomizationView() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
           <button
             type="button"
             onClick={() => setShowResetConfirmModal(true)}
@@ -182,11 +230,22 @@ export function NavigationCustomizationView() {
           <button
             type="button"
             onClick={() => setShowSavePresetModal(true)}
-            className="ios-glass-btn ios-glass-primary px-4 py-2 text-xs font-semibold rounded-xl text-white flex items-center gap-1.5 cursor-pointer shadow-md transition-all"
+            className="ios-glass-btn px-3.5 py-2 text-xs font-semibold rounded-xl text-blue-200 hover:text-white border-blue-500/20 hover:border-blue-500/40 flex items-center gap-1.5 cursor-pointer transition-all"
             title="Simpan konfigurasi saat ini sebagai preset kustom"
           >
             <Save size={14} />
             <span>Simpan Preset</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSaveGlobal}
+            disabled={isSavingGlobal}
+            className="px-4 py-2 text-xs font-semibold rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white flex items-center gap-1.5 cursor-pointer shadow-lg transition-all border border-emerald-400/40 disabled:opacity-50"
+            title="Simpan dan terapkan konfigurasi ini secara global ke seluruh pengunjung website"
+          >
+            <Check size={14} />
+            <span>{isSavingGlobal ? "Menyimpan Global..." : "Simpan & Terapkan Global"}</span>
           </button>
         </div>
       </div>
@@ -271,6 +330,17 @@ export function NavigationCustomizationView() {
             >
               Dark Void
             </button>
+
+            <button
+              type="button"
+              onClick={handleSaveGlobal}
+              disabled={isSavingGlobal}
+              className="px-3 py-1 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 cursor-pointer shadow-md transition-all border border-emerald-400/40 ml-2 shrink-0 disabled:opacity-50"
+              title="Simpan dan terapkan langsung ke seluruh pengunjung"
+            >
+              <Check size={12} />
+              <span>{isSavingGlobal ? "Menyimpan..." : "Terapkan Global"}</span>
+            </button>
           </div>
         </div>
 
@@ -354,15 +424,10 @@ export function NavigationCustomizationView() {
             </div>
           ) : (
             /* Rendered Live More Menu Dropdown Popover */
-            <div className="relative z-10 flex justify-center">
+            <div className="relative z-10 flex justify-center w-full">
               <div 
-                style={{
-                  ...previewDockStyle,
-                  maxWidth: "205px",
-                  padding: "6px",
-                  borderRadius: "16px",
-                }}
-                className="flex flex-col gap-1 shadow-2xl relative overflow-hidden"
+                style={previewDropdownStyle}
+                className="flex flex-col gap-1 relative overflow-hidden"
               >
                 <div className="glass-surface-highlight pointer-events-none" aria-hidden="true" />
                 
@@ -378,14 +443,14 @@ export function NavigationCustomizationView() {
                         type="button"
                         onClick={() => setPreviewDropdownLink(item.id)}
                         style={{
-                          borderRadius: `${Math.min(12, config.itemBorderRadius)}px`,
-                          color: isActive ? config.activeTextColor : hexToRgba(config.textColor, config.textOpacity / 100),
+                          borderRadius: `${Math.min(12, config.dropdownBorderRadius)}px`,
+                          color: isActive ? config.dropdownActiveTextColor : hexToRgba(config.dropdownTextColor, config.dropdownTextOpacity / 100),
                           background: isActive 
-                            ? `linear-gradient(165deg, ${hexToRgba(config.activeBgColor, config.activeBgOpacity / 100)}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity * 0.6) / 100)})`
+                            ? `linear-gradient(165deg, ${hexToRgba(config.dropdownActiveBgColor, config.dropdownActiveBgOpacity / 100)}, ${hexToRgba(config.dropdownActiveBgColor, (config.dropdownActiveBgOpacity * 0.6) / 100)})`
                             : undefined,
                           borderColor: isActive ? hexToRgba("#ffffff", 0.3) : "transparent",
-                          fontSize: `${config.fontSize + 0.5}px`,
-                          fontWeight: config.fontWeight,
+                          fontSize: `${config.dropdownFontSize}px`,
+                          fontWeight: 500,
                         }}
                         className="p-1.5 flex items-center gap-2 text-left cursor-pointer border transition-all text-xs"
                       >
@@ -393,7 +458,7 @@ export function NavigationCustomizationView() {
                           style={{
                             background: "rgba(255, 255, 255, 0.08)",
                             borderColor: "rgba(255, 255, 255, 0.15)",
-                            color: config.activeIconColor,
+                            color: config.dropdownActiveIconColor,
                           }}
                           className="p-1 rounded-md border shrink-0"
                         >
@@ -409,11 +474,10 @@ export function NavigationCustomizationView() {
                   <div className="px-1.5 pt-0.5 pb-0.5 flex items-center">
                     <span 
                       style={{
-                        color: config.activeTextColor,
+                        color: config.dropdownActiveTextColor,
                         opacity: 0.8,
-                        letterSpacing: `${config.letterSpacing + 0.04}em`,
                       }}
-                      className="text-[9px] font-semibold uppercase"
+                      className="text-[9px] font-semibold uppercase tracking-wider"
                     >
                       Background
                     </span>
@@ -431,20 +495,20 @@ export function NavigationCustomizationView() {
                         type="button"
                         onClick={() => setPreviewDropdownBg(bg.id)}
                         style={{
-                          borderRadius: `${Math.min(12, config.itemBorderRadius)}px`,
-                          color: isActive ? config.activeTextColor : hexToRgba(config.textColor, config.textOpacity / 100),
+                          borderRadius: `${Math.min(12, config.dropdownBorderRadius)}px`,
+                          color: isActive ? config.dropdownActiveTextColor : hexToRgba(config.dropdownTextColor, config.dropdownTextOpacity / 100),
                           background: isActive
-                            ? `linear-gradient(165deg, ${hexToRgba(config.activeBgColor, config.activeBgOpacity / 100)}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity * 0.6) / 100)})`
+                            ? `linear-gradient(165deg, ${hexToRgba(config.dropdownActiveBgColor, config.dropdownActiveBgOpacity / 100)}, ${hexToRgba(config.dropdownActiveBgColor, (config.dropdownActiveBgOpacity * 0.6) / 100)})`
                             : undefined,
                           borderColor: isActive ? hexToRgba("#ffffff", 0.3) : "transparent",
-                          fontSize: `${config.fontSize + 0.5}px`,
-                          fontWeight: config.fontWeight,
+                          fontSize: `${config.dropdownFontSize}px`,
+                          fontWeight: 500,
                         }}
                         className="p-1.5 flex items-center justify-between text-left cursor-pointer border transition-all text-xs"
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           <span 
-                            style={{ color: config.activeIconColor }}
+                            style={{ color: config.dropdownActiveIconColor }}
                             className="p-1 rounded-md bg-white/[0.08] border border-white/15 shrink-0"
                           >
                             {bg.icon}
@@ -454,9 +518,9 @@ export function NavigationCustomizationView() {
                         {isActive && (
                           <span 
                             style={{
-                              backgroundColor: hexToRgba(config.activeBgColor, 0.35),
-                              borderColor: hexToRgba(config.activeBgColor, 0.8),
-                              color: config.activeTextColor,
+                              backgroundColor: hexToRgba(config.dropdownActiveBgColor, 0.35),
+                              borderColor: hexToRgba(config.dropdownActiveBgColor, 0.8),
+                              color: config.dropdownActiveTextColor,
                             }}
                             className="shrink-0 w-3.5 h-3.5 rounded-full border flex items-center justify-center ml-1"
                           >
@@ -485,11 +549,12 @@ export function NavigationCustomizationView() {
           <span className="text-xs text-text-secondary">Pilih preset instan atau buat gaya kustom</span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2.5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2.5">
           {Object.entries({
             default: "Default Liquid",
             glass: "Crystal Glass",
             frosted: "Frosted Glass",
+            "liquid-glass": "Flutter Liquid",
             "dark-glass": "Dark Neon",
             minimal: "Minimal Clean",
             transparent: "Transparent",
@@ -656,20 +721,13 @@ export function NavigationCustomizationView() {
 
               {/* Gradient Settings (if gradient enabled) */}
               <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col gap-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-white flex items-center gap-2">
-                    <span>Gradient Options</span>
-                  </span>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={config.bgGradientEnabled}
-                      onChange={(e) => updateConfig({ bgGradientEnabled: e.target.checked })}
-                      className="sr-only peer"
-                    />
-                    <div className="w-9 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
+                <GlassSwitch
+                  label="Gradient Options"
+                  checked={config.bgGradientEnabled}
+                  onChange={(checked) => updateConfig({ bgGradientEnabled: checked })}
+                  activeColor="blue"
+                  size="sm"
+                />
 
                 {config.bgGradientEnabled && (
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
@@ -864,18 +922,13 @@ export function NavigationCustomizationView() {
           {!collapsedSections.border && (
             <div className="p-4 sm:p-5 pt-0 border-t border-white/5 flex flex-col gap-6">
               
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-white">Aktifkan Border</span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={config.borderEnabled}
-                    onChange={(e) => updateConfig({ borderEnabled: e.target.checked })}
-                    className="sr-only peer"
-                  />
-                  <div className="w-9 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
-                </label>
-              </div>
+              <GlassSwitch
+                label="Aktifkan Rim Border Kaca"
+                checked={config.borderEnabled}
+                onChange={(checked) => updateConfig({ borderEnabled: checked })}
+                activeColor="purple"
+                size="sm"
+              />
 
               {config.borderEnabled && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -985,18 +1038,13 @@ export function NavigationCustomizationView() {
           {!collapsedSections.shadow && (
             <div className="p-4 sm:p-5 pt-0 border-t border-white/5 flex flex-col gap-6">
               
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-white">Aktifkan Shadow</span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={config.shadowEnabled}
-                    onChange={(e) => updateConfig({ shadowEnabled: e.target.checked })}
-                    className="sr-only peer"
-                  />
-                  <div className="w-9 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
-                </label>
-              </div>
+              <GlassSwitch
+                label="Aktifkan Ambient Shadow & Depth"
+                checked={config.shadowEnabled}
+                onChange={(checked) => updateConfig({ shadowEnabled: checked })}
+                activeColor="purple"
+                size="sm"
+              />
 
               {config.shadowEnabled && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -1381,6 +1429,174 @@ export function NavigationCustomizationView() {
           )}
         </div>
 
+        {/* 8. DROPDOWN POPOVER INDEPENDENT CONTROLS */}
+        <div className="rounded-2xl bg-[rgba(6,15,35,0.4)] border border-white/10 backdrop-blur-md overflow-hidden">
+          <button
+            type="button"
+            onClick={() => toggleSection("dropdown")}
+            className="w-full p-4 sm:p-5 flex items-center justify-between text-left cursor-pointer hover:bg-white/[0.02] transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-indigo-500/15 border border-indigo-400/30 flex items-center justify-center text-indigo-400">
+                <Box size={16} />
+              </div>
+              <div>
+                <h3 className="text-sm sm:text-base font-semibold text-white">8. Dropdown Popover Menu (Pengaturan Terpisah)</h3>
+                <p className="text-xs text-text-secondary">Atur warna, transparansi, border, bayangan, dan teks khusus untuk menu popover tanpa mempengaruhi Nav Dock.</p>
+              </div>
+            </div>
+            {collapsedSections.dropdown ? <ChevronDown size={18} className="text-text-secondary" /> : <ChevronUp size={18} className="text-text-secondary" />}
+          </button>
+
+          {!collapsedSections.dropdown && (
+            <div className="p-4 sm:p-5 pt-0 border-t border-white/5 flex flex-col gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                
+                {/* Dropdown Background Color */}
+                <div className="flex flex-col gap-2">
+                  <span className="text-xs font-medium text-text-secondary">Warna Latar Popover</span>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={config.dropdownBgColor}
+                      onChange={(e) => updateConfig({ dropdownBgColor: e.target.value })}
+                      className="w-10 h-10 rounded-xl bg-transparent border border-white/15 cursor-pointer p-0.5"
+                    />
+                    <input
+                      type="text"
+                      value={config.dropdownBgColor}
+                      onChange={(e) => updateConfig({ dropdownBgColor: e.target.value })}
+                      className="flex-1 bg-white/5 border border-white/15 rounded-xl px-3 py-2 text-xs font-mono text-white"
+                    />
+                  </div>
+                </div>
+
+                {/* Dropdown Opacity */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex justify-between text-xs font-medium text-text-secondary">
+                    <span>Opasitas Latar Popover</span>
+                    <span className="font-mono text-indigo-400 font-semibold">{config.dropdownBgOpacity}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={config.dropdownBgOpacity}
+                    onChange={(e) => updateConfig({ dropdownBgOpacity: Number(e.target.value) })}
+                    className="w-full accent-indigo-400 cursor-pointer"
+                  />
+                </div>
+
+                {/* Dropdown Backdrop Blur */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex justify-between text-xs font-medium text-text-secondary">
+                    <span>Backdrop Blur Popover</span>
+                    <span className="font-mono text-indigo-400 font-semibold">{config.dropdownBackdropBlur}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="40"
+                    value={config.dropdownBackdropBlur}
+                    onChange={(e) => updateConfig({ dropdownBackdropBlur: Number(e.target.value) })}
+                    className="w-full accent-indigo-400 cursor-pointer"
+                  />
+                </div>
+
+                {/* Dropdown Border Color */}
+                <div className="flex flex-col gap-2">
+                  <span className="text-xs font-medium text-text-secondary">Warna Border Popover</span>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={config.dropdownBorderColor}
+                      onChange={(e) => updateConfig({ dropdownBorderColor: e.target.value })}
+                      className="w-10 h-10 rounded-xl bg-transparent border border-white/15 cursor-pointer p-0.5"
+                    />
+                    <input
+                      type="text"
+                      value={config.dropdownBorderColor}
+                      onChange={(e) => updateConfig({ dropdownBorderColor: e.target.value })}
+                      className="flex-1 bg-white/5 border border-white/15 rounded-xl px-3 py-2 text-xs font-mono text-white"
+                    />
+                  </div>
+                </div>
+
+                {/* Dropdown Active Background Color */}
+                <div className="flex flex-col gap-2">
+                  <span className="text-xs font-medium text-text-secondary">Warna Background Item Aktif</span>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={config.dropdownActiveBgColor}
+                      onChange={(e) => updateConfig({ dropdownActiveBgColor: e.target.value })}
+                      className="w-10 h-10 rounded-xl bg-transparent border border-white/15 cursor-pointer p-0.5"
+                    />
+                    <input
+                      type="text"
+                      value={config.dropdownActiveBgColor}
+                      onChange={(e) => updateConfig({ dropdownActiveBgColor: e.target.value })}
+                      className="flex-1 bg-white/5 border border-white/15 rounded-xl px-3 py-2 text-xs font-mono text-white"
+                    />
+                  </div>
+                </div>
+
+                {/* Dropdown Active Text Color */}
+                <div className="flex flex-col gap-2">
+                  <span className="text-xs font-medium text-text-secondary">Warna Teks Item Aktif</span>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={config.dropdownActiveTextColor}
+                      onChange={(e) => updateConfig({ dropdownActiveTextColor: e.target.value })}
+                      className="w-10 h-10 rounded-xl bg-transparent border border-white/15 cursor-pointer p-0.5"
+                    />
+                    <input
+                      type="text"
+                      value={config.dropdownActiveTextColor}
+                      onChange={(e) => updateConfig({ dropdownActiveTextColor: e.target.value })}
+                      className="flex-1 bg-white/5 border border-white/15 rounded-xl px-3 py-2 text-xs font-mono text-white"
+                    />
+                  </div>
+                </div>
+
+                {/* Dropdown Border Radius */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex justify-between text-xs font-medium text-text-secondary">
+                    <span>Border Radius Popover</span>
+                    <span className="font-mono text-indigo-400 font-semibold">{config.dropdownBorderRadius}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="4"
+                    max="32"
+                    value={config.dropdownBorderRadius}
+                    onChange={(e) => updateConfig({ dropdownBorderRadius: Number(e.target.value) })}
+                    className="w-full accent-indigo-400 cursor-pointer"
+                  />
+                </div>
+
+                {/* Dropdown Font Size */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex justify-between text-xs font-medium text-text-secondary">
+                    <span>Ukuran Teks Popover</span>
+                    <span className="font-mono text-indigo-400 font-semibold">{config.dropdownFontSize}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="10"
+                    max="16"
+                    value={config.dropdownFontSize}
+                    onChange={(e) => updateConfig({ dropdownFontSize: Number(e.target.value) })}
+                    className="w-full accent-indigo-400 cursor-pointer"
+                  />
+                </div>
+
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* 8. MOBILE NAVIGATION SPECIFIC CONTROLS */}
         <div className="rounded-2xl bg-[rgba(6,15,35,0.4)] border border-white/10 backdrop-blur-md overflow-hidden">
           <button
@@ -1403,21 +1619,14 @@ export function NavigationCustomizationView() {
           {!collapsedSections.mobile && (
             <div className="p-4 sm:p-5 pt-0 border-t border-white/5 flex flex-col gap-6">
               
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-semibold text-white block">Aktifkan Pengaturan Khusus Mobile</span>
-                  <span className="text-[11px] text-text-secondary">Jika dimatikan, mobile akan otomatis mengikuti pengaturan desktop.</span>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={config.mobileCustomEnabled}
-                    onChange={(e) => updateConfig({ mobileCustomEnabled: e.target.checked })}
-                    className="sr-only peer"
-                  />
-                  <div className="w-9 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-600"></div>
-                </label>
-              </div>
+              <GlassSwitch
+                label="Aktifkan Pengaturan Khusus Mobile"
+                description="Jika dimatikan, tampilan di mobile akan otomatis mengikuti pengaturan desktop."
+                checked={config.mobileCustomEnabled}
+                onChange={(checked) => updateConfig({ mobileCustomEnabled: checked })}
+                activeColor="teal"
+                size="md"
+              />
 
               {config.mobileCustomEnabled && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
