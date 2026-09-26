@@ -478,6 +478,10 @@
     backdrop-filter: blur(var(--nav-backdrop-blur, 13px)) saturate(var(--nav-saturation, 145%)) brightness(var(--nav-brightness, 100%)) contrast(var(--nav-contrast, 100%));
     -webkit-backdrop-filter: blur(var(--nav-backdrop-blur, 13px)) saturate(var(--nav-saturation, 145%)) brightness(var(--nav-brightness, 100%)) contrast(var(--nav-contrast, 100%));
     border: var(--nav-border-width, 1px) var(--nav-border-style, solid) rgba(255, 255, 255, var(--nav-border-opacity, 0.18));
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    touch-action: none !important;
     box-shadow: 
       0 12px 36px rgba(0, 0, 0, 0.35),
       0 2px 10px rgba(0, 0, 0, 0.2),
@@ -541,6 +545,10 @@
     border-radius: var(--nav-item-radius, 999px);
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    touch-action: none !important;
     background: transparent;
     border: 1px solid transparent;
     text-decoration: none;

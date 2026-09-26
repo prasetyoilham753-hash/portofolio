@@ -753,6 +753,7 @@ export function Navigation() {
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
+        onContextMenu={(e) => e.preventDefault()}
       >
         {/* Scroll / Slide Track for seamless touch swiping and equal-width tabs */}
         <div 
@@ -805,6 +806,7 @@ export function Navigation() {
                 id={`nav-item-${link.id}`}
                 draggable={false}
                 onPointerDown={(e) => handlePointerDown(index, e)}
+                onContextMenu={(e) => e.preventDefault()}
                 onClick={(e) => {
                   if (isHolding) {
                     e.preventDefault();
