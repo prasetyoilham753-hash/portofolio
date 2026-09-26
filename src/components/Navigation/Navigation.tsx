@@ -60,6 +60,16 @@ export function Navigation() {
   const [navCenterY, setNavCenterY] = useState<number>(19);
   const [activeRect, setActiveRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const [isGliding, setIsGliding] = useState(false);
+
+  // Dynamic Liquid Fluid Morphing State (Governed by Continuum Mechanics & Hydrodynamics)
+  const [dragSpeed, setDragSpeed] = useState<number>(0);
+  const [dragVelocityX, setDragVelocityX] = useState<number>(0);
+  const [isMoving, setIsMoving] = useState<boolean>(false);
+  const [isFastStop, setIsFastStop] = useState<boolean>(false);
+  const lastPointerPosRef = useRef<{ x: number; time: number }>({ x: 0, time: 0 });
+  const lastSpeedRef = useRef<number>(0);
+  const velocityDecayTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const fastStopTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   const startPosRef = useRef<{ x: number; y: number; time: number; index: number } | null>(null);
   const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -127,6 +137,10 @@ export function Navigation() {
       setDragGlassHeight(layout.items[index].height);
     }
 
+    lastPointerPosRef.current = { x: e.clientX, time: performance.now() };
+    setDragSpeed(0);
+    setIsMoving(false);
+
     if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
     holdTimerRef.current = setTimeout(() => {
       setIsHolding(true);
@@ -144,6 +158,42 @@ export function Navigation() {
 
     const clientX = e.clientX;
     const dist = Math.hypot(clientX - startPosRef.current.x, e.clientY - startPosRef.current.y);
+
+    // Dynamic velocity calculation for liquid fluid morphing
+    const now = performance.now();
+    const dt = Math.max(1, now - (lastPointerPosRef.current.time || now));
+    const dx = clientX - (lastPointerPosRef.current.x || clientX);
+    const instantaneousSpeed = Math.abs(dx) / dt; // pixels per ms
+    const instantaneousVelocityX = dx / dt; // directional velocity
+    lastPointerPosRef.current = { x: clientX, time: now };
+
+    // Rolling exponential smoothed velocity (avoids erratic jumps)
+    const smoothedSpeed = lastSpeedRef.current * 0.25 + instantaneousSpeed * 0.75;
+    lastSpeedRef.current = smoothedSpeed;
+
+    setDragSpeed(Math.min(smoothedSpeed * 1.5, 3.5));
+    setDragVelocityX(Math.max(-3, Math.min(3, instantaneousVelocityX)));
+    setIsMoving(true);
+
+    if (velocityDecayTimerRef.current) {
+      clearTimeout(velocityDecayTimerRef.current);
+    }
+    velocityDecayTimerRef.current = setTimeout(() => {
+      // Trigger vertical elongation inertia if braking abruptly from high velocity
+      if (lastSpeedRef.current > 0.85) {
+        setIsFastStop(true);
+        if (fastStopTimerRef.current) clearTimeout(fastStopTimerRef.current);
+        fastStopTimerRef.current = setTimeout(() => {
+          setIsFastStop(false);
+        }, 320);
+      } else {
+        setIsFastStop(false);
+      }
+      lastSpeedRef.current = 0;
+      setDragVelocityX(0);
+      setIsMoving(false);
+      setDragSpeed(0);
+    }, 85);
 
     // If dragged more than 4px, immediately activate hold mode
     if (dist > 4 && !isHolding) {
@@ -182,6 +232,19 @@ export function Navigation() {
       clearTimeout(holdTimerRef.current);
       holdTimerRef.current = null;
     }
+
+    if (velocityDecayTimerRef.current) {
+      clearTimeout(velocityDecayTimerRef.current);
+      velocityDecayTimerRef.current = null;
+    }
+    if (fastStopTimerRef.current) {
+      clearTimeout(fastStopTimerRef.current);
+      fastStopTimerRef.current = null;
+    }
+    setDragSpeed(0);
+    setIsMoving(false);
+    setIsFastStop(false);
+    lastSpeedRef.current = 0;
 
     if (rafRef.current) {
       cancelAnimationFrame(rafRef.current);
@@ -808,8 +871,9 @@ export function Navigation() {
           {/* Unified Dynamic Living Glass Capsule Indicator (Floating centered vertically in the nav dock) */}
           {activeRect && (() => {
             const isExpandedState = isHolding || isPressed;
-            const extraW = isExpandedState ? (config.capsuleExtraWidth ?? 24) : 0;
-            const extraH = isExpandedState ? (config.capsuleExtraHeight ?? 3) : 0;
+            // Perfectly tailored, aesthetic proportioned dimensions:
+            const extraW = isExpandedState ? 10 : 0;
+            const extraH = isExpandedState ? 1.5 : 0;
 
             const targetW = isHolding 
               ? dragGlassWidth + extraW 
@@ -832,6 +896,81 @@ export function Navigation() {
             const lightShiftPercent = Math.round(18 + progressRatio * 64); // 18% to 82%
             const lightAngleDeg = Math.round(115 + (progressRatio - 0.5) * 60); // Angle shifts smoothly as you drag
 
+            // ============================================================
+            // HYDRODYNAMICS & CONTINUUM MECHANICS:
+            // 1. Law of Conservation of Volume (Fluid Incompressibility):
+            //    Area = scaleX * scaleY = constant = 1.0 -> scaleY = 1 / scaleX
+            // 2. Viscous Elongation under Boundary Shear Drag:
+            //    - Fast drag: scaleX elongates to oval, scaleY contracts to 1/scaleX
+            //    - Gentle drag: subtle horizontal expansion (capsule), scaleY = 1/scaleX
+            // 3. Inertial Deceleration & Hydrodynamic Recoil (Newtonian Momentum):
+            //    - Sudden stop: kinetic energy converts to vertical hydraulic surge
+            //      scaleY surges to 1.15, scaleX narrows to 1/scaleY (0.87)
+            //    - Gentle stop: surface tension restores equilibrium (scaleX=1, scaleY=1, r=9999px)
+            // 4. Fluid Shear Stress Angle (Boundary Layer Friction):
+            //    - Droplet tilts subtly opposite to friction: skewX = -clamp(dragVelocityX * 2.2, -3.5, 3.5)
+            // ============================================================
+            let fluidScaleX = 1;
+            let fluidScaleY = 1;
+            let fluidSkewX = 0;
+            let fluidBorderRadius = "9999px";
+
+            if (isHolding) {
+              if (isMoving) {
+                // Fluid tilts slightly in motion direction due to surface friction
+                fluidSkewX = Math.max(-4, Math.min(4, -dragVelocityX * 2.4));
+
+                if (dragSpeed > 0.85) {
+                  // Fast drag: Bentuk Oval yang sedikit menyudut (aerodynamic angled pointed oval)
+                  fluidScaleX = 1.18;
+                  // Incompressible volume conservation: scaleY = 1 / scaleX
+                  fluidScaleY = 1 / fluidScaleX; // ~0.847
+
+                  // Morfologi sudut aerodinamis sesuai vektor arah gerakan fluida:
+                  if (dragVelocityX > 0.3) {
+                    // Bergerak cepat ke kanan: ujung kanan dan kiri sedikit menyudut aerodinamis
+                    fluidBorderRadius = "38px 14px 18px 36px / 26px 16px 20px 26px";
+                  } else if (dragVelocityX < -0.3) {
+                    // Bergerak cepat ke kiri: ujung kiri dan kanan sedikit menyudut aerodinamis
+                    fluidBorderRadius = "14px 38px 36px 18px / 16px 26px 26px 20px";
+                  } else {
+                    // Oval menyudut simetris (pointed squircle oval)
+                    fluidBorderRadius = "28px 28px 28px 28px / 18px 18px 18px 18px";
+                  }
+                } else {
+                  // Gentle drag: Capsule shape, gentle horizontal widening
+                  fluidScaleX = 1.06;
+                  fluidScaleY = 1 / fluidScaleX; // ~0.943
+                  fluidBorderRadius = "9999px";
+                }
+              } else {
+                fluidSkewX = 0;
+                if (isFastStop) {
+                  // Sudden stop: Kinetic momentum converts into vertical hydraulic surge
+                  fluidScaleY = 1.15;
+                  // Incompressible volume conservation: scaleX = 1 / scaleY
+                  fluidScaleX = 1 / fluidScaleY; // ~0.870
+                  fluidBorderRadius = "22px 22px 28px 28px";
+                } else {
+                  // Gentle deceleration: Surface tension minimizes Laplace pressure to equilibrium capsule
+                  fluidScaleX = 1.0;
+                  fluidScaleY = 1.0;
+                  fluidBorderRadius = "9999px";
+                }
+              }
+            } else if (isPressed) {
+              fluidScaleX = 1.02;
+              fluidScaleY = 1 / 1.02;
+              fluidSkewX = 0;
+              fluidBorderRadius = "9999px";
+            } else {
+              // Static ground state
+              fluidScaleX = 1.0;
+              fluidScaleY = 1.0;
+              fluidSkewX = 0;
+              fluidBorderRadius = "9999px";
+            }
+
             return (
               <motion.div
                 key="living-glass-capsule"
@@ -841,17 +980,29 @@ export function Navigation() {
                   y: targetY,
                   width: targetW,
                   height: targetH,
+                  scaleX: fluidScaleX,
+                  scaleY: fluidScaleY,
+                  skewX: fluidSkewX,
+                  borderRadius: fluidBorderRadius,
                 }}
                 transition={isHolding ? {
-                  x: { type: "spring", stiffness: 2800, damping: 80, mass: 0.01 },
-                  width: { type: "spring", stiffness: 2000, damping: 70, mass: 0.01 },
-                  height: { type: "spring", stiffness: 2000, damping: 70, mass: 0.01 },
-                  y: { type: "spring", stiffness: 2000, damping: 70, mass: 0.01 },
+                  x: { type: "spring", stiffness: 420, damping: 32, mass: 0.35 },
+                  y: { type: "spring", stiffness: 420, damping: 32, mass: 0.35 },
+                  width: { type: "spring", stiffness: 360, damping: 28, mass: 0.35 },
+                  height: { type: "spring", stiffness: 360, damping: 28, mass: 0.35 },
+                  scaleX: { type: "spring", stiffness: 380, damping: 26, mass: 0.35 },
+                  scaleY: { type: "spring", stiffness: 380, damping: 26, mass: 0.35 },
+                  skewX: { type: "spring", stiffness: 360, damping: 28, mass: 0.3 },
+                  borderRadius: { type: "spring", stiffness: 280, damping: 26 },
                 } : {
-                  x: { type: "spring", stiffness: 380, damping: 32, mass: 0.6 },
-                  y: { type: "spring", stiffness: 380, damping: 32, mass: 0.6 },
-                  width: { type: "spring", stiffness: 380, damping: 32, mass: 0.6 },
-                  height: { type: "spring", stiffness: 380, damping: 32, mass: 0.6 },
+                  x: { type: "spring", stiffness: 340, damping: 30, mass: 0.6 },
+                  y: { type: "spring", stiffness: 340, damping: 30, mass: 0.6 },
+                  width: { type: "spring", stiffness: 320, damping: 28, mass: 0.6 },
+                  height: { type: "spring", stiffness: 320, damping: 28, mass: 0.6 },
+                  scaleX: { type: "spring", stiffness: 320, damping: 26 },
+                  scaleY: { type: "spring", stiffness: 320, damping: 26 },
+                  skewX: { type: "spring", stiffness: 320, damping: 26 },
+                  borderRadius: { type: "spring", stiffness: 320, damping: 26 },
                 }}
                 className={`absolute pointer-events-none rounded-full transition-all duration-300 ${
                   isExpandedState ? "z-30" : "z-10"
@@ -861,11 +1012,11 @@ export function Navigation() {
                   left: 0,
                   isolation: "isolate",
                   WebkitBackfaceVisibility: "hidden",
-                  borderRadius: `${config.activeIndicatorRadius || 9999}px`,
+                  borderRadius: fluidBorderRadius,
                   boxShadow: isExpandedState
-                    ? `0 20px 42px -4px rgba(0, 0, 0, 0.65), 0 8px 18px -2px rgba(0, 0, 0, 0.45), 0 2px 4px rgba(0, 0, 0, 0.35), 0 0 ${Math.round(20 * ((config.capsuleGlowIntensity ?? 60) / 100))}px ${hexToRgba(config.activeBgColor, 0.30 * ((config.capsuleGlowIntensity ?? 60) / 100))}`
-                    : `0 2px 8px rgba(0, 0, 0, 0.22)`,
-                  transition: "box-shadow 0.28s ease",
+                    ? `0 18px 36px -4px rgba(0, 0, 0, 0.55), 0 6px 14px -2px rgba(0, 0, 0, 0.35), 0 0 ${Math.round(18 * ((config.capsuleGlowIntensity ?? 60) / 100))}px ${hexToRgba(config.activeBgColor, 0.25 * ((config.capsuleGlowIntensity ?? 60) / 100))}`
+                    : `0 2px 8px rgba(0, 0, 0, 0.18)`,
+                  transition: "box-shadow 0.28s ease, border-radius 0.24s ease",
                 }}
               >
                 {/* Layer 1: Ambient Occlusion & Expanding Bloom Under Glass (Active only on hold/click) */}
@@ -877,7 +1028,7 @@ export function Navigation() {
                   }}
                   transition={{ type: "spring", stiffness: 350, damping: 28 }}
                   style={{
-                    borderRadius: `${config.activeIndicatorRadius || 9999}px`,
+                    borderRadius: fluidBorderRadius,
                     background: `radial-gradient(ellipse at ${lightShiftPercent}% 50%, ${hexToRgba(config.activeBgColor, 0.40 * ((config.capsuleGlowIntensity ?? 60) / 100))} 0%, ${hexToRgba(config.activeBgColor, 0.08 * ((config.capsuleGlowIntensity ?? 60) / 100))} 55%, transparent 75%)`,
                     filter: `blur(${Math.round(10 * ((config.capsuleGlowIntensity ?? 60) / 100) + 3)}px)`,
                     WebkitFilter: `blur(${Math.round(10 * ((config.capsuleGlowIntensity ?? 60) / 100) + 3)}px)`,
@@ -886,11 +1037,11 @@ export function Navigation() {
                   }}
                 />
 
-                {/* Layer 2: Capsule Body: Clean regular shape when static -> Crystal 3D Liquid Glass when held/clicked */}
+                {/* Layer 2: Capsule Body: Clean pill shape when static -> Organic 3D Liquid Glass when held/clicked */}
                 <div 
                   className="absolute inset-0 rounded-full overflow-hidden"
                   style={{
-                    borderRadius: `${config.activeIndicatorRadius || 9999}px`,
+                    borderRadius: fluidBorderRadius,
                     backdropFilter: isExpandedState 
                       ? "blur(0.5px) saturate(220%) brightness(108%) contrast(104%)" 
                       : "none",
@@ -898,14 +1049,14 @@ export function Navigation() {
                       ? "blur(0.5px) saturate(220%) brightness(108%) contrast(104%)" 
                       : "none",
                     background: isExpandedState
-                      ? `linear-gradient(${lightAngleDeg}deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.01) 45%, ${hexToRgba(config.activeBgColor, 0.08)} 100%)`
-                      : `linear-gradient(165deg, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity ?? 30) / 100 * 1.5)}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity ?? 30) / 100 * 0.85)})`,
+                      ? `linear-gradient(${lightAngleDeg}deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.02) 45%, ${hexToRgba(config.activeBgColor, 0.10)} 100%)`
+                      : `linear-gradient(180deg, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity ?? 30) / 100 * 1.35)}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity ?? 30) / 100 * 0.75)})`,
                     border: isExpandedState 
-                      ? "1.2px solid rgba(255, 255, 255, 0.65)"
-                      : `1px solid ${hexToRgba("#ffffff", 0.16)}`,
+                      ? "1px solid rgba(255, 255, 255, 0.50)"
+                      : `1px solid ${hexToRgba("#ffffff", 0.14)}`,
                     boxShadow: isExpandedState
-                      ? "inset 0 2px 2.5px rgba(255, 255, 255, 0.90), inset 0 -2px 3px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.25)"
-                      : "inset 0 1px 1px rgba(255, 255, 255, 0.20)",
+                      ? "inset 0 1.5px 2px rgba(255, 255, 255, 0.85), inset 0 -2px 3px rgba(0, 0, 0, 0.30), inset 0 0 16px rgba(255, 255, 255, 0.10)"
+                      : "inset 0 1px 1.5px rgba(255, 255, 255, 0.22), 0 2px 8px rgba(0, 0, 0, 0.18)",
                     transition: "background 0.28s ease, border 0.28s ease, box-shadow 0.28s ease",
                   }}
                 >
@@ -926,7 +1077,7 @@ export function Navigation() {
                   {(config.capsuleChromaticEnabled ?? true) && (
                     <motion.div 
                       animate={{
-                        opacity: isExpandedState ? 0.35 : 0,
+                        opacity: isExpandedState ? 0.32 : 0,
                         scale: isExpandedState ? 1.12 : 0.9,
                       }}
                       transition={{ type: "spring", stiffness: 350, damping: 26 }}
@@ -934,39 +1085,39 @@ export function Navigation() {
                       style={{
                         padding: "1.2px",
                         borderRadius: "9999px",
-                        background: `conic-gradient(from ${lightAngleDeg}deg at ${lightShiftPercent}% 50%, rgba(56,189,248,0.45), rgba(74,222,128,0.35) 25%, rgba(251,191,36,0.30) 50%, rgba(244,63,94,0.38) 75%, rgba(56,189,248,0.45))`,
+                        background: `conic-gradient(from ${lightAngleDeg}deg at ${lightShiftPercent}% 50%, rgba(56,189,248,0.40), rgba(74,222,128,0.30) 25%, rgba(251,191,36,0.25) 50%, rgba(244,63,94,0.32) 75%, rgba(56,189,248,0.40))`,
                         WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
                         WebkitMaskComposite: "xor",
                         maskComposite: "exclude",
-                        filter: "blur(1.5px)",
-                        WebkitFilter: "blur(1.5px)",
+                        filter: "blur(1.8px)",
+                        WebkitFilter: "blur(1.8px)",
                       }}
                     />
                   )}
 
-                  {/* Glossy Upper Meniscus Curve (Only in Glass State) */}
+                  {/* Organic Curved Meniscus Reflection Dome */}
                   <motion.div 
                     animate={{
                       opacity: isExpandedState ? 1 : 0,
                     }}
-                    transition={{ duration: 0.2 }}
-                    className="absolute inset-x-0.5 top-0 h-[52%] rounded-t-full pointer-events-none"
+                    transition={{ duration: 0.25 }}
+                    className="absolute inset-x-1.5 top-0.5 h-[52%] rounded-full pointer-events-none"
                     style={{
-                      background: "linear-gradient(180deg, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0.06) 45%, transparent 100%)",
+                      background: `radial-gradient(ellipse 80% 90% at ${lightShiftPercent}% 0%, rgba(255, 255, 255, 0.50) 0%, rgba(255, 255, 255, 0.12) 45%, transparent 75%)`,
+                      filter: "blur(0.5px)",
                     }}
                   />
 
-                  {/* Dynamic Moving Glint on Upper Ridge (Only in Glass State) */}
+                  {/* Smooth Curved Crest Highlight */}
                   <motion.div 
                     animate={{
-                      scaleX: isExpandedState ? 1.15 : 0.9,
-                      opacity: isExpandedState ? 1 : 0,
+                      opacity: isExpandedState ? 0.95 : 0,
                     }}
-                    transition={{ type: "spring", stiffness: 350, damping: 26 }}
-                    className="absolute inset-x-3 top-[1px] h-[1.5px] pointer-events-none"
+                    transition={{ duration: 0.22 }}
+                    className="absolute inset-x-2 top-0.5 h-[40%] rounded-full pointer-events-none"
                     style={{
-                      background: `linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.2) ${Math.max(0, lightShiftPercent - 30)}%, rgba(255,255,255,0.98) ${lightShiftPercent}%, rgba(255,255,255,0.2) ${Math.min(100, lightShiftPercent + 30)}%, transparent 100%)`,
-                      filter: "blur(0.2px)",
+                      background: `radial-gradient(ellipse 60% 70% at ${lightShiftPercent}% 15%, rgba(255, 255, 255, 0.80) 0%, transparent 65%)`,
+                      filter: "blur(0.8px)",
                     }}
                   />
 
@@ -978,21 +1129,21 @@ export function Navigation() {
                     transition={{ duration: 0.22 }}
                     className="absolute inset-0 rounded-full pointer-events-none"
                     style={{
-                      borderRadius: `${config.activeIndicatorRadius || 9999}px`,
-                      boxShadow: "inset 0 0 0 1.5px rgba(255, 255, 255, 0.20), inset 0 2px 3px rgba(255, 255, 255, 0.65), inset 0 -2px 3px rgba(0, 0, 0, 0.25)",
+                      borderRadius: fluidBorderRadius,
+                      boxShadow: "inset 0 0 0 1px rgba(255, 255, 255, 0.20), inset 0 2px 3px rgba(255, 255, 255, 0.55), inset 0 -2px 3px rgba(0, 0, 0, 0.22)",
                     }}
                   />
 
-                  {/* Dynamic Moving Caustic Bottom Internal Reflection Light (Only in Glass State) */}
+                  {/* Organic Curved Bottom Internal Reflection */}
                   <motion.div 
                     animate={{ 
-                      opacity: isExpandedState ? 0.85 : 0,
+                      opacity: isExpandedState ? 0.80 : 0,
                     }}
-                    transition={{ duration: 0.2 }}
-                    className="absolute inset-x-4 bottom-[1px] h-[1.5px] pointer-events-none"
+                    transition={{ duration: 0.22 }}
+                    className="absolute inset-x-2.5 bottom-0.5 h-[35%] rounded-full pointer-events-none"
                     style={{
-                      background: `linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) ${Math.max(0, lightShiftPercent - 25)}%, rgba(255,255,255,0.85) ${lightShiftPercent}%, rgba(255,255,255,0.15) ${Math.min(100, lightShiftPercent + 25)}%, transparent 100%)`,
-                      filter: "blur(0.3px)",
+                      background: `radial-gradient(ellipse 70% 80% at ${lightShiftPercent}% 90%, rgba(255, 255, 255, 0.40) 0%, rgba(255, 255, 255, 0.05) 50%, transparent 75%)`,
+                      filter: "blur(0.8px)",
                     }}
                   />
                 </div>
@@ -1023,7 +1174,7 @@ export function Navigation() {
                   color: (isActive || isTargetHeld) 
                     ? config.activeTextColor 
                     : hexToRgba(config.textColor, config.textOpacity / 100),
-                  transform: isTargetHeld ? "scale(1.14)" : (isActive ? "scale(1.05)" : "scale(1)"),
+                  transform: isTargetHeld ? "scale(1.08)" : (isActive ? "scale(1.02)" : "scale(1)"),
                   transition: isHolding 
                     ? "transform 0.08s ease-out, color 0.08s ease-out"
                     : "transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), color 0.22s ease",
@@ -1036,7 +1187,7 @@ export function Navigation() {
                     opacity: (isActive || isTargetHeld) ? 1 : config.iconOpacity / 100,
                     stroke: (isActive || isTargetHeld) ? config.activeIconColor : config.iconColor,
                     color: (isActive || isTargetHeld) ? config.activeIconColor : config.iconColor,
-                    transform: isTargetHeld ? "scale(1.22)" : (isActive ? "scale(1.08)" : "scale(1)"),
+                    transform: isTargetHeld ? "scale(1.14)" : "scale(1)",
                     transition: isHolding ? "transform 0.08s ease, opacity 0.08s ease" : "transform 0.2s ease, opacity 0.2s ease",
                     position: "relative",
                     zIndex: 10,
