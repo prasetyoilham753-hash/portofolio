@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { motion } from "framer-motion";
 import { 
   Sliders, 
   Palette, 
@@ -311,11 +312,18 @@ export function NavigationCustomizationView() {
                         }}
                         className="relative flex-1 min-w-0 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 border border-transparent select-none group"
                       >
-                        {/* Active highlight */}
+                        {/* Single Shared Gliding Active Shape */}
                         {isActive && (
-                          <span 
+                          <motion.div 
+                            layoutId="preview-active-nav-shape"
                             style={previewHighlightStyle} 
                             className="absolute inset-0 z-0 pointer-events-none"
+                            transition={{
+                              type: "spring",
+                              stiffness: 420,
+                              damping: 35,
+                              mass: 0.8,
+                            }}
                             aria-hidden="true" 
                           />
                         )}

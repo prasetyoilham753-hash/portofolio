@@ -590,32 +590,48 @@ export function Navigation() {
           className="lg-scroll-track"
           style={{ gap: `${isMobile && config.mobileCustomEnabled ? config.mobileItemSpacing : config.itemSpacing}px` }}
         >
-          {NAV_LINKS.map((link) => (
-            <NavLink
-              key={link.path}
-              to={link.path}
-              id={`nav-item-${link.id}`}
-              style={({ isActive }) => ({
-                ...itemStyle,
-                color: isActive 
-                  ? config.activeTextColor 
-                  : hexToRgba(config.textColor, config.textOpacity / 100),
-              })}
-              className={({ isActive }) => `lg-item ${isActive ? "active is-active" : ""}`}
-            >
-              {/* Melt-in Active Highlight Layer */}
-              <span className="lg-highlight" style={highlightStyle} aria-hidden="true" />
-              {React.cloneElement(link.icon as React.ReactElement<{ size?: number; style?: React.CSSProperties }>, {
-                size: config.iconSize,
-                style: {
-                  opacity: config.iconOpacity / 100,
-                  stroke: config.iconColor,
-                  color: config.iconColor,
-                }
-              })}
-              <span className="lg-label" style={labelStyle}>{link.label}</span>
-            </NavLink>
-          ))}
+          {NAV_LINKS.map((link) => {
+            const isActive = location.pathname === link.path || (link.id === "certificates" && (location.pathname === "/certificate" || location.pathname.startsWith("/certificate")));
+            return (
+              <NavLink
+                key={link.path}
+                to={link.path}
+                id={`nav-item-${link.id}`}
+                style={{
+                  ...itemStyle,
+                  color: isActive 
+                    ? config.activeTextColor 
+                    : hexToRgba(config.textColor, config.textOpacity / 100),
+                }}
+                className={`lg-item ${isActive ? "active is-active" : ""}`}
+              >
+                {/* Single Gliding Active Highlight Shape */}
+                {isActive && (
+                  <motion.div
+                    layoutId="active-nav-shape"
+                    className="lg-highlight"
+                    style={highlightStyle}
+                    transition={{
+                      type: "spring",
+                      stiffness: 420,
+                      damping: 35,
+                      mass: 0.8,
+                    }}
+                    aria-hidden="true"
+                  />
+                )}
+                {React.cloneElement(link.icon as React.ReactElement<{ size?: number; style?: React.CSSProperties }>, {
+                  size: config.iconSize,
+                  style: {
+                    opacity: isActive ? 1 : config.iconOpacity / 100,
+                    stroke: isActive ? config.activeIconColor : config.iconColor,
+                    color: isActive ? config.activeIconColor : config.iconColor,
+                  }
+                })}
+                <span className="lg-label" style={labelStyle}>{link.label}</span>
+              </NavLink>
+            );
+          })}
         </div>
       </nav>
     </>
