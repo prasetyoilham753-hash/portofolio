@@ -60,6 +60,7 @@ export function Navigation() {
   const [navCenterY, setNavCenterY] = useState<number>(19);
   const [activeRect, setActiveRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const [isGliding, setIsGliding] = useState(false);
+  const [isReleasing, setIsReleasing] = useState(false);
 
   // Dynamic Liquid Fluid Morphing State (Governed by Continuum Mechanics & Hydrodynamics)
   const [dragSpeed, setDragSpeed] = useState<number>(0);
@@ -69,6 +70,9 @@ export function Navigation() {
   const lastPointerPosRef = useRef<{ x: number; time: number }>({ x: 0, time: 0 });
   const lastSpeedRef = useRef<number>(0);
   const lastDirectionRef = useRef<"left" | "right">("right");
+  const wasDraggingRef = useRef<boolean>(false);
+  const skipGlideRef = useRef<boolean>(false);
+  const releaseTimerRef = useRef<NodeJS.Timeout | null>(null);
   const velocityDecayTimerRef = useRef<NodeJS.Timeout | null>(null);
   const fastStopTimerRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -120,6 +124,7 @@ export function Navigation() {
   const handlePointerDown = useCallback((index: number, e: React.PointerEvent) => {
     startPosRef.current = { x: e.clientX, y: e.clientY, time: Date.now(), index };
     setIsPressed(true);
+    wasDraggingRef.current = false;
     
     // Capture pointer on the nav dock container to receive all global move events
     const navElem = e.currentTarget.closest("nav") || (e.currentTarget as HTMLElement);
@@ -203,8 +208,11 @@ export function Navigation() {
     }, 95);
 
     // If dragged more than 4px, immediately activate hold mode
-    if (dist > 4 && !isHolding) {
-      setIsHolding(true);
+    if (dist > 4) {
+      wasDraggingRef.current = true;
+      if (!isHolding) {
+        setIsHolding(true);
+      }
     }
 
     const cursorRelativeX = clientX - layout.trackLeft;
@@ -269,6 +277,8 @@ export function Navigation() {
       navDockRef.current = null;
     }
 
+    const hadHoldOrDrag = isHolding || wasDraggingRef.current;
+
     if (heldIndex !== null) {
       if (cachedLayoutRef.current && cachedLayoutRef.current.items[heldIndex]) {
         const targetItem = cachedLayoutRef.current.items[heldIndex];
@@ -285,13 +295,23 @@ export function Navigation() {
       }
     }
 
+    if (hadHoldOrDrag) {
+      skipGlideRef.current = true;
+      setIsReleasing(true);
+      if (releaseTimerRef.current) clearTimeout(releaseTimerRef.current);
+      releaseTimerRef.current = setTimeout(() => {
+        setIsReleasing(false);
+      }, 260);
+    }
+
     setIsHolding(false);
     setIsPressed(false);
     setHeldIndex(null);
     startPosRef.current = null;
     cachedLayoutRef.current = null;
+    wasDraggingRef.current = false;
     setIsGliding(false);
-  }, [heldIndex, location.pathname, navigate]);
+  }, [heldIndex, isHolding, location.pathname, navigate]);
 
   // Detect mobile viewport
   useEffect(() => {
@@ -305,8 +325,14 @@ export function Navigation() {
 
   // Update active item geometry for continuous smooth glass capsule gliding on click
   useEffect(() => {
-    setIsGliding(true);
-    const glideTimer = setTimeout(() => setIsGliding(false), 450);
+    let glideTimer: NodeJS.Timeout | null = null;
+    if (skipGlideRef.current) {
+      skipGlideRef.current = false;
+      setIsGliding(false);
+    } else {
+      setIsGliding(true);
+      glideTimer = setTimeout(() => setIsGliding(false), 450);
+    }
 
     const updateActiveRect = () => {
       if (!trackRef.current) return;
@@ -334,7 +360,7 @@ export function Navigation() {
     const raf = requestAnimationFrame(updateActiveRect);
     window.addEventListener("resize", updateActiveRect);
     return () => {
-      clearTimeout(glideTimer);
+      if (glideTimer) clearTimeout(glideTimer);
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", updateActiveRect);
     };
@@ -916,8 +942,9 @@ export function Navigation() {
             // 1. Law of Conservation of Volume (Fluid Incompressibility):
             //    Area = scaleX * scaleY = constant = 1.0 -> scaleY = 1 / scaleX
             // 2. Pure Symmetrical Capsule / Oval Geometry (Zero Triangle / Symmetrical 9999px):
-            //    - Moving / Dragging: Capsule elongates horizontally (scaleX > 1) and contracts vertically (scaleY = 1 / scaleX)
-            //    - Braking / Sudden Stop: Capsule narrows horizontally (scaleX < 1) and elongates vertically (scaleY = 1 / scaleX)
+            //    - Moving / Dragging: Capsule elongates horizontally (scaleX > 1.15) and contracts vertically (scaleY = 1 / scaleX)
+            //    - Braking / Sudden Stop: Capsule narrows horizontally (scaleX < 0.8) and surges vertically (scaleY = 1.30)
+            //    - Route Click Gliding: Dynamic horizontal stretching in mid-flight (scaleX = 1.25), followed by gentle elastic landing
             //    - Static / Equilibrium: Pure symmetrical capsule (scaleX = 1.0, scaleY = 1.0)
             // ============================================================
             let fluidScaleX = 1;
@@ -927,27 +954,31 @@ export function Navigation() {
 
             if (isHolding) {
               if (isMoving) {
-                // Symmetrical horizontal elongation when moving (controlled, subtle, non-twitchy)
-                const elongation = Math.min(0.14, Math.max(0, dragSpeed - 0.15) * 0.07);
-                fluidScaleX = 1 + elongation;
-                fluidScaleY = 1 / fluidScaleX; // Incompressible volume conservation
+                // Clearly visible horizontal fluid elongation when moving/dragging
+                const speedFactor = Math.min(0.35, (dragSpeed + 0.25) * 0.20);
+                fluidScaleX = 1 + speedFactor; // 1.15 to 1.35
+                fluidScaleY = 1 / fluidScaleX; // 0.87 to 0.74 (volume conservation)
               } else {
                 if (isFastStop) {
-                  // Deceleration surge: Fluid narrows horizontally and elongates vertically (ke atas-bawah)
-                  fluidScaleY = 1.10;
-                  fluidScaleX = 1 / 1.10; // ~0.909
+                  // Deceleration surge: Fluid narrows horizontally and surges vertically (memanjang ke atas-bawah)
+                  fluidScaleY = 1.25;
+                  fluidScaleX = 1 / 1.25; // ~0.80
                 } else {
                   // Equilibrium relaxed capsule
                   fluidScaleX = 1.0;
                   fluidScaleY = 1.0;
                 }
               }
+            } else if (isGliding && !isReleasing) {
+              // During pure route click transition: Dynamic in-flight horizontal stretch and elastic landing
+              fluidScaleX = 1.20;
+              fluidScaleY = 1 / 1.20; // ~0.833
             } else if (isPressed) {
-              // Subtle tactile touch squash
-              fluidScaleX = 1.02;
-              fluidScaleY = 1 / 1.02;
+              // Tactile touch squash
+              fluidScaleX = 1.08;
+              fluidScaleY = 1 / 1.08;
             } else {
-              // Static resting state: strictly relaxed equilibrium capsule
+              // Static resting or released state: strictly 1.0 and merges cleanly into active tab shape
               fluidScaleX = 1.0;
               fluidScaleY = 1.0;
             }
@@ -968,24 +999,34 @@ export function Navigation() {
                 }}
                 transition={isHolding ? {
                   // Active interactive drag: Responsive and attached directly to finger/pointer
-                  x: { type: "spring", stiffness: 460, damping: 32, mass: 0.24 },
-                  y: { type: "spring", stiffness: 460, damping: 32, mass: 0.24 },
-                  width: { type: "spring", stiffness: 420, damping: 30, mass: 0.24 },
-                  height: { type: "spring", stiffness: 420, damping: 30, mass: 0.24 },
-                  scaleX: { type: "spring", stiffness: 400, damping: 28, mass: 0.2 },
-                  scaleY: { type: "spring", stiffness: 400, damping: 28, mass: 0.2 },
-                  skewX: { type: "spring", stiffness: 400, damping: 28, mass: 0.2 },
-                  borderRadius: { type: "spring", stiffness: 350, damping: 28 },
+                  x: { type: "spring", stiffness: 460, damping: 30, mass: 0.2 },
+                  y: { type: "spring", stiffness: 460, damping: 30, mass: 0.2 },
+                  width: { type: "spring", stiffness: 420, damping: 28, mass: 0.2 },
+                  height: { type: "spring", stiffness: 420, damping: 28, mass: 0.2 },
+                  scaleX: { type: "spring", stiffness: 350, damping: 24, mass: 0.2 },
+                  scaleY: { type: "spring", stiffness: 350, damping: 24, mass: 0.2 },
+                  skewX: { type: "spring", stiffness: 350, damping: 24, mass: 0.2 },
+                  borderRadius: { type: "spring", stiffness: 350, damping: 26 },
+                } : isReleasing ? {
+                  // Instant crisp shrink and seamless solid fusion into tab shape on finger release (Zero wobble, zero lag)
+                  x: { type: "spring", stiffness: 500, damping: 38, mass: 0.2 },
+                  y: { type: "spring", stiffness: 500, damping: 38, mass: 0.2 },
+                  width: { type: "spring", stiffness: 480, damping: 36, mass: 0.2 },
+                  height: { type: "spring", stiffness: 480, damping: 36, mass: 0.2 },
+                  scaleX: { type: "spring", stiffness: 460, damping: 34, mass: 0.2 },
+                  scaleY: { type: "spring", stiffness: 460, damping: 34, mass: 0.2 },
+                  skewX: { type: "spring", stiffness: 460, damping: 34, mass: 0.2 },
+                  borderRadius: { type: "spring", stiffness: 440, damping: 32 },
                 } : {
-                  // Click & Route Transition: Slow, luxurious, fluid, elegant and cinematic ease
-                  x: { type: "spring", stiffness: 180, damping: 24, mass: 0.95 },
-                  y: { type: "spring", stiffness: 180, damping: 24, mass: 0.95 },
-                  width: { type: "spring", stiffness: 180, damping: 24, mass: 0.95 },
-                  height: { type: "spring", stiffness: 180, damping: 24, mass: 0.95 },
-                  scaleX: { type: "spring", stiffness: 220, damping: 24, mass: 0.6 },
-                  scaleY: { type: "spring", stiffness: 220, damping: 24, mass: 0.6 },
-                  skewX: { type: "spring", stiffness: 220, damping: 24, mass: 0.6 },
-                  borderRadius: { type: "spring", stiffness: 220, damping: 24 },
+                  // Click & Route Transition: Slow, luxurious, fluid, elegant and cinematic ease with elastic settle
+                  x: { type: "spring", stiffness: 180, damping: 24, mass: 0.8 },
+                  y: { type: "spring", stiffness: 180, damping: 24, mass: 0.8 },
+                  width: { type: "spring", stiffness: 180, damping: 24, mass: 0.8 },
+                  height: { type: "spring", stiffness: 180, damping: 24, mass: 0.8 },
+                  scaleX: { type: "spring", stiffness: 220, damping: 22, mass: 0.5 },
+                  scaleY: { type: "spring", stiffness: 220, damping: 22, mass: 0.5 },
+                  skewX: { type: "spring", stiffness: 220, damping: 22, mass: 0.5 },
+                  borderRadius: { type: "spring", stiffness: 220, damping: 22 },
                 }}
                 className={`absolute pointer-events-none rounded-full ${
                   isExpandedState ? "z-30" : "z-10"
