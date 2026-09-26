@@ -1351,7 +1351,7 @@ export function NavigationCustomizationView() {
           )}
         </div>
 
-        {/* 7. POSITION & SIZE */}
+        {/* 7. POSITION & DIMENSIONS (PANJANG, LEBAR & TINGGI NAV) */}
         <div className="rounded-2xl bg-[rgba(6,15,35,0.4)] border border-white/10 backdrop-blur-md overflow-hidden">
           <button
             type="button"
@@ -1363,8 +1363,8 @@ export function NavigationCustomizationView() {
                 <Move size={16} />
               </div>
               <div>
-                <h3 className="text-sm sm:text-base font-semibold text-white">7. Posisi & Dimensi Dock</h3>
-                <p className="text-xs text-text-secondary">Lebar maksimal kapsul, jarak dari bawah layar (bottom offset), dan padding.</p>
+                <h3 className="text-sm sm:text-base font-semibold text-white">7. Posisi & Dimensi Dock (Panjang, Lebar & Tinggi)</h3>
+                <p className="text-xs text-text-secondary">Atur panjang/lebar maksimal dock, tinggi (padding vertikal), padding samping, dan jarak dari bawah layar.</p>
               </div>
             </div>
             {collapsedSections.position ? <ChevronDown size={18} className="text-text-secondary" /> : <ChevronUp size={18} className="text-text-secondary" />}
@@ -1372,21 +1372,53 @@ export function NavigationCustomizationView() {
 
           {!collapsedSections.position && (
             <div className="p-4 sm:p-5 pt-0 border-t border-white/5 flex flex-col gap-6">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 
-                {/* Max Width */}
+                {/* Max Width / Panjang Lebar Dock */}
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between text-xs font-medium text-text-secondary">
-                    <span>Lebar Maksimal (Max Width)</span>
+                    <span>Panjang / Lebar Maksimal</span>
                     <span className="font-mono text-pink-400 font-semibold">{config.maxWidth}px</span>
                   </div>
                   <input
                     type="range"
-                    min="280"
-                    max="650"
+                    min="240"
+                    max="700"
                     step="10"
                     value={config.maxWidth}
                     onChange={(e) => updateConfig({ maxWidth: Number(e.target.value) })}
+                    className="w-full accent-pink-400 cursor-pointer"
+                  />
+                </div>
+
+                {/* Vertical Padding / Tinggi Nav Dock */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex justify-between text-xs font-medium text-text-secondary">
+                    <span>Tinggi Dock (Padding Vertikal)</span>
+                    <span className="font-mono text-pink-400 font-semibold">{config.verticalPadding}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="20"
+                    value={config.verticalPadding}
+                    onChange={(e) => updateConfig({ verticalPadding: Number(e.target.value) })}
+                    className="w-full accent-pink-400 cursor-pointer"
+                  />
+                </div>
+
+                {/* Horizontal Padding Dock */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex justify-between text-xs font-medium text-text-secondary">
+                    <span>Padding Horizontal Samping</span>
+                    <span className="font-mono text-pink-400 font-semibold">{config.horizontalPadding}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="2"
+                    max="24"
+                    value={config.horizontalPadding}
+                    onChange={(e) => updateConfig({ horizontalPadding: Number(e.target.value) })}
                     className="w-full accent-pink-400 cursor-pointer"
                   />
                 </div>
@@ -1399,31 +1431,122 @@ export function NavigationCustomizationView() {
                   </div>
                   <input
                     type="range"
-                    min="4"
-                    max="48"
+                    min="0"
+                    max="60"
                     value={config.bottomOffset}
                     onChange={(e) => updateConfig({ bottomOffset: Number(e.target.value) })}
                     className="w-full accent-pink-400 cursor-pointer"
                   />
                 </div>
 
-                {/* Transition Duration */}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 8. CAPSULE GLASS INDICATOR CUSTOMIZATION */}
+        <div className="rounded-2xl bg-[rgba(6,15,35,0.4)] border border-white/10 backdrop-blur-md overflow-hidden">
+          <button
+            type="button"
+            onClick={() => toggleSection("capsule")}
+            className="w-full p-4 sm:p-5 flex items-center justify-between text-left cursor-pointer hover:bg-white/[0.02] transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-cyan-500/15 border border-cyan-400/30 flex items-center justify-center text-cyan-400">
+                <Sparkles size={16} />
+              </div>
+              <div>
+                <h3 className="text-sm sm:text-base font-semibold text-white">8. Kustomisasi Kapsul Kaca (Glass Capsule Indicator)</h3>
+                <p className="text-xs text-text-secondary">Atur dimensi kapsul (panjang/tinggi ekstra), efek refraksi pelangi (chromatic rim), dan intensitas kilau glow.</p>
+              </div>
+            </div>
+            {collapsedSections.capsule ? <ChevronDown size={18} className="text-text-secondary" /> : <ChevronUp size={18} className="text-text-secondary" />}
+          </button>
+
+          {!collapsedSections.capsule && (
+            <div className="p-4 sm:p-5 pt-0 border-t border-white/5 flex flex-col gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                
+                {/* Capsule Extra Width */}
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between text-xs font-medium text-text-secondary">
-                    <span>Durasi Transisi Smooth</span>
-                    <span className="font-mono text-pink-400 font-semibold">{config.transitionDuration}ms</span>
+                    <span>Ekstra Lebar Kapsul</span>
+                    <span className="font-mono text-cyan-400 font-semibold">+{config.capsuleExtraWidth ?? 24}px</span>
                   </div>
                   <input
                     type="range"
-                    min="200"
-                    max="800"
-                    step="20"
-                    value={config.transitionDuration}
-                    onChange={(e) => updateConfig({ transitionDuration: Number(e.target.value) })}
-                    className="w-full accent-pink-400 cursor-pointer"
+                    min="-10"
+                    max="40"
+                    value={config.capsuleExtraWidth ?? 24}
+                    onChange={(e) => updateConfig({ capsuleExtraWidth: Number(e.target.value) })}
+                    className="w-full accent-cyan-400 cursor-pointer"
                   />
                 </div>
 
+                {/* Capsule Extra Height */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex justify-between text-xs font-medium text-text-secondary">
+                    <span>Ekstra Tinggi Vertikal Kapsul</span>
+                    <span className="font-mono text-cyan-400 font-semibold">{(config.capsuleExtraHeight ?? 3) > 0 ? `+${config.capsuleExtraHeight ?? 3}` : config.capsuleExtraHeight ?? 3}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="-6"
+                    max="16"
+                    value={config.capsuleExtraHeight ?? 3}
+                    onChange={(e) => updateConfig({ capsuleExtraHeight: Number(e.target.value) })}
+                    className="w-full accent-cyan-400 cursor-pointer"
+                  />
+                </div>
+
+                {/* Chromatic Prism Rim Toggle */}
+                <div className="flex flex-col gap-2">
+                  <span className="text-xs font-medium text-text-secondary">Refraksi Spektrum Pelangi (Prism Rim)</span>
+                  <div className="flex items-center gap-3 pt-1">
+                    <GlassSwitch
+                      checked={config.capsuleChromaticEnabled ?? true}
+                      onChange={(checked) => updateConfig({ capsuleChromaticEnabled: checked })}
+                    />
+                    <span className="text-xs font-semibold text-white">
+                      {(config.capsuleChromaticEnabled ?? true) ? "Aktif (Rainbow Rim)" : "Nonaktif"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Chromatic Opacity */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex justify-between text-xs font-medium text-text-secondary">
+                    <span>Opasitas Refraksi Pelangi</span>
+                    <span className="font-mono text-cyan-400 font-semibold">{config.capsuleChromaticOpacity ?? 80}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={config.capsuleChromaticOpacity ?? 80}
+                    onChange={(e) => updateConfig({ capsuleChromaticOpacity: Number(e.target.value) })}
+                    className="w-full accent-cyan-400 cursor-pointer"
+                  />
+                </div>
+
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
+                {/* Glow Intensity */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex justify-between text-xs font-medium text-text-secondary">
+                    <span>Intensitas Kilau Glow Kapsul</span>
+                    <span className="font-mono text-cyan-400 font-semibold">{config.capsuleGlowIntensity ?? 60}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={config.capsuleGlowIntensity ?? 60}
+                    onChange={(e) => updateConfig({ capsuleGlowIntensity: Number(e.target.value) })}
+                    className="w-full accent-cyan-400 cursor-pointer"
+                  />
+                </div>
               </div>
             </div>
           )}

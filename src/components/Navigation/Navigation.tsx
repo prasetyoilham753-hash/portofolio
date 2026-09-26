@@ -54,6 +54,8 @@ export function Navigation() {
   const [heldIndex, setHeldIndex] = useState<number | null>(null);
   const [dragGlassX, setDragGlassX] = useState<number>(0);
   const [dragGlassWidth, setDragGlassWidth] = useState<number>(0);
+  const [activeRect, setActiveRect] = useState<{ x: number; width: number } | null>(null);
+  const [isGliding, setIsGliding] = useState(false);
   
   const startPosRef = useRef<{ x: number; y: number; time: number; index: number } | null>(null);
   const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -152,12 +154,9 @@ export function Navigation() {
     const rawLeft = cursorRelativeX - targetWidth / 2;
     const clampedLeft = Math.max(0, Math.min(layout.trackWidth - targetWidth, rawLeft));
 
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    rafRef.current = requestAnimationFrame(() => {
-      setHeldIndex(closestIndex);
-      setDragGlassWidth(targetWidth);
-      setDragGlassX(clampedLeft);
-    });
+    setHeldIndex(closestIndex);
+    setDragGlassWidth(targetWidth);
+    setDragGlassX(clampedLeft);
   }, [isHolding, prepareLayoutCache]);
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
@@ -204,6 +203,37 @@ export function Navigation() {
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
+
+  // Update active item geometry for continuous smooth glass capsule gliding on click
+  useEffect(() => {
+    setIsGliding(true);
+    const glideTimer = setTimeout(() => setIsGliding(false), 450);
+
+    const updateActiveRect = () => {
+      if (!trackRef.current) return;
+      const trackRect = trackRef.current.getBoundingClientRect();
+      const activeIndex = NAV_LINKS.findIndex(link => 
+        location.pathname === link.path || (link.id === "certificates" && (location.pathname === "/certificate" || location.pathname.startsWith("/certificate")))
+      );
+      const itemElems = Array.from(trackRef.current.querySelectorAll<HTMLElement>(".lg-item"));
+      if (activeIndex !== -1 && itemElems[activeIndex]) {
+        const itemRect = itemElems[activeIndex].getBoundingClientRect();
+        setActiveRect({
+          x: itemRect.left - trackRect.left,
+          width: itemRect.width,
+        });
+      }
+    };
+
+    updateActiveRect();
+    const raf = requestAnimationFrame(updateActiveRect);
+    window.addEventListener("resize", updateActiveRect);
+    return () => {
+      clearTimeout(glideTimer);
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", updateActiveRect);
+    };
+  }, [location.pathname]);
 
   // Find index of current primary route for horizontal slide transitions
   const currentPrimaryIndex = NAV_LINKS.findIndex((link) => link.path === location.pathname);
@@ -381,14 +411,14 @@ export function Navigation() {
     };
   }, [config, isMobile]);
 
-  // Compute dynamic highlight pill style for active item (Strictly inner light rim - NO outer glow/shadow bleeds)
+  // Compute dynamic 3D glass capsule highlight style for active item
   const highlightStyle = useMemo<React.CSSProperties>(() => {
     const activeBgColor = hexToRgba(config.activeBgColor, config.activeBgOpacity / 100);
     return {
-      background: `linear-gradient(165deg, ${activeBgColor}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity * 0.6) / 100)})`,
-      border: `1px solid ${hexToRgba("#ffffff", 0.35)}`,
-      boxShadow: "inset 0 1px 1px rgba(255, 255, 255, 0.35)",
-      borderRadius: `${config.activeIndicatorRadius}px`,
+      background: `linear-gradient(165deg, ${activeBgColor}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity * 0.5) / 100)})`,
+      border: "1.5px solid rgba(255, 255, 255, 0.85)",
+      boxShadow: "0 0 24px rgba(59, 130, 246, 0.50), inset 0 1px 2px rgba(255, 255, 255, 0.80)",
+      borderRadius: "9999px",
       opacity: config.activeIndicatorEnabled ? (config.activeIndicatorOpacity / 100) : 0,
       display: config.activeIndicatorEnabled ? "block" : "none",
     };
@@ -761,39 +791,102 @@ export function Navigation() {
           className={`lg-scroll-track relative ${isHolding ? "overflow-visible" : ""}`}
           style={{ gap: `${isMobile && config.mobileCustomEnabled ? config.mobileItemSpacing : config.itemSpacing}px` }}
         >
-          {/* Continuous Smooth Fluid Glass Horizontal Capsule Indicator with Outward Extension on Hold */}
+          {/* Continuous Ultra-Responsive Chromatic Liquid Glass Capsule Indicator on Hold */}
           <AnimatePresence>
             {isHolding && dragGlassWidth > 0 && (
               <motion.div
                 key="fluid-hold-glass-capsule"
-                initial={{ opacity: 0, scale: 0.8 }}
+                initial={{ opacity: 0, scale: 0.85 }}
                 animate={{ 
                   opacity: 1, 
                   scale: 1,
-                  x: dragGlassX - 14,
-                  width: dragGlassWidth + 28,
+                  x: dragGlassX - ((config.capsuleExtraWidth ?? 24) / 2),
+                  width: dragGlassWidth + (config.capsuleExtraWidth ?? 24),
                 }}
-                exit={{ opacity: 0, scale: 0.7 }}
+                exit={{ opacity: 0, scale: 0.8 }}
                 transition={{
-                  x: { type: "spring", stiffness: 650, damping: 38, mass: 0.35 },
-                  width: { type: "spring", stiffness: 650, damping: 38 },
-                  scale: { type: "spring", stiffness: 550, damping: 32 },
-                  opacity: { duration: 0.12 },
+                  x: { type: "spring", stiffness: 2800, damping: 80, mass: 0.01 },
+                  width: { type: "spring", stiffness: 2000, damping: 70, mass: 0.01 },
+                  scale: { type: "spring", stiffness: 1000, damping: 35 },
+                  opacity: { duration: 0.05 },
                 }}
-                className="absolute -top-1.5 -bottom-1.5 pointer-events-none z-10 overflow-hidden shadow-[0_0_35px_rgba(59,130,246,0.65),0_8px_24px_rgba(0,0,0,0.45)] backdrop-blur-2xl rounded-full"
+                className="absolute pointer-events-none z-10 overflow-hidden rounded-full backdrop-blur-3xl"
                 style={{
-                  background: `linear-gradient(165deg, ${hexToRgba(config.activeBgColor, 0.85)}, ${hexToRgba(config.activeBgColor, 0.40)})`,
-                  border: "1.5px solid rgba(255, 255, 255, 0.90)",
+                  top: `-${(config.capsuleExtraHeight ?? 3) / 2}px`,
+                  bottom: `-${(config.capsuleExtraHeight ?? 3) / 2}px`,
+                  background: `linear-gradient(165deg, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity ?? 30) / 100 * 2.8)}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity ?? 30) / 100 * 1.3)})`,
                   borderRadius: "9999px",
+                  boxShadow: `0 0 ${Math.round(40 * ((config.capsuleGlowIntensity ?? 60) / 100))}px ${hexToRgba(config.activeBgColor, 0.6 * ((config.capsuleGlowIntensity ?? 60) / 100))}, 0 10px 28px rgba(0,0,0,0.55), inset 0 1px 2px rgba(255,255,255,0.8)`,
                 }}
               >
-                {/* Specular Glare Lines & Refraction Glow for Sleek Horizontal 3D Glass Capsule */}
-                <div className="absolute inset-x-0 top-0 h-[2.5px] bg-gradient-to-r from-transparent via-white to-transparent opacity-95" />
-                <div className="absolute inset-0 bg-gradient-to-tr from-white/25 via-transparent to-blue-300/25 pointer-events-none" />
-                <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-blue-400/30 to-transparent blur-[1px]" />
+                {/* Chromatic Aberration Spectrum Prism Rim Light (Rainbow Refraction Edge) */}
+                {(config.capsuleChromaticEnabled ?? true) && (
+                  <div 
+                    className="absolute inset-0 rounded-full pointer-events-none"
+                    style={{
+                      padding: "1.5px",
+                      opacity: (config.capsuleChromaticOpacity ?? 80) / 100,
+                      background: "linear-gradient(115deg, rgba(255,255,255,0.95), rgba(74,222,128,0.7) 25%, rgba(192,132,252,0.8) 50%, rgba(56,189,248,0.8) 75%, rgba(255,255,255,0.95))",
+                      WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                      WebkitMaskComposite: "xor",
+                      maskComposite: "exclude",
+                    }}
+                  />
+                )}
+                
+                {/* Specular Glare Lines & Refraction Magnification Glow */}
+                <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-transparent via-white to-transparent opacity-95 blur-[0.3px]" />
+                <div className="absolute inset-0 bg-gradient-to-tr from-white/30 via-transparent to-blue-300/30 pointer-events-none" />
+                <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-emerald-400/30 to-blue-400/30 blur-[1px]" />
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Dynamic Gliding Active Glass Capsule Indicator (Normal Clicks) */}
+          {!isHolding && activeRect && (
+            <motion.div
+              key="active-gliding-glass-capsule"
+              initial={false}
+              animate={{ 
+                x: activeRect.x,
+                width: activeRect.width,
+                scaleY: isGliding ? 1.14 : 1,
+                scaleX: isGliding ? 1.06 : 1,
+              }}
+              transition={{
+                x: { type: "spring", stiffness: 300, damping: 26, mass: 0.60 },
+                width: { type: "spring", stiffness: 300, damping: 26, mass: 0.60 },
+                scaleY: { type: "spring", stiffness: 450, damping: 22 },
+                scaleX: { type: "spring", stiffness: 450, damping: 22 },
+              }}
+              className="absolute top-0 bottom-0 pointer-events-none z-10 overflow-hidden backdrop-blur-2xl rounded-full"
+              style={{
+                background: `linear-gradient(165deg, ${hexToRgba(config.activeBgColor, config.activeBgOpacity / 100)}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity * 0.45) / 100)})`,
+                borderRadius: "9999px",
+                boxShadow: `0 0 ${Math.round(28 * ((config.capsuleGlowIntensity ?? 60) / 100))}px ${hexToRgba(config.activeBgColor, 0.5 * ((config.capsuleGlowIntensity ?? 60) / 100))}, 0 4px 18px rgba(0,0,0,0.38)`,
+              }}
+            >
+              {/* Chromatic Aberration Spectrum Prism Rim Light */}
+              {(config.capsuleChromaticEnabled ?? true) && (
+                <div 
+                  className="absolute inset-0 rounded-full pointer-events-none"
+                  style={{
+                    padding: "1.2px",
+                    opacity: (config.capsuleChromaticOpacity ?? 80) / 100,
+                    background: "linear-gradient(115deg, rgba(255,255,255,0.9), rgba(74,222,128,0.6) 25%, rgba(192,132,252,0.7) 50%, rgba(56,189,248,0.7) 75%, rgba(255,255,255,0.9))",
+                    WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                    WebkitMaskComposite: "xor",
+                    maskComposite: "exclude",
+                  }}
+                />
+              )}
+
+              {/* Specular Glare Lines & Refraction Glow for 3D Dynamic Glass Capsule */}
+              <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-white to-transparent opacity-90" />
+              <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-blue-300/20 pointer-events-none" />
+              <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-400/20 to-blue-400/20 blur-[1px]" />
+            </motion.div>
+          )}
 
           {NAV_LINKS.map((link, index) => {
             const isActive = location.pathname === link.path || (link.id === "certificates" && (location.pathname === "/certificate" || location.pathname.startsWith("/certificate")));
@@ -819,37 +912,25 @@ export function Navigation() {
                     ? config.activeTextColor 
                     : hexToRgba(config.textColor, config.textOpacity / 100),
                   transform: isTargetHeld ? "scale(1.08)" : "scale(1)",
-                  transition: "transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s ease",
+                  transition: isHolding 
+                    ? "transform 0.05s ease-out, color 0.05s ease-out"
+                    : "transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), color 0.22s ease",
                 }}
                 className={`lg-item relative z-20 ${isActive ? "active is-active" : ""} ${isTargetHeld ? "held-target" : ""}`}
               >
-                {/* Single Gliding Active Highlight Shape */}
-                {isActive && !isHolding && (
-                  <motion.div
-                    layoutId="active-nav-shape"
-                    className="lg-highlight"
-                    style={highlightStyle}
-                    transition={{
-                      type: "spring",
-                      stiffness: 420,
-                      damping: 35,
-                      mass: 0.8,
-                    }}
-                    aria-hidden="true"
-                  />
-                )}
-
                 {React.cloneElement(link.icon as React.ReactElement<{ size?: number; style?: React.CSSProperties }>, {
                   size: config.iconSize,
                   style: {
                     opacity: (isActive || isTargetHeld) ? 1 : config.iconOpacity / 100,
                     stroke: (isActive || isTargetHeld) ? config.activeIconColor : config.iconColor,
                     color: (isActive || isTargetHeld) ? config.activeIconColor : config.iconColor,
-                    transform: isTargetHeld ? "scale(1.18)" : "scale(1)",
-                    transition: "transform 0.2s ease, opacity 0.2s ease",
+                    transform: isTargetHeld ? "scale(1.20)" : "scale(1)",
+                    transition: isHolding ? "transform 0.05s ease, opacity 0.05s ease" : "transform 0.2s ease, opacity 0.2s ease",
+                    position: "relative",
+                    zIndex: 20,
                   }
                 })}
-                <span className="lg-label" style={labelStyle}>{link.label}</span>
+                <span className="lg-label relative z-20" style={labelStyle}>{link.label}</span>
               </NavLink>
             );
           })}

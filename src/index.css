@@ -470,7 +470,7 @@
     display: flex;
     align-items: center;
     width: min(92vw, var(--nav-max-width, 430px));
-    padding: var(--nav-padding-y, 6px) var(--nav-padding-x, 8px);
+    padding: var(--nav-padding-y, 4px) var(--nav-padding-x, 8px);
     border-radius: var(--nav-border-radius, 999px);
     background: 
       linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 100%),
@@ -538,10 +538,10 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: var(--nav-icon-spacing, 3px);
+    gap: var(--nav-icon-spacing, 2px);
     font-family: inherit;
     color: var(--nav-text-color, rgba(255, 255, 255, 0.65));
-    padding: var(--nav-item-padding-y, 7px) var(--nav-item-padding-x, 4px);
+    padding: var(--nav-item-padding-y, 5px) var(--nav-item-padding-x, 4px);
     border-radius: var(--nav-item-radius, 999px);
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;

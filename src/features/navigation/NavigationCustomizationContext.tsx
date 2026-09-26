@@ -89,6 +89,13 @@ export interface NavigationConfig {
   activeIndicatorOpacity: number; // 0 - 100 (%)
   activeIndicatorGlow: boolean;
 
+  // Capsule Indicator Customization
+  capsuleExtraWidth: number; // -10 to +40 (px)
+  capsuleExtraHeight: number; // -6 to +16 (px)
+  capsuleChromaticEnabled: boolean;
+  capsuleChromaticOpacity: number; // 0 - 100 (%)
+  capsuleGlowIntensity: number; // 0 - 100 (%)
+
   // Dropdown Popover (Independent Customization - Does NOT affect Nav Dock)
   dropdownBgType: "color" | "gradient" | "glass";
   dropdownBgColor: string;
@@ -181,7 +188,7 @@ export const DEFAULT_NAVIGATION_CONFIG: NavigationConfig = {
   fontWeight: 600,
   letterSpacing: 0.01,
   itemSpacing: 2,
-  itemPaddingY: 7,
+  itemPaddingY: 5,
   itemPaddingX: 4,
   itemBorderRadius: 999,
   hoverAnimation: "none",
@@ -193,17 +200,17 @@ export const DEFAULT_NAVIGATION_CONFIG: NavigationConfig = {
 
   // Icon
   iconColor: "#ffffff",
-  iconSize: 20,
+  iconSize: 19,
   iconOpacity: 80,
   activeIconColor: "#ffffff",
   hoverIconColor: "#ffffff",
-  iconSpacing: 3,
+  iconSpacing: 2,
 
   // Position & Size
   maxWidth: 430,
   bottomOffset: 16,
   horizontalPadding: 8,
-  verticalPadding: 6,
+  verticalPadding: 4,
 
   // Animation & Effects
   animationEnabled: true,
@@ -214,6 +221,13 @@ export const DEFAULT_NAVIGATION_CONFIG: NavigationConfig = {
   activeIndicatorRadius: 999,
   activeIndicatorOpacity: 100,
   activeIndicatorGlow: false,
+
+  // Capsule Indicator Customization
+  capsuleExtraWidth: 24,
+  capsuleExtraHeight: 3,
+  capsuleChromaticEnabled: true,
+  capsuleChromaticOpacity: 80,
+  capsuleGlowIntensity: 60,
 
   // Dropdown Popover (Independent Customization - Does NOT affect Nav Dock)
   dropdownBgType: "glass",
