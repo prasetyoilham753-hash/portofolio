@@ -912,18 +912,19 @@ export function Navigation() {
             const lightAngleDeg = Math.round(115 + (progressRatio - 0.5) * 60); // Angle shifts smoothly as you drag
 
             // ============================================================
-            // HYDRODYNAMICS & CONTINUUM MECHANICS:
+            // HYDRODYNAMICS & CONTINUUM FLUID MECHANICS:
             // 1. Law of Conservation of Volume (Fluid Incompressibility):
             //    Area = scaleX * scaleY = constant = 1.0 -> scaleY = 1 / scaleX
             // 2. Viscous Elongation under Boundary Shear Drag:
-            //    - Fast drag: scaleX elongates to oval, scaleY contracts to 1/scaleX
-            //    - Gentle drag: subtle horizontal expansion (capsule), scaleY = 1/scaleX
-            // 3. Inertial Deceleration & Hydrodynamic Recoil (Newtonian Momentum):
-            //    - Sudden stop: kinetic energy converts to vertical hydraulic surge
-            //      scaleY surges to 1.14, scaleX narrows to 1/scaleY (0.877)
-            //    - Gentle stop: surface tension restores equilibrium (scaleX=1, scaleY=1, r=9999px)
-            // 4. Fluid Shear Stress Angle (Boundary Layer Friction):
-            //    - Droplet tilts subtly opposite to friction: skewX = -clamp(dragVelocityX * 2.2, -4.5, 4.5)
+            //    Continuous elongation function: scaleX = 1 + min(0.25, dragSpeed * 0.12)
+            // 3. Continuous Aerodynamic Oval Morphology (Teardrop Mechanics):
+            //    - Asymmetry factor k = tanh(dragVelocityX * 1.5)
+            //    - Front bow: blunt parabolic dome (r_front = 50% + 28% * |k|)
+            //    - Rear tail: tapered streamlined oval (r_rear = 50% - 28% * |k|)
+            // 4. Boundary Layer Viscous Shear Tilt:
+            //    skewX = -tanh(dragVelocityX * 1.2) * 4.2 deg
+            // 5. Inertial Deceleration & Hydraulic Surge (Momentum Rebound):
+            //    Sudden braking converts kinetic energy into vertical surge (scaleY = 1.14, scaleX = 1 / 1.14)
             // ============================================================
             let fluidScaleX = 1;
             let fluidScaleY = 1;
@@ -932,44 +933,48 @@ export function Navigation() {
 
             if (isHolding) {
               if (isMoving) {
-                // Fluid boundary friction induces natural skew tilt
-                fluidSkewX = Math.max(-4.5, Math.min(4.5, -dragVelocityX * 2.2));
+                // Continuous fluid boundary friction induces natural skew tilt
+                fluidSkewX = -Math.tanh(dragVelocityX * 1.2) * 4.2;
 
-                if (dragSpeed > 0.45) {
-                  // Fast glide: Dynamic elongation governed by volume conservation
-                  const elongationFactor = Math.min(0.25, dragSpeed * 0.12);
-                  fluidScaleX = 1 + elongationFactor;
-                  fluidScaleY = 1 / fluidScaleX; // Incompressible volume conservation
+                // Incompressible continuous volume elongation
+                const elongation = Math.min(0.25, dragSpeed * 0.12);
+                fluidScaleX = 1 + elongation;
+                fluidScaleY = 1 / fluidScaleX;
 
-                  if (dragVelocityX > 0.15) {
-                    // Moving RIGHT: Ujung belakang (kiri) menyudut oval aerodinamis (tapered teardrop tail), bagian depan (kanan) menumpul kubah (blunt convex dome)
-                    fluidBorderRadius = "22% 78% 78% 22% / 35% 50% 50% 35%";
-                  } else if (dragVelocityX < -0.15) {
-                    // Moving LEFT: Ujung belakang (kanan) menyudut oval aerodinamis, bagian depan (kiri) menumpul kubah
-                    fluidBorderRadius = "78% 22% 22% 78% / 50% 35% 35% 50%";
+                // Continuous mathematical asymmetry factor k in range (-1, 1)
+                const k = Math.tanh(dragVelocityX * 1.5);
+                const absK = Math.abs(k);
+
+                if (absK > 0.08) {
+                  const rFront = Math.round(50 + 28 * absK);
+                  const rRear = Math.round(50 - 28 * absK);
+                  const rRearV = Math.round(50 - 15 * absK);
+
+                  if (k > 0) {
+                    // Moving RIGHT: Ujung belakang (kiri) menyudut oval meruncing, bagian depan (kanan) menumpul kubah
+                    fluidBorderRadius = `${rRear}% ${rFront}% ${rFront}% ${rRear}% / ${rRearV}% 50% 50% ${rRearV}%`;
                   } else {
-                    fluidBorderRadius = "9999px";
+                    // Moving LEFT: Ujung belakang (kanan) menyudut oval meruncing, bagian depan (kiri) menumpul kubah
+                    fluidBorderRadius = `${rFront}% ${rRear}% ${rRear}% ${rFront}% / 50% ${rRearV}% ${rRearV}% 50%`;
                   }
                 } else {
-                  // Gentle glide
-                  fluidScaleX = 1.04;
-                  fluidScaleY = 1 / 1.04;
                   fluidBorderRadius = "9999px";
                 }
               } else {
                 fluidSkewX = 0;
                 if (isFastStop) {
-                  // Deceleration surge: Momentum fluida berubah kebalikan saat rem mendadak (kompresi inersia cembung oval)
+                  // Deceleration surge: Momentum fluida mengubah energi kinetik menjadi lonjakan hidrolik vertikal
                   fluidScaleY = 1.14;
                   fluidScaleX = 1 / 1.14;
                   if (lastDirectionRef.current === "right") {
                     // Berhenti dari arah kanan: Bagian depan (kanan) terkompresi menyudut oval, belakang (kiri) menumpul
-                    fluidBorderRadius = "78% 22% 22% 78% / 50% 38% 38% 50%";
+                    fluidBorderRadius = "76% 24% 24% 76% / 50% 36% 36% 50%";
                   } else {
                     // Berhenti dari arah kiri: Bagian depan (kiri) terkompresi menyudut oval, belakang (kanan) menumpul
-                    fluidBorderRadius = "22% 78% 78% 22% / 38% 50% 50% 38%";
+                    fluidBorderRadius = "24% 76% 76% 24% / 36% 50% 50% 36%";
                   }
                 } else {
+                  // Surface tension restores equilibrium minimal-energy capsule
                   fluidScaleX = 1.0;
                   fluidScaleY = 1.0;
                   fluidBorderRadius = "9999px";
