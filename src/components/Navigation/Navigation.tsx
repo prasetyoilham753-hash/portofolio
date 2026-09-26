@@ -57,6 +57,7 @@ export function Navigation() {
   const [dragGlassWidth, setDragGlassWidth] = useState<number>(0);
   const [dragGlassHeight, setDragGlassHeight] = useState<number>(0);
   const [trackHeight, setTrackHeight] = useState<number>(38);
+  const [navCenterY, setNavCenterY] = useState<number>(19);
   const [activeRect, setActiveRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const [isGliding, setIsGliding] = useState(false);
   
@@ -75,8 +76,11 @@ export function Navigation() {
   // Helper to build track layout cache
   const prepareLayoutCache = useCallback(() => {
     if (!trackRef.current) return null;
+    const navElem = trackRef.current.closest("nav") || trackRef.current;
+    const navRect = navElem.getBoundingClientRect();
     const trackRect = trackRef.current.getBoundingClientRect();
     setTrackHeight(trackRect.height);
+    setNavCenterY((navRect.top - trackRect.top) + (navRect.height / 2));
     const itemElems = Array.from(trackRef.current.querySelectorAll<HTMLElement>(".lg-item"));
     
     const items = itemElems.map((item, idx) => {
@@ -236,8 +240,11 @@ export function Navigation() {
 
     const updateActiveRect = () => {
       if (!trackRef.current) return;
+      const navElem = trackRef.current.closest("nav") || trackRef.current;
+      const navRect = navElem.getBoundingClientRect();
       const trackRect = trackRef.current.getBoundingClientRect();
       setTrackHeight(trackRect.height);
+      setNavCenterY((navRect.top - trackRect.top) + (navRect.height / 2));
       const activeIndex = NAV_LINKS.findIndex(link => 
         location.pathname === link.path || (link.id === "certificates" && (location.pathname === "/certificate" || location.pathname.startsWith("/certificate")))
       );
@@ -261,7 +268,7 @@ export function Navigation() {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", updateActiveRect);
     };
-  }, [location.pathname]);
+  }, [location.pathname, config.verticalPadding, config.itemPaddingY, config.fontSize]);
 
   // Find index of current primary route for horizontal slide transitions
   const currentPrimaryIndex = NAV_LINKS.findIndex((link) => link.path === location.pathname);
@@ -781,27 +788,6 @@ export function Navigation() {
         </AnimatePresence>
       </div>
 
-      {/* Floating Glass Tooltip Badge during Hold & Drag Gesture */}
-      <AnimatePresence>
-        {isHolding && heldIndex !== null && NAV_LINKS[heldIndex] && (
-          <motion.div
-            initial={{ opacity: 0, y: 12, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.9 }}
-            transition={{ type: "spring", stiffness: 450, damping: 30 }}
-            className="fixed z-50 pointer-events-none px-4 py-2 rounded-2xl bg-slate-950/80 border border-white/30 text-white text-xs font-semibold backdrop-blur-2xl shadow-[0_12px_36px_rgba(0,0,0,0.6)] flex items-center gap-2.5"
-            style={{
-              bottom: `${config.bottomOffset + 68}px`,
-              left: "50%",
-              transform: "translateX(-50%)",
-            }}
-          >
-            <span className="w-2 h-2 rounded-full bg-blue-400 shadow-[0_0_8px_#60a5fa] animate-pulse" />
-            <span className="text-white/90">Lepas untuk pindah ke <strong className="text-blue-300 font-bold">{NAV_LINKS[heldIndex].label}</strong></span>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* Liquid Glass Navigation Dock: Stable and responsive */}
       <nav 
         id="main-navigation-dock"
@@ -837,8 +823,14 @@ export function Navigation() {
               ? dragGlassX - (extraW / 2) 
               : activeRect.x - (extraW / 2);
 
-            // Floating vertically centered in the nav track at all times:
-            const targetY = (trackHeight - targetH) / 2;
+            // Floating vertically centered and aligned directly with the nav dock at all times:
+            const targetY = navCenterY - (targetH / 2);
+
+            // Dynamic normalized horizontal shift for moving refraction light (0 to 100%)
+            const trackWidthEst = cachedLayoutRef.current?.trackWidth || 360;
+            const progressRatio = Math.min(1, Math.max(0, targetX / Math.max(1, trackWidthEst - targetW)));
+            const lightShiftPercent = Math.round(18 + progressRatio * 64); // 18% to 82%
+            const lightAngleDeg = Math.round(115 + (progressRatio - 0.5) * 60); // Angle shifts smoothly as you drag
 
             return (
               <motion.div
@@ -861,47 +853,149 @@ export function Navigation() {
                   width: { type: "spring", stiffness: 380, damping: 32, mass: 0.6 },
                   height: { type: "spring", stiffness: 380, damping: 32, mass: 0.6 },
                 }}
-                className="absolute pointer-events-none z-10 overflow-hidden backdrop-blur-3xl rounded-full"
+                className={`absolute pointer-events-none rounded-full transition-all duration-300 ${
+                  isExpandedState ? "z-30" : "z-10"
+                }`}
                 style={{
-                  background: isExpandedState
-                    ? `linear-gradient(165deg, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity ?? 30) / 100 * 2.8)}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity ?? 30) / 100 * 1.3)})`
-                    : `linear-gradient(165deg, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity ?? 30) / 100 * 1.5)}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity ?? 30) / 100 * 0.75)})`,
+                  top: 0,
+                  left: 0,
+                  isolation: "isolate",
+                  WebkitBackfaceVisibility: "hidden",
                   borderRadius: `${config.activeIndicatorRadius || 9999}px`,
-                  border: isExpandedState 
-                    ? "none" 
-                    : `1px solid ${hexToRgba("#ffffff", 0.22)}`,
                   boxShadow: isExpandedState
-                    ? `0 0 ${Math.round(36 * ((config.capsuleGlowIntensity ?? 60) / 100))}px ${hexToRgba(config.activeBgColor, 0.55 * ((config.capsuleGlowIntensity ?? 60) / 100))}, 0 8px 24px rgba(0,0,0,0.45)`
-                    : `0 2px 10px rgba(0,0,0,0.30), inset 0 1px 1px rgba(255,255,255,0.35)`,
-                  transition: "background 0.25s ease, border 0.25s ease, box-shadow 0.25s ease",
+                    ? `0 20px 42px -4px rgba(0, 0, 0, 0.65), 0 8px 18px -2px rgba(0, 0, 0, 0.45), 0 2px 4px rgba(0, 0, 0, 0.35), 0 0 ${Math.round(20 * ((config.capsuleGlowIntensity ?? 60) / 100))}px ${hexToRgba(config.activeBgColor, 0.30 * ((config.capsuleGlowIntensity ?? 60) / 100))}`
+                    : `0 2px 8px rgba(0, 0, 0, 0.22)`,
+                  transition: "box-shadow 0.28s ease",
                 }}
               >
-                {/* Chromatic Aberration Spectrum Prism Rim Light (Rainbow Refraction Edge - Activates on Hold & Click) */}
-                {(config.capsuleChromaticEnabled ?? true) && (
+                {/* Layer 1: Ambient Occlusion & Expanding Bloom Under Glass (Active only on hold/click) */}
+                <motion.div
+                  className="absolute -inset-1 rounded-full pointer-events-none"
+                  animate={{
+                    scale: isExpandedState ? 1.15 : 0.95,
+                    opacity: isExpandedState ? 0.9 : 0,
+                  }}
+                  transition={{ type: "spring", stiffness: 350, damping: 28 }}
+                  style={{
+                    borderRadius: `${config.activeIndicatorRadius || 9999}px`,
+                    background: `radial-gradient(ellipse at ${lightShiftPercent}% 50%, ${hexToRgba(config.activeBgColor, 0.40 * ((config.capsuleGlowIntensity ?? 60) / 100))} 0%, ${hexToRgba(config.activeBgColor, 0.08 * ((config.capsuleGlowIntensity ?? 60) / 100))} 55%, transparent 75%)`,
+                    filter: `blur(${Math.round(10 * ((config.capsuleGlowIntensity ?? 60) / 100) + 3)}px)`,
+                    WebkitFilter: `blur(${Math.round(10 * ((config.capsuleGlowIntensity ?? 60) / 100) + 3)}px)`,
+                    transform: "translate3d(0, 0, 0)",
+                    WebkitTransform: "translate3d(0, 0, 0)",
+                  }}
+                />
+
+                {/* Layer 2: Capsule Body: Clean regular shape when static -> Crystal 3D Liquid Glass when held/clicked */}
+                <div 
+                  className="absolute inset-0 rounded-full overflow-hidden"
+                  style={{
+                    borderRadius: `${config.activeIndicatorRadius || 9999}px`,
+                    backdropFilter: isExpandedState 
+                      ? "blur(0.5px) saturate(220%) brightness(108%) contrast(104%)" 
+                      : "none",
+                    WebkitBackdropFilter: isExpandedState 
+                      ? "blur(0.5px) saturate(220%) brightness(108%) contrast(104%)" 
+                      : "none",
+                    background: isExpandedState
+                      ? `linear-gradient(${lightAngleDeg}deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.01) 45%, ${hexToRgba(config.activeBgColor, 0.08)} 100%)`
+                      : `linear-gradient(165deg, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity ?? 30) / 100 * 1.5)}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity ?? 30) / 100 * 0.85)})`,
+                    border: isExpandedState 
+                      ? "1.2px solid rgba(255, 255, 255, 0.65)"
+                      : `1px solid ${hexToRgba("#ffffff", 0.16)}`,
+                    boxShadow: isExpandedState
+                      ? "inset 0 2px 2.5px rgba(255, 255, 255, 0.90), inset 0 -2px 3px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.25)"
+                      : "inset 0 1px 1px rgba(255, 255, 255, 0.20)",
+                    transition: "background 0.28s ease, border 0.28s ease, box-shadow 0.28s ease",
+                  }}
+                >
+                  {/* Expanding & Gliding Caustic Light Flare (Only in Glass State) */}
                   <motion.div 
-                    initial={false}
-                    animate={{ opacity: isExpandedState ? ((config.capsuleChromaticOpacity ?? 80) / 100) : 0 }}
-                    transition={{ duration: 0.2 }}
+                    animate={{
+                      scale: isExpandedState ? 1.25 : 0.9,
+                      opacity: isExpandedState ? 0.95 : 0,
+                    }}
+                    transition={{ type: "spring", stiffness: 350, damping: 26 }}
                     className="absolute inset-0 rounded-full pointer-events-none"
                     style={{
-                      padding: "1.5px",
-                      borderRadius: "9999px",
-                      background: "linear-gradient(115deg, rgba(255,255,255,0.95), rgba(74,222,128,0.7) 25%, rgba(192,132,252,0.8) 50%, rgba(56,189,248,0.8) 75%, rgba(255,255,255,0.95))",
-                      WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-                      WebkitMaskComposite: "xor",
-                      maskComposite: "exclude",
+                      background: `radial-gradient(ellipse 65% 55% at ${lightShiftPercent}% 30%, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.08) 40%, transparent 70%)`,
                     }}
                   />
-                )}
-                
-                {/* Specular Glare Lines & Refraction Magnification Glow */}
-                <div className="absolute inset-x-0 top-0 h-[2.5px] bg-gradient-to-r from-transparent via-white to-transparent opacity-95 blur-[0.3px]" />
-                <div className="absolute inset-0 bg-gradient-to-tr from-white/25 via-transparent to-blue-300/25 pointer-events-none" />
-                <motion.div 
-                  animate={{ opacity: isExpandedState ? 1 : 0.35 }}
-                  transition={{ duration: 0.2 }}
-                  className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-emerald-400/30 to-blue-400/30 blur-[1px]" 
-                />
+
+                  {/* Soft Optical Refraction Dispersion (Only in Glass State) */}
+                  {(config.capsuleChromaticEnabled ?? true) && (
+                    <motion.div 
+                      animate={{
+                        opacity: isExpandedState ? 0.35 : 0,
+                        scale: isExpandedState ? 1.12 : 0.9,
+                      }}
+                      transition={{ type: "spring", stiffness: 350, damping: 26 }}
+                      className="absolute inset-0 rounded-full pointer-events-none"
+                      style={{
+                        padding: "1.2px",
+                        borderRadius: "9999px",
+                        background: `conic-gradient(from ${lightAngleDeg}deg at ${lightShiftPercent}% 50%, rgba(56,189,248,0.45), rgba(74,222,128,0.35) 25%, rgba(251,191,36,0.30) 50%, rgba(244,63,94,0.38) 75%, rgba(56,189,248,0.45))`,
+                        WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                        WebkitMaskComposite: "xor",
+                        maskComposite: "exclude",
+                        filter: "blur(1.5px)",
+                        WebkitFilter: "blur(1.5px)",
+                      }}
+                    />
+                  )}
+
+                  {/* Glossy Upper Meniscus Curve (Only in Glass State) */}
+                  <motion.div 
+                    animate={{
+                      opacity: isExpandedState ? 1 : 0,
+                    }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute inset-x-0.5 top-0 h-[52%] rounded-t-full pointer-events-none"
+                    style={{
+                      background: "linear-gradient(180deg, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0.06) 45%, transparent 100%)",
+                    }}
+                  />
+
+                  {/* Dynamic Moving Glint on Upper Ridge (Only in Glass State) */}
+                  <motion.div 
+                    animate={{
+                      scaleX: isExpandedState ? 1.15 : 0.9,
+                      opacity: isExpandedState ? 1 : 0,
+                    }}
+                    transition={{ type: "spring", stiffness: 350, damping: 26 }}
+                    className="absolute inset-x-3 top-[1px] h-[1.5px] pointer-events-none"
+                    style={{
+                      background: `linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.2) ${Math.max(0, lightShiftPercent - 30)}%, rgba(255,255,255,0.98) ${lightShiftPercent}%, rgba(255,255,255,0.2) ${Math.min(100, lightShiftPercent + 30)}%, transparent 100%)`,
+                      filter: "blur(0.2px)",
+                    }}
+                  />
+
+                  {/* Deep 3D Chamfered Glass Bevel Edge (Only in Glass State) */}
+                  <motion.div 
+                    animate={{
+                      opacity: isExpandedState ? 1 : 0,
+                    }}
+                    transition={{ duration: 0.22 }}
+                    className="absolute inset-0 rounded-full pointer-events-none"
+                    style={{
+                      borderRadius: `${config.activeIndicatorRadius || 9999}px`,
+                      boxShadow: "inset 0 0 0 1.5px rgba(255, 255, 255, 0.20), inset 0 2px 3px rgba(255, 255, 255, 0.65), inset 0 -2px 3px rgba(0, 0, 0, 0.25)",
+                    }}
+                  />
+
+                  {/* Dynamic Moving Caustic Bottom Internal Reflection Light (Only in Glass State) */}
+                  <motion.div 
+                    animate={{ 
+                      opacity: isExpandedState ? 0.85 : 0,
+                    }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute inset-x-4 bottom-[1px] h-[1.5px] pointer-events-none"
+                    style={{
+                      background: `linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) ${Math.max(0, lightShiftPercent - 25)}%, rgba(255,255,255,0.85) ${lightShiftPercent}%, rgba(255,255,255,0.15) ${Math.min(100, lightShiftPercent + 25)}%, transparent 100%)`,
+                      filter: "blur(0.3px)",
+                    }}
+                  />
+                </div>
               </motion.div>
             );
           })()}
@@ -929,9 +1023,9 @@ export function Navigation() {
                   color: (isActive || isTargetHeld) 
                     ? config.activeTextColor 
                     : hexToRgba(config.textColor, config.textOpacity / 100),
-                  transform: isTargetHeld ? "scale(1.08)" : "scale(1)",
+                  transform: isTargetHeld ? "scale(1.14)" : (isActive ? "scale(1.05)" : "scale(1)"),
                   transition: isHolding 
-                    ? "transform 0.05s ease-out, color 0.05s ease-out"
+                    ? "transform 0.08s ease-out, color 0.08s ease-out"
                     : "transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), color 0.22s ease",
                 }}
                 className={`lg-item relative z-20 ${isActive ? "active is-active" : ""} ${isTargetHeld ? "held-target" : ""}`}
@@ -942,13 +1036,13 @@ export function Navigation() {
                     opacity: (isActive || isTargetHeld) ? 1 : config.iconOpacity / 100,
                     stroke: (isActive || isTargetHeld) ? config.activeIconColor : config.iconColor,
                     color: (isActive || isTargetHeld) ? config.activeIconColor : config.iconColor,
-                    transform: isTargetHeld ? "scale(1.20)" : "scale(1)",
-                    transition: isHolding ? "transform 0.05s ease, opacity 0.05s ease" : "transform 0.2s ease, opacity 0.2s ease",
+                    transform: isTargetHeld ? "scale(1.22)" : (isActive ? "scale(1.08)" : "scale(1)"),
+                    transition: isHolding ? "transform 0.08s ease, opacity 0.08s ease" : "transform 0.2s ease, opacity 0.2s ease",
                     position: "relative",
-                    zIndex: 20,
+                    zIndex: 10,
                   }
                 })}
-                <span className="lg-label relative z-20" style={labelStyle}>{link.label}</span>
+                <span className="lg-label relative z-10" style={labelStyle}>{link.label}</span>
               </NavLink>
             );
           })}
