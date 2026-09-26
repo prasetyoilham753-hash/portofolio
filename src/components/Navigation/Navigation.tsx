@@ -169,30 +169,30 @@ export function Navigation() {
     lastPointerPosRef.current = { x: clientX, time: now };
 
     // Rolling exponential smoothed velocity (avoids erratic jumps)
-    const smoothedSpeed = lastSpeedRef.current * 0.25 + instantaneousSpeed * 0.75;
+    const smoothedSpeed = lastSpeedRef.current * 0.35 + instantaneousSpeed * 0.65;
     lastSpeedRef.current = smoothedSpeed;
 
-    if (instantaneousVelocityX > 0.08) {
+    if (instantaneousVelocityX > 0.12) {
       lastDirectionRef.current = "right";
-    } else if (instantaneousVelocityX < -0.08) {
+    } else if (instantaneousVelocityX < -0.12) {
       lastDirectionRef.current = "left";
     }
 
-    setDragSpeed(Math.min(smoothedSpeed * 1.5, 3.5));
-    setDragVelocityX(Math.max(-3, Math.min(3, instantaneousVelocityX)));
+    setDragSpeed(Math.min(smoothedSpeed * 1.2, 3.0));
+    setDragVelocityX(Math.max(-2.5, Math.min(2.5, instantaneousVelocityX)));
     setIsMoving(true);
 
     if (velocityDecayTimerRef.current) {
       clearTimeout(velocityDecayTimerRef.current);
     }
     velocityDecayTimerRef.current = setTimeout(() => {
-      // Trigger vertical elongation inertia if braking abruptly from high velocity
-      if (lastSpeedRef.current > 0.85) {
+      // Trigger subtle vertical hydraulic surge only if braking abruptly from brisk velocity
+      if (lastSpeedRef.current > 1.1) {
         setIsFastStop(true);
         if (fastStopTimerRef.current) clearTimeout(fastStopTimerRef.current);
         fastStopTimerRef.current = setTimeout(() => {
           setIsFastStop(false);
-        }, 320);
+        }, 280);
       } else {
         setIsFastStop(false);
       }
@@ -200,7 +200,7 @@ export function Navigation() {
       setDragVelocityX(0);
       setIsMoving(false);
       setDragSpeed(0);
-    }, 85);
+    }, 95);
 
     // If dragged more than 4px, immediately activate hold mode
     if (dist > 4 && !isHolding) {
@@ -915,82 +915,41 @@ export function Navigation() {
             // HYDRODYNAMICS & CONTINUUM FLUID MECHANICS:
             // 1. Law of Conservation of Volume (Fluid Incompressibility):
             //    Area = scaleX * scaleY = constant = 1.0 -> scaleY = 1 / scaleX
-            // 2. Viscous Elongation under Boundary Shear Drag:
-            //    Continuous elongation function: scaleX = 1 + min(0.25, dragSpeed * 0.12)
-            // 3. Continuous Aerodynamic Oval Morphology (Teardrop Mechanics):
-            //    - Asymmetry factor k = tanh(dragVelocityX * 1.5)
-            //    - Front bow: blunt parabolic dome (r_front = 50% + 28% * |k|)
-            //    - Rear tail: tapered streamlined oval (r_rear = 50% - 28% * |k|)
-            // 4. Boundary Layer Viscous Shear Tilt:
-            //    skewX = -tanh(dragVelocityX * 1.2) * 4.2 deg
-            // 5. Inertial Deceleration & Hydraulic Surge (Momentum Rebound):
-            //    Sudden braking converts kinetic energy into vertical surge (scaleY = 1.14, scaleX = 1 / 1.14)
+            // 2. Pure Symmetrical Capsule / Oval Geometry (Zero Triangle / Symmetrical 9999px):
+            //    - Moving / Dragging: Capsule elongates horizontally (scaleX > 1) and contracts vertically (scaleY = 1 / scaleX)
+            //    - Braking / Sudden Stop: Capsule narrows horizontally (scaleX < 1) and elongates vertically (scaleY = 1 / scaleX)
+            //    - Static / Equilibrium: Pure symmetrical capsule (scaleX = 1.0, scaleY = 1.0)
             // ============================================================
             let fluidScaleX = 1;
             let fluidScaleY = 1;
-            let fluidSkewX = 0;
-            let fluidBorderRadius = "9999px";
+            const fluidSkewX = 0;
+            const fluidBorderRadius = "9999px";
 
             if (isHolding) {
               if (isMoving) {
-                // Continuous fluid boundary friction induces natural skew tilt
-                fluidSkewX = -Math.tanh(dragVelocityX * 1.2) * 4.2;
-
-                // Incompressible continuous volume elongation
-                const elongation = Math.min(0.25, dragSpeed * 0.12);
+                // Symmetrical horizontal elongation when moving (controlled, subtle, non-twitchy)
+                const elongation = Math.min(0.14, Math.max(0, dragSpeed - 0.15) * 0.07);
                 fluidScaleX = 1 + elongation;
-                fluidScaleY = 1 / fluidScaleX;
-
-                // Continuous mathematical asymmetry factor k in range (-1, 1)
-                const k = Math.tanh(dragVelocityX * 1.5);
-                const absK = Math.abs(k);
-
-                if (absK > 0.08) {
-                  const rFront = Math.round(50 + 28 * absK);
-                  const rRear = Math.round(50 - 28 * absK);
-                  const rRearV = Math.round(50 - 15 * absK);
-
-                  if (k > 0) {
-                    // Moving RIGHT: Ujung belakang (kiri) menyudut oval meruncing, bagian depan (kanan) menumpul kubah
-                    fluidBorderRadius = `${rRear}% ${rFront}% ${rFront}% ${rRear}% / ${rRearV}% 50% 50% ${rRearV}%`;
-                  } else {
-                    // Moving LEFT: Ujung belakang (kanan) menyudut oval meruncing, bagian depan (kiri) menumpul kubah
-                    fluidBorderRadius = `${rFront}% ${rRear}% ${rRear}% ${rFront}% / 50% ${rRearV}% ${rRearV}% 50%`;
-                  }
-                } else {
-                  fluidBorderRadius = "9999px";
-                }
+                fluidScaleY = 1 / fluidScaleX; // Incompressible volume conservation
               } else {
-                fluidSkewX = 0;
                 if (isFastStop) {
-                  // Deceleration surge: Momentum fluida mengubah energi kinetik menjadi lonjakan hidrolik vertikal
-                  fluidScaleY = 1.14;
-                  fluidScaleX = 1 / 1.14;
-                  if (lastDirectionRef.current === "right") {
-                    // Berhenti dari arah kanan: Bagian depan (kanan) terkompresi menyudut oval, belakang (kiri) menumpul
-                    fluidBorderRadius = "76% 24% 24% 76% / 50% 36% 36% 50%";
-                  } else {
-                    // Berhenti dari arah kiri: Bagian depan (kiri) terkompresi menyudut oval, belakang (kanan) menumpul
-                    fluidBorderRadius = "24% 76% 76% 24% / 36% 50% 50% 36%";
-                  }
+                  // Deceleration surge: Fluid narrows horizontally and elongates vertically (ke atas-bawah)
+                  fluidScaleY = 1.10;
+                  fluidScaleX = 1 / 1.10; // ~0.909
                 } else {
-                  // Surface tension restores equilibrium minimal-energy capsule
+                  // Equilibrium relaxed capsule
                   fluidScaleX = 1.0;
                   fluidScaleY = 1.0;
-                  fluidBorderRadius = "9999px";
                 }
               }
             } else if (isPressed) {
-              fluidScaleX = 1.03;
-              fluidScaleY = 1 / 1.03;
-              fluidSkewX = 0;
-              fluidBorderRadius = "9999px";
+              // Subtle tactile touch squash
+              fluidScaleX = 1.02;
+              fluidScaleY = 1 / 1.02;
             } else {
               // Static resting state: strictly relaxed equilibrium capsule
               fluidScaleX = 1.0;
               fluidScaleY = 1.0;
-              fluidSkewX = 0;
-              fluidBorderRadius = "9999px";
             }
 
             return (
