@@ -89,9 +89,9 @@ export interface NavigationConfig {
   activeIndicatorOpacity: number; // 0 - 100 (%)
   activeIndicatorGlow: boolean;
 
-  // Capsule Indicator Customization
-  capsuleExtraWidth: number; // -10 to +40 (px)
-  capsuleExtraHeight: number; // -6 to +16 (px)
+  // Capsule Indicator Customization (Supports Oversized Floating Capsule beyond Nav Dock)
+  capsuleExtraWidth: number; // -20 to +200 (px)
+  capsuleExtraHeight: number; // -16 to +100 (px)
   capsuleChromaticEnabled: boolean;
   capsuleChromaticOpacity: number; // 0 - 100 (%)
   capsuleGlowIntensity: number; // 0 - 100 (%)

@@ -77,6 +77,7 @@ export function NavigationCustomizationView() {
   // UI state
   const [previewComponentMode, setPreviewComponentMode] = useState<"dock" | "dropdown">("dock");
   const [previewActiveTab, setPreviewActiveTab] = useState<string>("home");
+  const [previewPressedTab, setPreviewPressedTab] = useState<string | null>(null);
   const [previewDropdownLink, setPreviewDropdownLink] = useState<string>("qna");
   const [previewDropdownBg, setPreviewDropdownBg] = useState<string>("molten");
   const [previewBgTheme, setPreviewBgTheme] = useState<"molten" | "dark" | "cyber" | "light">("molten");
@@ -136,9 +137,19 @@ export function NavigationCustomizationView() {
     padding: `${config.verticalPadding}px ${config.horizontalPadding}px`,
     maxWidth: `${config.maxWidth}px`,
     width: "100%",
+    overflow: "visible",
+    position: "relative",
   };
 
+  const previewExtraW = config.capsuleExtraWidth ?? 24;
+  const previewExtraH = config.capsuleExtraHeight ?? 3;
+
   const previewHighlightStyle: React.CSSProperties = {
+    position: "absolute",
+    top: `${-(previewExtraH / 2)}px`,
+    bottom: `${-(previewExtraH / 2)}px`,
+    left: `${-(previewExtraW / 2)}px`,
+    right: `${-(previewExtraW / 2)}px`,
     background: `linear-gradient(165deg, ${hexToRgba(config.activeBgColor, config.activeBgOpacity / 100)}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity * 0.6) / 100)})`,
     border: `1px solid ${hexToRgba("#ffffff", 0.35)}`,
     boxShadow: config.activeIndicatorGlow 
@@ -147,6 +158,7 @@ export function NavigationCustomizationView() {
     borderRadius: `${config.activeIndicatorRadius}px`,
     opacity: config.activeIndicatorEnabled ? (config.activeIndicatorOpacity / 100) : 0,
     display: config.activeIndicatorEnabled ? "block" : "none",
+    pointerEvents: "none",
   };
 
   const previewItemStyle: React.CSSProperties = {
@@ -361,33 +373,68 @@ export function NavigationCustomizationView() {
 
           {previewComponentMode === "dock" ? (
             /* Rendered Live Navigation Bar */
-            <div className="relative z-10 w-full flex justify-center">
-              <nav className="liquid-glass-nav-preview" style={previewDockStyle}>
+            <div className="relative z-10 w-full flex justify-center py-6">
+              <nav className="liquid-glass-nav-preview !overflow-visible" style={previewDockStyle}>
                 <div 
-                  className="flex items-center justify-between w-full"
+                  className="flex items-center justify-between w-full !overflow-visible"
                   style={{ gap: `${config.itemSpacing}px` }}
                 >
                   {PREVIEW_LINKS.map((link) => {
                     const isActive = previewActiveTab === link.id;
+                    const isExpandedInPreview = previewPressedTab === link.id;
+
+                    const previewExtraW = config.capsuleExtraWidth ?? 24;
+                    const previewExtraH = config.capsuleExtraHeight ?? 3;
+
+                    const itemHighlightStyle: React.CSSProperties = {
+                      position: "absolute",
+                      top: isExpandedInPreview ? `${-(previewExtraH / 2)}px` : "0px",
+                      bottom: isExpandedInPreview ? `${-(previewExtraH / 2)}px` : "0px",
+                      left: isExpandedInPreview ? `${-(previewExtraW / 2)}px` : "0px",
+                      right: isExpandedInPreview ? `${-(previewExtraW / 2)}px` : "0px",
+                      background: `linear-gradient(165deg, ${hexToRgba(config.activeBgColor, config.activeBgOpacity / 100)}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity * 0.6) / 100)})`,
+                      border: `1px solid ${hexToRgba("#ffffff", 0.35)}`,
+                      boxShadow: config.activeIndicatorGlow 
+                        ? `0 4px 14px ${hexToRgba(config.activeBgColor, 0.35)}, inset 0 1px 1px rgba(255, 255, 255, 0.45)`
+                        : "inset 0 1px 1px rgba(255, 255, 255, 0.35)",
+                      borderRadius: `${config.activeIndicatorRadius}px`,
+                      opacity: config.activeIndicatorEnabled ? (config.activeIndicatorOpacity / 100) : 0,
+                      display: config.activeIndicatorEnabled ? "block" : "none",
+                      pointerEvents: "none",
+                      transition: "top 0.32s cubic-bezier(0.16, 1, 0.3, 1), bottom 0.32s cubic-bezier(0.16, 1, 0.3, 1), left 0.32s cubic-bezier(0.16, 1, 0.3, 1), right 0.32s cubic-bezier(0.16, 1, 0.3, 1)",
+                    };
+
+                    const handleTabClick = () => {
+                      setPreviewActiveTab(link.id);
+                      setPreviewPressedTab(link.id);
+                      setTimeout(() => {
+                        setPreviewPressedTab(null);
+                      }, 500);
+                    };
+
                     return (
                       <button
                         key={link.id}
                         type="button"
-                        onClick={() => setPreviewActiveTab(link.id)}
+                        onClick={handleTabClick}
+                        onPointerDown={() => setPreviewPressedTab(link.id)}
+                        onPointerUp={() => {
+                          setTimeout(() => setPreviewPressedTab(null), 300);
+                        }}
                         style={{
                           ...previewItemStyle,
                           color: isActive 
                             ? config.activeTextColor 
                             : hexToRgba(config.textColor, config.textOpacity / 100),
                         }}
-                        className="relative flex-1 min-w-0 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 border border-transparent select-none group"
+                        className="relative flex-1 min-w-0 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 border border-transparent select-none group !overflow-visible"
                       >
                         {/* Single Shared Gliding Active Shape */}
                         {isActive && (
                           <motion.div 
                             layoutId="preview-active-nav-shape"
-                            style={previewHighlightStyle} 
-                            className="absolute inset-0 z-0 pointer-events-none"
+                            style={itemHighlightStyle} 
+                            className="z-0 pointer-events-none"
                             transition={{
                               type: "spring",
                               stiffness: 420,
@@ -1456,8 +1503,8 @@ export function NavigationCustomizationView() {
                 <Sparkles size={16} />
               </div>
               <div>
-                <h3 className="text-sm sm:text-base font-semibold text-white">8. Kustomisasi Kapsul Kaca (Glass Capsule Indicator)</h3>
-                <p className="text-xs text-text-secondary">Atur dimensi kapsul (panjang/tinggi ekstra), efek refraksi pelangi (chromatic rim), dan intensitas kilau glow.</p>
+                <h3 className="text-sm sm:text-base font-semibold text-white">8. Kustomisasi Kapsul Kaca Dinamis (Living Glass Capsule)</h3>
+                <p className="text-xs text-text-secondary">Atur dimensi kapsul saat aktif interaktif (hold / geser / klik). Saat statis dan dilepas (release), kapsul otomatis mengecil rapi di dalam nav dock.</p>
               </div>
             </div>
             {collapsedSections.capsule ? <ChevronDown size={18} className="text-text-secondary" /> : <ChevronUp size={18} className="text-text-secondary" />}
@@ -1469,34 +1516,48 @@ export function NavigationCustomizationView() {
                 
                 {/* Capsule Extra Width */}
                 <div className="flex flex-col gap-2">
-                  <div className="flex justify-between text-xs font-medium text-text-secondary">
+                  <div className="flex justify-between items-center text-xs font-medium text-text-secondary">
                     <span>Ekstra Lebar Kapsul</span>
-                    <span className="font-mono text-cyan-400 font-semibold">+{config.capsuleExtraWidth ?? 24}px</span>
+                    <div className="flex items-center gap-1.5">
+                      {(config.capsuleExtraWidth ?? 24) > 40 && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-semibold">Di Luar Nav</span>
+                      )}
+                      <span className="font-mono text-cyan-400 font-semibold">{(config.capsuleExtraWidth ?? 24) > 0 ? `+${config.capsuleExtraWidth ?? 24}` : config.capsuleExtraWidth ?? 24}px</span>
+                    </div>
                   </div>
                   <input
                     type="range"
-                    min="-10"
-                    max="40"
+                    min="-20"
+                    max="200"
+                    step="1"
                     value={config.capsuleExtraWidth ?? 24}
                     onChange={(e) => updateConfig({ capsuleExtraWidth: Number(e.target.value) })}
                     className="w-full accent-cyan-400 cursor-pointer"
                   />
+                  <span className="text-[11px] text-text-muted">Rentang: -20px s/d +200px (dapat meluas bebas ke samping luar dock)</span>
                 </div>
 
                 {/* Capsule Extra Height */}
                 <div className="flex flex-col gap-2">
-                  <div className="flex justify-between text-xs font-medium text-text-secondary">
+                  <div className="flex justify-between items-center text-xs font-medium text-text-secondary">
                     <span>Ekstra Tinggi Vertikal Kapsul</span>
-                    <span className="font-mono text-cyan-400 font-semibold">{(config.capsuleExtraHeight ?? 3) > 0 ? `+${config.capsuleExtraHeight ?? 3}` : config.capsuleExtraHeight ?? 3}px</span>
+                    <div className="flex items-center gap-1.5">
+                      {(config.capsuleExtraHeight ?? 3) > 16 && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-semibold">Melayang di Luar Dock</span>
+                      )}
+                      <span className="font-mono text-cyan-400 font-semibold">{(config.capsuleExtraHeight ?? 3) > 0 ? `+${config.capsuleExtraHeight ?? 3}` : config.capsuleExtraHeight ?? 3}px</span>
+                    </div>
                   </div>
                   <input
                     type="range"
-                    min="-6"
-                    max="16"
+                    min="-16"
+                    max="100"
+                    step="1"
                     value={config.capsuleExtraHeight ?? 3}
                     onChange={(e) => updateConfig({ capsuleExtraHeight: Number(e.target.value) })}
                     className="w-full accent-cyan-400 cursor-pointer"
                   />
+                  <span className="text-[11px] text-text-muted">Rentang: -16px s/d +100px (dapat mengambang jauh di atas & bawah dock)</span>
                 </div>
 
                 {/* Chromatic Prism Rim Toggle */}
@@ -1546,6 +1607,48 @@ export function NavigationCustomizationView() {
                     onChange={(e) => updateConfig({ capsuleGlowIntensity: Number(e.target.value) })}
                     className="w-full accent-cyan-400 cursor-pointer"
                   />
+                  <span className="text-[11px] text-text-muted">Pancaran aura cahaya neon di sekitar tepi kapsul</span>
+                </div>
+              </div>
+
+              {/* Quick Presets for Capsule Size */}
+              <div className="flex flex-col gap-2.5 pt-2 border-t border-white/5">
+                <span className="text-xs font-medium text-text-secondary">Preset Cepat Ukuran Kapsul (Termasuk Ukuran Di Luar Nav):</span>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { label: "Kompak", w: 10, h: 1, desc: "Pas Tab (+10px / +1px)" },
+                    { label: "Standar", w: 24, h: 3, desc: "Elegan (+24px / +3px)" },
+                    { label: "Lebar", w: 45, h: 8, desc: "Menonjol (+45px / +8px)" },
+                    { label: "Di Luar Nav (Medium)", w: 75, h: 22, desc: "Keluar Dock (+75px / +22px)" },
+                    { label: "Di Luar Nav (Besar)", w: 120, h: 38, desc: "Melayang Bebas (+120px / +38px)" },
+                    { label: "Ekstra Maksimal", w: 180, h: 65, desc: "Ultra Floating (+180px / +65px)" },
+                  ].map((preset) => {
+                    const isSelected = (config.capsuleExtraWidth ?? 24) === preset.w && (config.capsuleExtraHeight ?? 3) === preset.h;
+                    return (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => updateConfig({ capsuleExtraWidth: preset.w, capsuleExtraHeight: preset.h })}
+                        className={`text-xs px-3 py-1.5 rounded-lg border transition-all cursor-pointer flex flex-col items-start ${
+                          isSelected 
+                            ? "bg-cyan-500/20 border-cyan-400 text-white font-medium shadow-[0_0_12px_rgba(6,182,212,0.3)]" 
+                            : "bg-white/[0.04] border-white/10 text-text-secondary hover:text-white hover:bg-white/[0.08]"
+                        }`}
+                      >
+                        <span>{preset.label}</span>
+                        <span className="text-[10px] text-text-muted">{preset.desc}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Informative Callout */}
+              <div className="p-3.5 rounded-xl bg-cyan-950/30 border border-cyan-500/20 text-xs text-cyan-200/90 flex items-start gap-2.5">
+                <span className="text-base select-none shrink-0">💡</span>
+                <div className="leading-relaxed">
+                  <strong className="text-cyan-300 font-semibold block mb-0.5">Dinamika Interaktif vs Kondisi Statis:</strong>
+                  Sebesar apa pun pengaturan kapsul yang Anda pilih (hingga <code className="text-cyan-300 bg-cyan-900/40 px-1 py-0.5 rounded">+200px</code> lebar dan <code className="text-cyan-300 bg-cyan-900/40 px-1 py-0.5 rounded">+100px</code> tinggi keluar dock), kapsul <strong>hanya membesar saat Anda tahan (hold), geser (drag), atau klik</strong>. Saat dilepaskan (release) dan dalam kondisi diam/statis, kapsul <strong>otomatis mengecil kembali dan wajib berada rapi di dalam batas dock navigasi</strong>.
                 </div>
               </div>
             </div>

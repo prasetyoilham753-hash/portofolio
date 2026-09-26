@@ -68,6 +68,7 @@ export function Navigation() {
   const [isFastStop, setIsFastStop] = useState<boolean>(false);
   const lastPointerPosRef = useRef<{ x: number; time: number }>({ x: 0, time: 0 });
   const lastSpeedRef = useRef<number>(0);
+  const lastDirectionRef = useRef<"left" | "right">("right");
   const velocityDecayTimerRef = useRef<NodeJS.Timeout | null>(null);
   const fastStopTimerRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -170,6 +171,12 @@ export function Navigation() {
     // Rolling exponential smoothed velocity (avoids erratic jumps)
     const smoothedSpeed = lastSpeedRef.current * 0.25 + instantaneousSpeed * 0.75;
     lastSpeedRef.current = smoothedSpeed;
+
+    if (instantaneousVelocityX > 0.08) {
+      lastDirectionRef.current = "right";
+    } else if (instantaneousVelocityX < -0.08) {
+      lastDirectionRef.current = "left";
+    }
 
     setDragSpeed(Math.min(smoothedSpeed * 1.5, 3.5));
     setDragVelocityX(Math.max(-3, Math.min(3, instantaneousVelocityX)));
@@ -855,7 +862,7 @@ export function Navigation() {
       <nav 
         id="main-navigation-dock"
         aria-label="Navigasi utama"
-        className={`liquid-glass-nav select-none touch-none ${isHolding ? "overflow-visible" : ""}`}
+        className="liquid-glass-nav select-none touch-none !overflow-visible"
         style={dockStyle}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -865,15 +872,23 @@ export function Navigation() {
         {/* Scroll / Slide Track for seamless touch swiping and equal-width tabs */}
         <div 
           ref={trackRef} 
-          className={`lg-scroll-track relative ${isHolding ? "overflow-visible" : ""}`}
+          className="lg-scroll-track relative !overflow-visible"
           style={{ gap: `${isMobile && config.mobileCustomEnabled ? config.mobileItemSpacing : config.itemSpacing}px` }}
         >
           {/* Unified Dynamic Living Glass Capsule Indicator (Floating centered vertically in the nav dock) */}
           {activeRect && (() => {
-            const isExpandedState = isHolding || isPressed;
-            // Perfectly tailored, aesthetic proportioned dimensions:
-            const extraW = isExpandedState ? 10 : 0;
-            const extraH = isExpandedState ? 1.5 : 0;
+            const isInteractive = isHolding || isPressed;
+            const isExpandedState = isInteractive;
+            
+            // Dynamic capsule dimensions controlled via Dashboard (Supports Oversized Floating Capsule beyond Nav Dock during interaction)
+            const configuredExtraW = config.capsuleExtraWidth ?? 24;
+            const configuredExtraH = config.capsuleExtraHeight ?? 3;
+
+            // Strict Physical Law:
+            // - When Interacting (Hold, Drag/Slide, Click): Capsule expands to the configured dynamic size (can be large / outside nav)
+            // - When Static / Released: Capsule ALWAYS contracts to compact resting size strictly INSIDE the nav dock (extra = 0px)
+            const extraW = isInteractive ? (configuredExtraW + (isHolding ? 8 : 4)) : 0;
+            const extraH = isInteractive ? (configuredExtraH + (isHolding ? 2 : 1)) : 0;
 
             const targetW = isHolding 
               ? dragGlassWidth + extraW 
@@ -905,10 +920,10 @@ export function Navigation() {
             //    - Gentle drag: subtle horizontal expansion (capsule), scaleY = 1/scaleX
             // 3. Inertial Deceleration & Hydrodynamic Recoil (Newtonian Momentum):
             //    - Sudden stop: kinetic energy converts to vertical hydraulic surge
-            //      scaleY surges to 1.15, scaleX narrows to 1/scaleY (0.87)
+            //      scaleY surges to 1.14, scaleX narrows to 1/scaleY (0.877)
             //    - Gentle stop: surface tension restores equilibrium (scaleX=1, scaleY=1, r=9999px)
             // 4. Fluid Shear Stress Angle (Boundary Layer Friction):
-            //    - Droplet tilts subtly opposite to friction: skewX = -clamp(dragVelocityX * 2.2, -3.5, 3.5)
+            //    - Droplet tilts subtly opposite to friction: skewX = -clamp(dragVelocityX * 2.2, -4.5, 4.5)
             // ============================================================
             let fluidScaleX = 1;
             let fluidScaleY = 1;
@@ -917,54 +932,56 @@ export function Navigation() {
 
             if (isHolding) {
               if (isMoving) {
-                // Fluid tilts slightly in motion direction due to surface friction
-                fluidSkewX = Math.max(-4, Math.min(4, -dragVelocityX * 2.4));
+                // Fluid boundary friction induces natural skew tilt
+                fluidSkewX = Math.max(-4.5, Math.min(4.5, -dragVelocityX * 2.2));
 
-                if (dragSpeed > 0.85) {
-                  // Fast drag: Bentuk Oval yang sedikit menyudut (aerodynamic angled pointed oval)
-                  fluidScaleX = 1.18;
-                  // Incompressible volume conservation: scaleY = 1 / scaleX
-                  fluidScaleY = 1 / fluidScaleX; // ~0.847
+                if (dragSpeed > 0.45) {
+                  // Fast glide: Dynamic elongation governed by volume conservation
+                  const elongationFactor = Math.min(0.25, dragSpeed * 0.12);
+                  fluidScaleX = 1 + elongationFactor;
+                  fluidScaleY = 1 / fluidScaleX; // Incompressible volume conservation
 
-                  // Morfologi sudut aerodinamis sesuai vektor arah gerakan fluida:
-                  if (dragVelocityX > 0.3) {
-                    // Bergerak cepat ke kanan: ujung kanan dan kiri sedikit menyudut aerodinamis
-                    fluidBorderRadius = "38px 14px 18px 36px / 26px 16px 20px 26px";
-                  } else if (dragVelocityX < -0.3) {
-                    // Bergerak cepat ke kiri: ujung kiri dan kanan sedikit menyudut aerodinamis
-                    fluidBorderRadius = "14px 38px 36px 18px / 16px 26px 26px 20px";
+                  if (dragVelocityX > 0.15) {
+                    // Moving RIGHT: Ujung belakang (kiri) menyudut oval aerodinamis (tapered teardrop tail), bagian depan (kanan) menumpul kubah (blunt convex dome)
+                    fluidBorderRadius = "22% 78% 78% 22% / 35% 50% 50% 35%";
+                  } else if (dragVelocityX < -0.15) {
+                    // Moving LEFT: Ujung belakang (kanan) menyudut oval aerodinamis, bagian depan (kiri) menumpul kubah
+                    fluidBorderRadius = "78% 22% 22% 78% / 50% 35% 35% 50%";
                   } else {
-                    // Oval menyudut simetris (pointed squircle oval)
-                    fluidBorderRadius = "28px 28px 28px 28px / 18px 18px 18px 18px";
+                    fluidBorderRadius = "9999px";
                   }
                 } else {
-                  // Gentle drag: Capsule shape, gentle horizontal widening
-                  fluidScaleX = 1.06;
-                  fluidScaleY = 1 / fluidScaleX; // ~0.943
+                  // Gentle glide
+                  fluidScaleX = 1.04;
+                  fluidScaleY = 1 / 1.04;
                   fluidBorderRadius = "9999px";
                 }
               } else {
                 fluidSkewX = 0;
                 if (isFastStop) {
-                  // Sudden stop: Kinetic momentum converts into vertical hydraulic surge
-                  fluidScaleY = 1.15;
-                  // Incompressible volume conservation: scaleX = 1 / scaleY
-                  fluidScaleX = 1 / fluidScaleY; // ~0.870
-                  fluidBorderRadius = "22px 22px 28px 28px";
+                  // Deceleration surge: Momentum fluida berubah kebalikan saat rem mendadak (kompresi inersia cembung oval)
+                  fluidScaleY = 1.14;
+                  fluidScaleX = 1 / 1.14;
+                  if (lastDirectionRef.current === "right") {
+                    // Berhenti dari arah kanan: Bagian depan (kanan) terkompresi menyudut oval, belakang (kiri) menumpul
+                    fluidBorderRadius = "78% 22% 22% 78% / 50% 38% 38% 50%";
+                  } else {
+                    // Berhenti dari arah kiri: Bagian depan (kiri) terkompresi menyudut oval, belakang (kanan) menumpul
+                    fluidBorderRadius = "22% 78% 78% 22% / 38% 50% 50% 38%";
+                  }
                 } else {
-                  // Gentle deceleration: Surface tension minimizes Laplace pressure to equilibrium capsule
                   fluidScaleX = 1.0;
                   fluidScaleY = 1.0;
                   fluidBorderRadius = "9999px";
                 }
               }
             } else if (isPressed) {
-              fluidScaleX = 1.02;
-              fluidScaleY = 1 / 1.02;
+              fluidScaleX = 1.03;
+              fluidScaleY = 1 / 1.03;
               fluidSkewX = 0;
               fluidBorderRadius = "9999px";
             } else {
-              // Static ground state
+              // Static resting state: strictly relaxed equilibrium capsule
               fluidScaleX = 1.0;
               fluidScaleY = 1.0;
               fluidSkewX = 0;
@@ -986,25 +1003,27 @@ export function Navigation() {
                   borderRadius: fluidBorderRadius,
                 }}
                 transition={isHolding ? {
-                  x: { type: "spring", stiffness: 420, damping: 32, mass: 0.35 },
-                  y: { type: "spring", stiffness: 420, damping: 32, mass: 0.35 },
-                  width: { type: "spring", stiffness: 360, damping: 28, mass: 0.35 },
-                  height: { type: "spring", stiffness: 360, damping: 28, mass: 0.35 },
-                  scaleX: { type: "spring", stiffness: 380, damping: 26, mass: 0.35 },
-                  scaleY: { type: "spring", stiffness: 380, damping: 26, mass: 0.35 },
-                  skewX: { type: "spring", stiffness: 360, damping: 28, mass: 0.3 },
-                  borderRadius: { type: "spring", stiffness: 280, damping: 26 },
+                  // Active interactive drag: Responsive and attached directly to finger/pointer
+                  x: { type: "spring", stiffness: 460, damping: 32, mass: 0.24 },
+                  y: { type: "spring", stiffness: 460, damping: 32, mass: 0.24 },
+                  width: { type: "spring", stiffness: 420, damping: 30, mass: 0.24 },
+                  height: { type: "spring", stiffness: 420, damping: 30, mass: 0.24 },
+                  scaleX: { type: "spring", stiffness: 400, damping: 28, mass: 0.2 },
+                  scaleY: { type: "spring", stiffness: 400, damping: 28, mass: 0.2 },
+                  skewX: { type: "spring", stiffness: 400, damping: 28, mass: 0.2 },
+                  borderRadius: { type: "spring", stiffness: 350, damping: 28 },
                 } : {
-                  x: { type: "spring", stiffness: 340, damping: 30, mass: 0.6 },
-                  y: { type: "spring", stiffness: 340, damping: 30, mass: 0.6 },
-                  width: { type: "spring", stiffness: 320, damping: 28, mass: 0.6 },
-                  height: { type: "spring", stiffness: 320, damping: 28, mass: 0.6 },
-                  scaleX: { type: "spring", stiffness: 320, damping: 26 },
-                  scaleY: { type: "spring", stiffness: 320, damping: 26 },
-                  skewX: { type: "spring", stiffness: 320, damping: 26 },
-                  borderRadius: { type: "spring", stiffness: 320, damping: 26 },
+                  // Click & Route Transition: Slow, luxurious, fluid, elegant and cinematic ease
+                  x: { type: "spring", stiffness: 180, damping: 24, mass: 0.95 },
+                  y: { type: "spring", stiffness: 180, damping: 24, mass: 0.95 },
+                  width: { type: "spring", stiffness: 180, damping: 24, mass: 0.95 },
+                  height: { type: "spring", stiffness: 180, damping: 24, mass: 0.95 },
+                  scaleX: { type: "spring", stiffness: 220, damping: 24, mass: 0.6 },
+                  scaleY: { type: "spring", stiffness: 220, damping: 24, mass: 0.6 },
+                  skewX: { type: "spring", stiffness: 220, damping: 24, mass: 0.6 },
+                  borderRadius: { type: "spring", stiffness: 220, damping: 24 },
                 }}
-                className={`absolute pointer-events-none rounded-full transition-all duration-300 ${
+                className={`absolute pointer-events-none rounded-full ${
                   isExpandedState ? "z-30" : "z-10"
                 }`}
                 style={{
@@ -1016,7 +1035,6 @@ export function Navigation() {
                   boxShadow: isExpandedState
                     ? `0 18px 36px -4px rgba(0, 0, 0, 0.55), 0 6px 14px -2px rgba(0, 0, 0, 0.35), 0 0 ${Math.round(18 * ((config.capsuleGlowIntensity ?? 60) / 100))}px ${hexToRgba(config.activeBgColor, 0.25 * ((config.capsuleGlowIntensity ?? 60) / 100))}`
                     : `0 2px 8px rgba(0, 0, 0, 0.18)`,
-                  transition: "box-shadow 0.28s ease, border-radius 0.24s ease",
                 }}
               >
                 {/* Layer 1: Ambient Occlusion & Expanding Bloom Under Glass (Active only on hold/click) */}
@@ -1177,7 +1195,7 @@ export function Navigation() {
                   transform: isTargetHeld ? "scale(1.08)" : (isActive ? "scale(1.02)" : "scale(1)"),
                   transition: isHolding 
                     ? "transform 0.08s ease-out, color 0.08s ease-out"
-                    : "transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), color 0.22s ease",
+                    : "transform 0.52s cubic-bezier(0.16, 1, 0.3, 1), color 0.38s ease",
                 }}
                 className={`lg-item relative z-20 ${isActive ? "active is-active" : ""} ${isTargetHeld ? "held-target" : ""}`}
               >
@@ -1188,7 +1206,7 @@ export function Navigation() {
                     stroke: (isActive || isTargetHeld) ? config.activeIconColor : config.iconColor,
                     color: (isActive || isTargetHeld) ? config.activeIconColor : config.iconColor,
                     transform: isTargetHeld ? "scale(1.14)" : "scale(1)",
-                    transition: isHolding ? "transform 0.08s ease, opacity 0.08s ease" : "transform 0.2s ease, opacity 0.2s ease",
+                    transition: isHolding ? "transform 0.08s ease, opacity 0.08s ease" : "transform 0.52s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.38s ease",
                     position: "relative",
                     zIndex: 10,
                   }
