@@ -51,10 +51,13 @@ export function Navigation() {
 
   // Hold & Drag Left-Right Free Glass Navigation State
   const [isHolding, setIsHolding] = useState(false);
+  const [isPressed, setIsPressed] = useState(false);
   const [heldIndex, setHeldIndex] = useState<number | null>(null);
   const [dragGlassX, setDragGlassX] = useState<number>(0);
   const [dragGlassWidth, setDragGlassWidth] = useState<number>(0);
-  const [activeRect, setActiveRect] = useState<{ x: number; width: number } | null>(null);
+  const [dragGlassHeight, setDragGlassHeight] = useState<number>(0);
+  const [trackHeight, setTrackHeight] = useState<number>(38);
+  const [activeRect, setActiveRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const [isGliding, setIsGliding] = useState(false);
   
   const startPosRef = useRef<{ x: number; y: number; time: number; index: number } | null>(null);
@@ -63,14 +66,17 @@ export function Navigation() {
   const navDockRef = useRef<HTMLElement | null>(null);
   const cachedLayoutRef = useRef<{
     trackLeft: number;
+    trackTop: number;
     trackWidth: number;
-    items: { index: number; left: number; width: number; centerX: number }[];
+    trackHeight: number;
+    items: { index: number; left: number; top: number; width: number; height: number; centerX: number }[];
   } | null>(null);
 
   // Helper to build track layout cache
   const prepareLayoutCache = useCallback(() => {
     if (!trackRef.current) return null;
     const trackRect = trackRef.current.getBoundingClientRect();
+    setTrackHeight(trackRect.height);
     const itemElems = Array.from(trackRef.current.querySelectorAll<HTMLElement>(".lg-item"));
     
     const items = itemElems.map((item, idx) => {
@@ -78,14 +84,18 @@ export function Navigation() {
       return {
         index: idx,
         left: r.left - trackRect.left,
+        top: r.top - trackRect.top,
         width: r.width,
+        height: r.height,
         centerX: r.left + r.width / 2,
       };
     });
 
     const layout = {
       trackLeft: trackRect.left,
+      trackTop: trackRect.top,
       trackWidth: trackRect.width,
+      trackHeight: trackRect.height,
       items,
     };
     cachedLayoutRef.current = layout;
@@ -94,6 +104,7 @@ export function Navigation() {
 
   const handlePointerDown = useCallback((index: number, e: React.PointerEvent) => {
     startPosRef.current = { x: e.clientX, y: e.clientY, time: Date.now(), index };
+    setIsPressed(true);
     
     // Capture pointer on the nav dock container to receive all global move events
     const navElem = e.currentTarget.closest("nav") || (e.currentTarget as HTMLElement);
@@ -109,6 +120,7 @@ export function Navigation() {
       setHeldIndex(index);
       setDragGlassX(layout.items[index].left);
       setDragGlassWidth(layout.items[index].width);
+      setDragGlassHeight(layout.items[index].height);
     }
 
     if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
@@ -149,6 +161,7 @@ export function Navigation() {
 
     const targetItem = layout.items[closestIndex];
     const targetWidth = targetItem ? targetItem.width : 60;
+    const targetHeight = targetItem ? targetItem.height : 36;
 
     // Calculate clamped continuous position
     const rawLeft = cursorRelativeX - targetWidth / 2;
@@ -156,6 +169,7 @@ export function Navigation() {
 
     setHeldIndex(closestIndex);
     setDragGlassWidth(targetWidth);
+    setDragGlassHeight(targetHeight);
     setDragGlassX(clampedLeft);
   }, [isHolding, prepareLayoutCache]);
 
@@ -181,7 +195,16 @@ export function Navigation() {
       navDockRef.current = null;
     }
 
-    if (isHolding && heldIndex !== null) {
+    if (heldIndex !== null) {
+      if (cachedLayoutRef.current && cachedLayoutRef.current.items[heldIndex]) {
+        const targetItem = cachedLayoutRef.current.items[heldIndex];
+        setActiveRect({
+          x: targetItem.left,
+          y: targetItem.top,
+          width: targetItem.width,
+          height: targetItem.height,
+        });
+      }
       const targetLink = NAV_LINKS[heldIndex];
       if (targetLink && targetLink.path !== location.pathname) {
         navigate(targetLink.path);
@@ -189,10 +212,12 @@ export function Navigation() {
     }
 
     setIsHolding(false);
+    setIsPressed(false);
     setHeldIndex(null);
     startPosRef.current = null;
     cachedLayoutRef.current = null;
-  }, [isHolding, heldIndex, location.pathname, navigate]);
+    setIsGliding(false);
+  }, [heldIndex, location.pathname, navigate]);
 
   // Detect mobile viewport
   useEffect(() => {
@@ -212,6 +237,7 @@ export function Navigation() {
     const updateActiveRect = () => {
       if (!trackRef.current) return;
       const trackRect = trackRef.current.getBoundingClientRect();
+      setTrackHeight(trackRect.height);
       const activeIndex = NAV_LINKS.findIndex(link => 
         location.pathname === link.path || (link.id === "certificates" && (location.pathname === "/certificate" || location.pathname.startsWith("/certificate")))
       );
@@ -220,7 +246,9 @@ export function Navigation() {
         const itemRect = itemElems[activeIndex].getBoundingClientRect();
         setActiveRect({
           x: itemRect.left - trackRect.left,
+          y: itemRect.top - trackRect.top,
           width: itemRect.width,
+          height: itemRect.height,
         });
       }
     };
@@ -791,41 +819,73 @@ export function Navigation() {
           className={`lg-scroll-track relative ${isHolding ? "overflow-visible" : ""}`}
           style={{ gap: `${isMobile && config.mobileCustomEnabled ? config.mobileItemSpacing : config.itemSpacing}px` }}
         >
-          {/* Continuous Ultra-Responsive Chromatic Liquid Glass Capsule Indicator on Hold */}
-          <AnimatePresence>
-            {isHolding && dragGlassWidth > 0 && (
+          {/* Unified Dynamic Living Glass Capsule Indicator (Floating centered vertically in the nav dock) */}
+          {activeRect && (() => {
+            const isExpandedState = isHolding || isPressed;
+            const extraW = isExpandedState ? (config.capsuleExtraWidth ?? 24) : 0;
+            const extraH = isExpandedState ? (config.capsuleExtraHeight ?? 3) : 0;
+
+            const targetW = isHolding 
+              ? dragGlassWidth + extraW 
+              : activeRect.width + extraW;
+
+            const targetH = isHolding 
+              ? (dragGlassHeight || activeRect.height) + extraH 
+              : activeRect.height + extraH;
+
+            const targetX = isHolding 
+              ? dragGlassX - (extraW / 2) 
+              : activeRect.x - (extraW / 2);
+
+            // Floating vertically centered in the nav track at all times:
+            const targetY = (trackHeight - targetH) / 2;
+
+            return (
               <motion.div
-                key="fluid-hold-glass-capsule"
-                initial={{ opacity: 0, scale: 0.85 }}
+                key="living-glass-capsule"
+                initial={false}
                 animate={{ 
-                  opacity: 1, 
-                  scale: 1,
-                  x: dragGlassX - ((config.capsuleExtraWidth ?? 24) / 2),
-                  width: dragGlassWidth + (config.capsuleExtraWidth ?? 24),
+                  x: targetX,
+                  y: targetY,
+                  width: targetW,
+                  height: targetH,
                 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{
+                transition={isHolding ? {
                   x: { type: "spring", stiffness: 2800, damping: 80, mass: 0.01 },
                   width: { type: "spring", stiffness: 2000, damping: 70, mass: 0.01 },
-                  scale: { type: "spring", stiffness: 1000, damping: 35 },
-                  opacity: { duration: 0.05 },
+                  height: { type: "spring", stiffness: 2000, damping: 70, mass: 0.01 },
+                  y: { type: "spring", stiffness: 2000, damping: 70, mass: 0.01 },
+                } : {
+                  x: { type: "spring", stiffness: 380, damping: 32, mass: 0.6 },
+                  y: { type: "spring", stiffness: 380, damping: 32, mass: 0.6 },
+                  width: { type: "spring", stiffness: 380, damping: 32, mass: 0.6 },
+                  height: { type: "spring", stiffness: 380, damping: 32, mass: 0.6 },
                 }}
-                className="absolute pointer-events-none z-10 overflow-hidden rounded-full backdrop-blur-3xl"
+                className="absolute pointer-events-none z-10 overflow-hidden backdrop-blur-3xl rounded-full"
                 style={{
-                  top: `-${(config.capsuleExtraHeight ?? 3) / 2}px`,
-                  bottom: `-${(config.capsuleExtraHeight ?? 3) / 2}px`,
-                  background: `linear-gradient(165deg, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity ?? 30) / 100 * 2.8)}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity ?? 30) / 100 * 1.3)})`,
-                  borderRadius: "9999px",
-                  boxShadow: `0 0 ${Math.round(40 * ((config.capsuleGlowIntensity ?? 60) / 100))}px ${hexToRgba(config.activeBgColor, 0.6 * ((config.capsuleGlowIntensity ?? 60) / 100))}, 0 10px 28px rgba(0,0,0,0.55), inset 0 1px 2px rgba(255,255,255,0.8)`,
+                  background: isExpandedState
+                    ? `linear-gradient(165deg, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity ?? 30) / 100 * 2.8)}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity ?? 30) / 100 * 1.3)})`
+                    : `linear-gradient(165deg, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity ?? 30) / 100 * 1.5)}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity ?? 30) / 100 * 0.75)})`,
+                  borderRadius: `${config.activeIndicatorRadius || 9999}px`,
+                  border: isExpandedState 
+                    ? "none" 
+                    : `1px solid ${hexToRgba("#ffffff", 0.22)}`,
+                  boxShadow: isExpandedState
+                    ? `0 0 ${Math.round(36 * ((config.capsuleGlowIntensity ?? 60) / 100))}px ${hexToRgba(config.activeBgColor, 0.55 * ((config.capsuleGlowIntensity ?? 60) / 100))}, 0 8px 24px rgba(0,0,0,0.45)`
+                    : `0 2px 10px rgba(0,0,0,0.30), inset 0 1px 1px rgba(255,255,255,0.35)`,
+                  transition: "background 0.25s ease, border 0.25s ease, box-shadow 0.25s ease",
                 }}
               >
-                {/* Chromatic Aberration Spectrum Prism Rim Light (Rainbow Refraction Edge) */}
+                {/* Chromatic Aberration Spectrum Prism Rim Light (Rainbow Refraction Edge - Activates on Hold & Click) */}
                 {(config.capsuleChromaticEnabled ?? true) && (
-                  <div 
+                  <motion.div 
+                    initial={false}
+                    animate={{ opacity: isExpandedState ? ((config.capsuleChromaticOpacity ?? 80) / 100) : 0 }}
+                    transition={{ duration: 0.2 }}
                     className="absolute inset-0 rounded-full pointer-events-none"
                     style={{
                       padding: "1.5px",
-                      opacity: (config.capsuleChromaticOpacity ?? 80) / 100,
+                      borderRadius: "9999px",
                       background: "linear-gradient(115deg, rgba(255,255,255,0.95), rgba(74,222,128,0.7) 25%, rgba(192,132,252,0.8) 50%, rgba(56,189,248,0.8) 75%, rgba(255,255,255,0.95))",
                       WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
                       WebkitMaskComposite: "xor",
@@ -835,58 +895,16 @@ export function Navigation() {
                 )}
                 
                 {/* Specular Glare Lines & Refraction Magnification Glow */}
-                <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-transparent via-white to-transparent opacity-95 blur-[0.3px]" />
-                <div className="absolute inset-0 bg-gradient-to-tr from-white/30 via-transparent to-blue-300/30 pointer-events-none" />
-                <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-emerald-400/30 to-blue-400/30 blur-[1px]" />
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Dynamic Gliding Active Glass Capsule Indicator (Normal Clicks) */}
-          {!isHolding && activeRect && (
-            <motion.div
-              key="active-gliding-glass-capsule"
-              initial={false}
-              animate={{ 
-                x: activeRect.x,
-                width: activeRect.width,
-                scaleY: isGliding ? 1.14 : 1,
-                scaleX: isGliding ? 1.06 : 1,
-              }}
-              transition={{
-                x: { type: "spring", stiffness: 300, damping: 26, mass: 0.60 },
-                width: { type: "spring", stiffness: 300, damping: 26, mass: 0.60 },
-                scaleY: { type: "spring", stiffness: 450, damping: 22 },
-                scaleX: { type: "spring", stiffness: 450, damping: 22 },
-              }}
-              className="absolute top-0 bottom-0 pointer-events-none z-10 overflow-hidden backdrop-blur-2xl rounded-full"
-              style={{
-                background: `linear-gradient(165deg, ${hexToRgba(config.activeBgColor, config.activeBgOpacity / 100)}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity * 0.45) / 100)})`,
-                borderRadius: "9999px",
-                boxShadow: `0 0 ${Math.round(28 * ((config.capsuleGlowIntensity ?? 60) / 100))}px ${hexToRgba(config.activeBgColor, 0.5 * ((config.capsuleGlowIntensity ?? 60) / 100))}, 0 4px 18px rgba(0,0,0,0.38)`,
-              }}
-            >
-              {/* Chromatic Aberration Spectrum Prism Rim Light */}
-              {(config.capsuleChromaticEnabled ?? true) && (
-                <div 
-                  className="absolute inset-0 rounded-full pointer-events-none"
-                  style={{
-                    padding: "1.2px",
-                    opacity: (config.capsuleChromaticOpacity ?? 80) / 100,
-                    background: "linear-gradient(115deg, rgba(255,255,255,0.9), rgba(74,222,128,0.6) 25%, rgba(192,132,252,0.7) 50%, rgba(56,189,248,0.7) 75%, rgba(255,255,255,0.9))",
-                    WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-                    WebkitMaskComposite: "xor",
-                    maskComposite: "exclude",
-                  }}
+                <div className="absolute inset-x-0 top-0 h-[2.5px] bg-gradient-to-r from-transparent via-white to-transparent opacity-95 blur-[0.3px]" />
+                <div className="absolute inset-0 bg-gradient-to-tr from-white/25 via-transparent to-blue-300/25 pointer-events-none" />
+                <motion.div 
+                  animate={{ opacity: isExpandedState ? 1 : 0.35 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-emerald-400/30 to-blue-400/30 blur-[1px]" 
                 />
-              )}
-
-              {/* Specular Glare Lines & Refraction Glow for 3D Dynamic Glass Capsule */}
-              <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-white to-transparent opacity-90" />
-              <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-blue-300/20 pointer-events-none" />
-              <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-400/20 to-blue-400/20 blur-[1px]" />
-            </motion.div>
-          )}
+              </motion.div>
+            );
+          })()}
 
           {NAV_LINKS.map((link, index) => {
             const isActive = location.pathname === link.path || (link.id === "certificates" && (location.pathname === "/certificate" || location.pathname.startsWith("/certificate")));

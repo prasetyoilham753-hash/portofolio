@@ -520,7 +520,7 @@
     justify-content: space-between;
     width: 100%;
     gap: var(--nav-item-spacing, 2px);
-    overflow-x: auto;
+    overflow: visible;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
     border-radius: inherit;
