@@ -235,15 +235,13 @@ export function Navigation() {
     };
   }, [config, isMobile]);
 
-  // Compute dynamic highlight pill style for active item
+  // Compute dynamic highlight pill style for active item (Strictly inner light rim - NO outer glow/shadow bleeds)
   const highlightStyle = useMemo<React.CSSProperties>(() => {
     const activeBgColor = hexToRgba(config.activeBgColor, config.activeBgOpacity / 100);
     return {
       background: `linear-gradient(165deg, ${activeBgColor}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity * 0.6) / 100)})`,
       border: `1px solid ${hexToRgba("#ffffff", 0.35)}`,
-      boxShadow: config.activeIndicatorGlow 
-        ? `0 4px 14px ${hexToRgba(config.activeBgColor, 0.35)}, inset 0 1px 1px rgba(255, 255, 255, 0.45)`
-        : "inset 0 1px 1px rgba(255, 255, 255, 0.35)",
+      boxShadow: "inset 0 1px 1px rgba(255, 255, 255, 0.35)",
       borderRadius: `${config.activeIndicatorRadius}px`,
       opacity: config.activeIndicatorEnabled ? (config.activeIndicatorOpacity / 100) : 0,
       display: config.activeIndicatorEnabled ? "block" : "none",
@@ -268,30 +266,34 @@ export function Navigation() {
     };
   }, [config]);
 
-  // Compute dynamic styles for More Menu Dropdown Popover
+  // Compute dynamic styles for More Menu Dropdown Popover (Completely separate from Nav Dock)
   const dropdownContainerStyle = useMemo<React.CSSProperties>(() => {
-    const bgOpacity = (config.bgOpacity / 100) * 0.95;
-    const borderOpacity = (config.borderOpacity / 100);
+    const bgOpacity = config.dropdownBgOpacity / 100;
+    const borderOpacity = config.dropdownBorderOpacity / 100;
 
     let background = "";
-    if (config.bgType === "color") {
-      background = hexToRgba(config.bgColor, Math.min(1, bgOpacity + 0.15));
-    } else if (config.bgGradientEnabled) {
-      background = `linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 100%), linear-gradient(${config.bgGradientDirection}, ${hexToRgba(config.bgGradientStart, Math.min(1, bgOpacity + 0.15))}, ${hexToRgba(config.bgGradientEnd, Math.min(1, bgOpacity + 0.2))})`;
+    if (config.dropdownBgType === "color") {
+      background = hexToRgba(config.dropdownBgColor, bgOpacity);
+    } else if (config.dropdownBgType === "gradient") {
+      background = `linear-gradient(${config.dropdownBgGradientDirection}, ${hexToRgba(config.dropdownBgGradientStart, bgOpacity)}, ${hexToRgba(config.dropdownBgGradientEnd, bgOpacity)})`;
     } else {
-      background = `linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 100%), ${hexToRgba(config.bgColor, Math.min(1, bgOpacity + 0.15))}`;
+      background = `linear-gradient(180deg, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.02) 100%), ${hexToRgba(config.dropdownBgColor, bgOpacity)}`;
     }
 
-    const border = config.borderEnabled 
-      ? `${config.borderWidth}px ${config.borderStyle} ${hexToRgba(config.borderColor, borderOpacity)}`
-      : "1px solid rgba(255, 255, 255, 0.14)";
+    const border = config.dropdownBorderEnabled 
+      ? `${config.dropdownBorderWidth}px ${config.dropdownBorderStyle} ${hexToRgba(config.dropdownBorderColor, borderOpacity)}`
+      : "none";
+
+    const shadowY = Math.round(config.dropdownShadowBlur / 2.5);
+    const boxShadow = `0 ${shadowY}px ${config.dropdownShadowBlur}px ${hexToRgba(config.dropdownShadowColor, config.dropdownShadowOpacity / 100)}`;
 
     return {
       background,
-      backdropFilter: `blur(${Math.max(12, config.backdropBlur)}px) saturate(${config.saturation}%) brightness(${config.brightness}%) contrast(${config.contrast}%)`,
-      WebkitBackdropFilter: `blur(${Math.max(12, config.backdropBlur)}px) saturate(${config.saturation}%) brightness(${config.brightness}%) contrast(${config.contrast}%)`,
+      backdropFilter: `blur(${config.dropdownBackdropBlur}px)`,
+      WebkitBackdropFilter: `blur(${config.dropdownBackdropBlur}px)`,
       border,
-      boxShadow: buildNavBoxShadow(config),
+      borderRadius: `${config.dropdownBorderRadius}px`,
+      boxShadow,
     };
   }, [config]);
 
@@ -374,10 +376,10 @@ export function Navigation() {
                     id={`menu-item-${link.id}`}
                     onClick={() => setIsOpen(false)}
                     style={({ isActive }) => ({
-                      borderRadius: `${Math.min(12, config.itemBorderRadius)}px`,
-                      color: isActive ? config.activeTextColor : hexToRgba(config.textColor, config.textOpacity / 100),
+                      borderRadius: `${Math.min(12, config.dropdownBorderRadius)}px`,
+                      color: isActive ? config.dropdownActiveTextColor : hexToRgba(config.dropdownTextColor, config.dropdownTextOpacity / 100),
                       background: isActive 
-                        ? `linear-gradient(165deg, ${hexToRgba(config.activeBgColor, config.activeBgOpacity / 100)}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity * 0.6) / 100)})`
+                        ? `linear-gradient(165deg, ${hexToRgba(config.dropdownActiveBgColor, config.dropdownActiveBgOpacity / 100)}, ${hexToRgba(config.dropdownActiveBgColor, (config.dropdownActiveBgOpacity * 0.6) / 100)})`
                         : undefined,
                       borderColor: isActive ? hexToRgba("#ffffff", 0.3) : undefined,
                     })}
@@ -389,7 +391,7 @@ export function Navigation() {
                       style={{
                         background: "rgba(255, 255, 255, 0.08)",
                         borderColor: "rgba(255, 255, 255, 0.15)",
-                        color: config.activeIconColor,
+                        color: config.dropdownActiveIconColor,
                       }}
                       className="p-1 rounded-md border shrink-0"
                     >
@@ -397,9 +399,8 @@ export function Navigation() {
                     </span>
                     <span 
                       style={{
-                        fontSize: `${config.fontSize + 0.5}px`,
-                        fontWeight: config.fontWeight,
-                        letterSpacing: `${config.letterSpacing}em`,
+                        fontSize: `${config.dropdownFontSize}px`,
+                        fontWeight: 500,
                       }}
                       className="truncate"
                     >
@@ -415,11 +416,10 @@ export function Navigation() {
                 <div className="px-1.5 pt-0.5 pb-0.5 flex items-center">
                   <span 
                     style={{
-                      color: config.activeTextColor,
+                      color: config.dropdownActiveTextColor,
                       opacity: 0.8,
-                      letterSpacing: `${config.letterSpacing + 0.04}em`,
                     }}
-                    className="text-[9px] font-semibold uppercase"
+                    className="text-[9px] font-semibold uppercase tracking-wider"
                   >
                     Background
                   </span>
@@ -431,10 +431,10 @@ export function Navigation() {
                   type="button"
                   onClick={() => setBackgroundType('molten')}
                   style={{
-                    borderRadius: `${Math.min(12, config.itemBorderRadius)}px`,
-                    color: backgroundType === 'molten' ? config.activeTextColor : hexToRgba(config.textColor, config.textOpacity / 100),
+                    borderRadius: `${Math.min(12, config.dropdownBorderRadius)}px`,
+                    color: backgroundType === 'molten' ? config.dropdownActiveTextColor : hexToRgba(config.dropdownTextColor, config.dropdownTextOpacity / 100),
                     background: backgroundType === 'molten'
-                      ? `linear-gradient(165deg, ${hexToRgba(config.activeBgColor, config.activeBgOpacity / 100)}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity * 0.6) / 100)})`
+                      ? `linear-gradient(165deg, ${hexToRgba(config.dropdownActiveBgColor, config.dropdownActiveBgOpacity / 100)}, ${hexToRgba(config.dropdownActiveBgColor, (config.dropdownActiveBgOpacity * 0.6) / 100)})`
                       : undefined,
                     borderColor: backgroundType === 'molten' ? hexToRgba("#ffffff", 0.3) : undefined,
                   }}
@@ -445,15 +445,15 @@ export function Navigation() {
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <span 
-                      style={{ color: config.activeIconColor }}
+                      style={{ color: config.dropdownActiveIconColor }}
                       className="p-1 rounded-md bg-white/[0.08] border border-white/15 shrink-0"
                     >
                       <Waves size={14} />
                     </span>
                     <span 
                       style={{
-                        fontSize: `${config.fontSize + 0.5}px`,
-                        fontWeight: config.fontWeight,
+                        fontSize: `${config.dropdownFontSize}px`,
+                        fontWeight: 500,
                       }}
                       className="leading-tight truncate"
                     >
@@ -463,9 +463,9 @@ export function Navigation() {
                   {backgroundType === 'molten' && (
                     <span 
                       style={{
-                        backgroundColor: hexToRgba(config.activeBgColor, 0.35),
-                        borderColor: hexToRgba(config.activeBgColor, 0.8),
-                        color: config.activeTextColor,
+                        backgroundColor: hexToRgba(config.dropdownActiveBgColor, 0.35),
+                        borderColor: hexToRgba(config.dropdownActiveBgColor, 0.8),
+                        color: config.dropdownActiveTextColor,
                       }}
                       className="shrink-0 w-3.5 h-3.5 rounded-full border flex items-center justify-center ml-1 shadow-sm"
                     >
@@ -480,10 +480,10 @@ export function Navigation() {
                   type="button"
                   onClick={() => setBackgroundType('ghost-fibers')}
                   style={{
-                    borderRadius: `${Math.min(12, config.itemBorderRadius)}px`,
-                    color: backgroundType === 'ghost-fibers' ? config.activeTextColor : hexToRgba(config.textColor, config.textOpacity / 100),
+                    borderRadius: `${Math.min(12, config.dropdownBorderRadius)}px`,
+                    color: backgroundType === 'ghost-fibers' ? config.dropdownActiveTextColor : hexToRgba(config.dropdownTextColor, config.dropdownTextOpacity / 100),
                     background: backgroundType === 'ghost-fibers'
-                      ? `linear-gradient(165deg, ${hexToRgba(config.activeBgColor, config.activeBgOpacity / 100)}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity * 0.6) / 100)})`
+                      ? `linear-gradient(165deg, ${hexToRgba(config.dropdownActiveBgColor, config.dropdownActiveBgOpacity / 100)}, ${hexToRgba(config.dropdownActiveBgColor, (config.dropdownActiveBgOpacity * 0.6) / 100)})`
                       : undefined,
                     borderColor: backgroundType === 'ghost-fibers' ? hexToRgba("#ffffff", 0.3) : undefined,
                   }}
@@ -494,15 +494,15 @@ export function Navigation() {
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <span 
-                      style={{ color: config.activeIconColor }}
+                      style={{ color: config.dropdownActiveIconColor }}
                       className="p-1 rounded-md bg-white/[0.08] border border-white/15 shrink-0"
                     >
                       <Activity size={14} />
                     </span>
                     <span 
                       style={{
-                        fontSize: `${config.fontSize + 0.5}px`,
-                        fontWeight: config.fontWeight,
+                        fontSize: `${config.dropdownFontSize}px`,
+                        fontWeight: 500,
                       }}
                       className="leading-tight truncate"
                     >
@@ -512,9 +512,9 @@ export function Navigation() {
                   {backgroundType === 'ghost-fibers' && (
                     <span 
                       style={{
-                        backgroundColor: hexToRgba(config.activeBgColor, 0.35),
-                        borderColor: hexToRgba(config.activeBgColor, 0.8),
-                        color: config.activeTextColor,
+                        backgroundColor: hexToRgba(config.dropdownActiveBgColor, 0.35),
+                        borderColor: hexToRgba(config.dropdownActiveBgColor, 0.8),
+                        color: config.dropdownActiveTextColor,
                       }}
                       className="shrink-0 w-3.5 h-3.5 rounded-full border flex items-center justify-center ml-1 shadow-sm"
                     >
@@ -529,10 +529,10 @@ export function Navigation() {
                   type="button"
                   onClick={() => setBackgroundType('light-pillar')}
                   style={{
-                    borderRadius: `${Math.min(12, config.itemBorderRadius)}px`,
-                    color: backgroundType === 'light-pillar' ? config.activeTextColor : hexToRgba(config.textColor, config.textOpacity / 100),
+                    borderRadius: `${Math.min(12, config.dropdownBorderRadius)}px`,
+                    color: backgroundType === 'light-pillar' ? config.dropdownActiveTextColor : hexToRgba(config.dropdownTextColor, config.dropdownTextOpacity / 100),
                     background: backgroundType === 'light-pillar'
-                      ? `linear-gradient(165deg, ${hexToRgba(config.activeBgColor, config.activeBgOpacity / 100)}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity * 0.6) / 100)})`
+                      ? `linear-gradient(165deg, ${hexToRgba(config.dropdownActiveBgColor, config.dropdownActiveBgOpacity / 100)}, ${hexToRgba(config.dropdownActiveBgColor, (config.dropdownActiveBgOpacity * 0.6) / 100)})`
                       : undefined,
                     borderColor: backgroundType === 'light-pillar' ? hexToRgba("#ffffff", 0.3) : undefined,
                   }}
@@ -543,15 +543,15 @@ export function Navigation() {
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <span 
-                      style={{ color: config.activeIconColor }}
+                      style={{ color: config.dropdownActiveIconColor }}
                       className="p-1 rounded-md bg-white/[0.08] border border-white/15 shrink-0"
                     >
                       <Zap size={14} />
                     </span>
                     <span 
                       style={{
-                        fontSize: `${config.fontSize + 0.5}px`,
-                        fontWeight: config.fontWeight,
+                        fontSize: `${config.dropdownFontSize}px`,
+                        fontWeight: 500,
                       }}
                       className="leading-tight truncate"
                     >
@@ -561,9 +561,9 @@ export function Navigation() {
                   {backgroundType === 'light-pillar' && (
                     <span 
                       style={{
-                        backgroundColor: hexToRgba(config.activeBgColor, 0.35),
-                        borderColor: hexToRgba(config.activeBgColor, 0.8),
-                        color: config.activeTextColor,
+                        backgroundColor: hexToRgba(config.dropdownActiveBgColor, 0.35),
+                        borderColor: hexToRgba(config.dropdownActiveBgColor, 0.8),
+                        color: config.dropdownActiveTextColor,
                       }}
                       className="shrink-0 w-3.5 h-3.5 rounded-full border flex items-center justify-center ml-1 shadow-sm"
                     >

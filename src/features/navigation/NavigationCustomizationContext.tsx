@@ -87,6 +87,31 @@ export interface NavigationConfig {
   activeIndicatorOpacity: number; // 0 - 100 (%)
   activeIndicatorGlow: boolean;
 
+  // Dropdown Popover (Independent Customization - Does NOT affect Nav Dock)
+  dropdownBgType: "color" | "gradient" | "glass";
+  dropdownBgColor: string;
+  dropdownBgOpacity: number; // 0 - 100 (%)
+  dropdownBgGradientStart: string;
+  dropdownBgGradientEnd: string;
+  dropdownBgGradientDirection: string;
+  dropdownBackdropBlur: number; // 0 - 40 (px)
+  dropdownBorderEnabled: boolean;
+  dropdownBorderColor: string;
+  dropdownBorderOpacity: number; // 0 - 100 (%)
+  dropdownBorderWidth: number; // 0 - 8 (px)
+  dropdownBorderStyle: "solid" | "dashed" | "dotted";
+  dropdownBorderRadius: number; // 0 - 40 (px)
+  dropdownShadowBlur: number; // 0 - 60 (px)
+  dropdownShadowOpacity: number; // 0 - 100 (%)
+  dropdownShadowColor: string;
+  dropdownTextColor: string;
+  dropdownTextOpacity: number; // 0 - 100 (%)
+  dropdownActiveBgColor: string;
+  dropdownActiveBgOpacity: number; // 0 - 100 (%)
+  dropdownActiveTextColor: string;
+  dropdownActiveIconColor: string;
+  dropdownFontSize: number; // 8 - 18 (px)
+
   // Mobile Navigation
   mobileCustomEnabled: boolean;
   mobileBgColor: string;
@@ -157,12 +182,12 @@ export const DEFAULT_NAVIGATION_CONFIG: NavigationConfig = {
   itemPaddingY: 7,
   itemPaddingX: 4,
   itemBorderRadius: 999,
-  hoverAnimation: "glow",
+  hoverAnimation: "none",
   activeAnimation: "melt",
   transitionSpeed: 380,
   hoverScale: 1,
-  hoverGlow: true,
-  hoverGlowIntensity: 40,
+  hoverGlow: false,
+  hoverGlowIntensity: 0,
 
   // Icon
   iconColor: "#ffffff",
@@ -186,7 +211,32 @@ export const DEFAULT_NAVIGATION_CONFIG: NavigationConfig = {
   activeIndicatorEnabled: true,
   activeIndicatorRadius: 999,
   activeIndicatorOpacity: 100,
-  activeIndicatorGlow: true,
+  activeIndicatorGlow: false,
+
+  // Dropdown Popover (Independent Customization - Does NOT affect Nav Dock)
+  dropdownBgType: "glass",
+  dropdownBgColor: "#0a152d",
+  dropdownBgOpacity: 85,
+  dropdownBgGradientStart: "#0e1c38",
+  dropdownBgGradientEnd: "#040a18",
+  dropdownBgGradientDirection: "180deg",
+  dropdownBackdropBlur: 20,
+  dropdownBorderEnabled: true,
+  dropdownBorderColor: "#7db3ff",
+  dropdownBorderOpacity: 25,
+  dropdownBorderWidth: 1,
+  dropdownBorderStyle: "solid",
+  dropdownBorderRadius: 16,
+  dropdownShadowBlur: 32,
+  dropdownShadowOpacity: 50,
+  dropdownShadowColor: "#000000",
+  dropdownTextColor: "#d2e3f7",
+  dropdownTextOpacity: 90,
+  dropdownActiveBgColor: "#6eb2ff",
+  dropdownActiveBgOpacity: 25,
+  dropdownActiveTextColor: "#ffffff",
+  dropdownActiveIconColor: "#7db3ff",
+  dropdownFontSize: 12,
 
   // Mobile Navigation
   mobileCustomEnabled: false,
