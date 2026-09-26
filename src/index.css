@@ -451,6 +451,12 @@
     z-index: 4;
   }
 
+  nav#main-navigation-dock.overflow-visible,
+  .liquid-glass-nav.overflow-visible,
+  .lg-scroll-track.overflow-visible {
+    overflow: visible !important;
+  }
+
   /* ============================================================
      LIQUID GLASS NAVIGATION DOCK (DUAL SCROLL & SLIDE ADAPTIVE)
      Connected to Navigation Customization Engine

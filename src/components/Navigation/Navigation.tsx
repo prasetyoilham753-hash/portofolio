@@ -49,6 +49,99 @@ export function Navigation() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Hold & Drag Left-Right Free Glass Navigation State
+  const [isHolding, setIsHolding] = useState(false);
+  const [heldIndex, setHeldIndex] = useState<number | null>(null);
+  const [dragGlassX, setDragGlassX] = useState<number>(0);
+  const [dragGlassWidth, setDragGlassWidth] = useState<number>(0);
+  const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const startPosRef = useRef<{ x: number; y: number } | null>(null);
+
+  // Helper to find closest NAV_LINKS item index from client X position
+  const getIndexFromClientX = useCallback((clientX: number): number | null => {
+    if (!trackRef.current) return null;
+    const items = Array.from(trackRef.current.querySelectorAll<HTMLElement>(".lg-item"));
+    if (items.length === 0) return null;
+
+    let closestIndex = 0;
+    let minDistance = Infinity;
+
+    items.forEach((item, index) => {
+      const rect = item.getBoundingClientRect();
+      const itemCenterX = rect.left + rect.width / 2;
+      const distance = Math.abs(clientX - itemCenterX);
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestIndex = index;
+      }
+    });
+
+    return closestIndex;
+  }, []);
+
+  const handlePointerDown = useCallback((index: number, e: React.PointerEvent) => {
+    startPosRef.current = { x: e.clientX, y: e.clientY };
+    setHeldIndex(index);
+    setIsHolding(true);
+
+    if (trackRef.current) {
+      const trackRect = trackRef.current.getBoundingClientRect();
+      const items = Array.from(trackRef.current.querySelectorAll<HTMLElement>(".lg-item"));
+      if (items[index]) {
+        const itemRect = items[index].getBoundingClientRect();
+        setDragGlassX(itemRect.left - trackRect.left);
+        setDragGlassWidth(itemRect.width);
+      }
+    }
+  }, []);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (startPosRef.current) {
+      const dist = Math.hypot(e.clientX - startPosRef.current.x, e.clientY - startPosRef.current.y);
+      if (dist > 5 && !isHolding) {
+        setIsHolding(true);
+      }
+    }
+
+    if ((isHolding || startPosRef.current) && trackRef.current) {
+      const trackRect = trackRef.current.getBoundingClientRect();
+      const cursorRelativeX = e.clientX - trackRect.left;
+      
+      // Calculate target item under pointer
+      const targetIdx = getIndexFromClientX(e.clientX);
+      if (targetIdx !== null) {
+        setHeldIndex(targetIdx);
+        
+        const items = Array.from(trackRef.current.querySelectorAll<HTMLElement>(".lg-item"));
+        const targetItemWidth = items[targetIdx] ? items[targetIdx].getBoundingClientRect().width : (dragGlassWidth || 60);
+        setDragGlassWidth(targetItemWidth);
+
+        // Calculate smooth continuous position centered around pointer clamped within track bounds
+        const rawLeft = cursorRelativeX - targetItemWidth / 2;
+        const clampedLeft = Math.max(0, Math.min(trackRect.width - targetItemWidth, rawLeft));
+        setDragGlassX(clampedLeft);
+      }
+    }
+  }, [isHolding, dragGlassWidth, getIndexFromClientX]);
+
+  const handlePointerUp = useCallback(() => {
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+
+    if (isHolding && heldIndex !== null) {
+      const targetLink = NAV_LINKS[heldIndex];
+      if (targetLink) {
+        navigate(targetLink.path);
+      }
+    }
+
+    setIsHolding(false);
+    setHeldIndex(null);
+    startPosRef.current = null;
+  }, [isHolding, heldIndex, navigate]);
+
   // Detect mobile viewport
   useEffect(() => {
     const checkMobile = () => {
@@ -577,36 +670,99 @@ export function Navigation() {
         </AnimatePresence>
       </div>
 
+      {/* Floating Glass Tooltip Badge during Hold & Drag Gesture */}
+      <AnimatePresence>
+        {isHolding && heldIndex !== null && NAV_LINKS[heldIndex] && (
+          <motion.div
+            initial={{ opacity: 0, y: 12, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.9 }}
+            transition={{ type: "spring", stiffness: 450, damping: 30 }}
+            className="fixed z-50 pointer-events-none px-4 py-2 rounded-2xl bg-slate-950/80 border border-white/30 text-white text-xs font-semibold backdrop-blur-2xl shadow-[0_12px_36px_rgba(0,0,0,0.6)] flex items-center gap-2.5"
+            style={{
+              bottom: `${config.bottomOffset + 68}px`,
+              left: "50%",
+              transform: "translateX(-50%)",
+            }}
+          >
+            <span className="w-2 h-2 rounded-full bg-blue-400 shadow-[0_0_8px_#60a5fa] animate-pulse" />
+            <span className="text-white/90">Lepas untuk pindah ke <strong className="text-blue-300 font-bold">{NAV_LINKS[heldIndex].label}</strong></span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Liquid Glass Navigation Dock: Stable and responsive */}
       <nav 
         id="main-navigation-dock"
         aria-label="Navigasi utama"
-        className="liquid-glass-nav"
+        className={`liquid-glass-nav select-none touch-none ${isHolding ? "overflow-visible" : ""}`}
         style={dockStyle}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
       >
         {/* Scroll / Slide Track for seamless touch swiping and equal-width tabs */}
         <div 
           ref={trackRef} 
-          className="lg-scroll-track"
+          className={`lg-scroll-track relative ${isHolding ? "overflow-visible" : ""}`}
           style={{ gap: `${isMobile && config.mobileCustomEnabled ? config.mobileItemSpacing : config.itemSpacing}px` }}
         >
-          {NAV_LINKS.map((link) => {
+          {/* Continuous Smooth Fluid Glass Horizontal Capsule Indicator with Outward Extension on Hold */}
+          <AnimatePresence>
+            {isHolding && dragGlassWidth > 0 && (
+              <motion.div
+                key="fluid-hold-glass-capsule"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ 
+                  opacity: 1, 
+                  scale: 1,
+                  x: dragGlassX - 14,
+                  width: dragGlassWidth + 28,
+                }}
+                exit={{ opacity: 0, scale: 0.7 }}
+                transition={{
+                  x: { type: "spring", stiffness: 650, damping: 38, mass: 0.35 },
+                  width: { type: "spring", stiffness: 650, damping: 38 },
+                  scale: { type: "spring", stiffness: 550, damping: 32 },
+                  opacity: { duration: 0.12 },
+                }}
+                className="absolute -top-1.5 -bottom-1.5 pointer-events-none z-10 overflow-hidden shadow-[0_0_35px_rgba(59,130,246,0.65),0_8px_24px_rgba(0,0,0,0.45)] backdrop-blur-2xl rounded-full"
+                style={{
+                  background: `linear-gradient(165deg, ${hexToRgba(config.activeBgColor, 0.85)}, ${hexToRgba(config.activeBgColor, 0.40)})`,
+                  border: "1.5px solid rgba(255, 255, 255, 0.90)",
+                  borderRadius: "9999px",
+                }}
+              >
+                {/* Specular Glare Lines & Refraction Glow for Sleek Horizontal 3D Glass Capsule */}
+                <div className="absolute inset-x-0 top-0 h-[2.5px] bg-gradient-to-r from-transparent via-white to-transparent opacity-95" />
+                <div className="absolute inset-0 bg-gradient-to-tr from-white/25 via-transparent to-blue-300/25 pointer-events-none" />
+                <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-blue-400/30 to-transparent blur-[1px]" />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {NAV_LINKS.map((link, index) => {
             const isActive = location.pathname === link.path || (link.id === "certificates" && (location.pathname === "/certificate" || location.pathname.startsWith("/certificate")));
+            const isTargetHeld = isHolding && heldIndex === index;
+
             return (
               <NavLink
                 key={link.path}
                 to={link.path}
                 id={`nav-item-${link.id}`}
+                onPointerDown={(e) => handlePointerDown(index, e)}
                 style={{
                   ...itemStyle,
-                  color: isActive 
+                  color: (isActive || isTargetHeld) 
                     ? config.activeTextColor 
                     : hexToRgba(config.textColor, config.textOpacity / 100),
+                  transform: isTargetHeld ? "scale(1.08)" : "scale(1)",
+                  transition: "transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s ease",
                 }}
-                className={`lg-item ${isActive ? "active is-active" : ""}`}
+                className={`lg-item relative z-20 ${isActive ? "active is-active" : ""} ${isTargetHeld ? "held-target" : ""}`}
               >
                 {/* Single Gliding Active Highlight Shape */}
-                {isActive && (
+                {isActive && !isHolding && (
                   <motion.div
                     layoutId="active-nav-shape"
                     className="lg-highlight"
@@ -620,12 +776,15 @@ export function Navigation() {
                     aria-hidden="true"
                   />
                 )}
+
                 {React.cloneElement(link.icon as React.ReactElement<{ size?: number; style?: React.CSSProperties }>, {
                   size: config.iconSize,
                   style: {
-                    opacity: isActive ? 1 : config.iconOpacity / 100,
-                    stroke: isActive ? config.activeIconColor : config.iconColor,
-                    color: isActive ? config.activeIconColor : config.iconColor,
+                    opacity: (isActive || isTargetHeld) ? 1 : config.iconOpacity / 100,
+                    stroke: (isActive || isTargetHeld) ? config.activeIconColor : config.iconColor,
+                    color: (isActive || isTargetHeld) ? config.activeIconColor : config.iconColor,
+                    transform: isTargetHeld ? "scale(1.18)" : "scale(1)",
+                    transition: "transform 0.2s ease, opacity 0.2s ease",
                   }
                 })}
                 <span className="lg-label" style={labelStyle}>{link.label}</span>
