@@ -41,7 +41,6 @@ export function Navigation() {
   const { config } = useNavigationCustomization();
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isCompact, setIsCompact] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -68,7 +67,7 @@ export function Navigation() {
     (link) => location.pathname === link.path || (link.id === "certificates" && location.pathname === "/certificate")
   );
 
-  // 1. Vertical Scroll Adaptation: Auto-compact on scroll down, expand on scroll up / near top
+  // 1. Vertical Scroll Adaptation: Update header blur veil threshold (keep navigation dock size stable)
   useEffect(() => {
     let ticking = false;
 
@@ -76,22 +75,8 @@ export function Navigation() {
       if (!ticking) {
         window.requestAnimationFrame(() => {
           const currentY = window.scrollY;
-          const deltaY = currentY - lastScrollY.current;
-
           // Header blur veil threshold
           setIsScrolled(currentY > 8);
-
-          // Liquid glass navigation compacting behavior
-          if (currentY < 32) {
-            setIsCompact(false);
-          } else if (deltaY > 5) {
-            // Scrolling down -> compact mode
-            setIsCompact(true);
-          } else if (deltaY < -6) {
-            // Scrolling up -> expand mode
-            setIsCompact(false);
-          }
-
           lastScrollY.current = currentY;
           ticking = false;
         });
@@ -245,10 +230,10 @@ export function Navigation() {
       boxShadow,
       padding: `${paddingY}px ${paddingX}px`,
       bottom: `${config.bottomOffset}px`,
-      maxWidth: isCompact ? "min(60vw, 260px)" : `min(92vw, ${maxWidth}px)`,
-      transition: `width ${config.transitionDuration}ms cubic-bezier(0.16, 1, 0.3, 1), padding 0.48s cubic-bezier(0.16, 1, 0.3, 1), transform 0.42s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease`,
+      maxWidth: `min(92vw, ${maxWidth}px)`,
+      transition: `box-shadow 0.4s ease, border 0.3s ease, background 0.3s ease`,
     };
-  }, [config, isMobile, isCompact]);
+  }, [config, isMobile]);
 
   // Compute dynamic highlight pill style for active item
   const highlightStyle = useMemo<React.CSSProperties>(() => {
@@ -271,7 +256,7 @@ export function Navigation() {
       padding: `${config.itemPaddingY}px ${config.itemPaddingX}px`,
       borderRadius: `${config.itemBorderRadius}px`,
       gap: `${config.iconSpacing}px`,
-      transition: `color ${config.transitionSpeed}ms ease, transform 0.25s ease, background ${config.transitionSpeed}ms ease`,
+      transition: `color ${config.transitionSpeed}ms ease, background ${config.transitionSpeed}ms ease`,
     };
   }, [config]);
 
@@ -280,6 +265,33 @@ export function Navigation() {
       fontSize: `${config.fontSize}px`,
       fontWeight: config.fontWeight,
       letterSpacing: `${config.letterSpacing}em`,
+    };
+  }, [config]);
+
+  // Compute dynamic styles for More Menu Dropdown Popover
+  const dropdownContainerStyle = useMemo<React.CSSProperties>(() => {
+    const bgOpacity = (config.bgOpacity / 100) * 0.95;
+    const borderOpacity = (config.borderOpacity / 100);
+
+    let background = "";
+    if (config.bgType === "color") {
+      background = hexToRgba(config.bgColor, Math.min(1, bgOpacity + 0.15));
+    } else if (config.bgGradientEnabled) {
+      background = `linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 100%), linear-gradient(${config.bgGradientDirection}, ${hexToRgba(config.bgGradientStart, Math.min(1, bgOpacity + 0.15))}, ${hexToRgba(config.bgGradientEnd, Math.min(1, bgOpacity + 0.2))})`;
+    } else {
+      background = `linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 100%), ${hexToRgba(config.bgColor, Math.min(1, bgOpacity + 0.15))}`;
+    }
+
+    const border = config.borderEnabled 
+      ? `${config.borderWidth}px ${config.borderStyle} ${hexToRgba(config.borderColor, borderOpacity)}`
+      : "1px solid rgba(255, 255, 255, 0.14)";
+
+    return {
+      background,
+      backdropFilter: `blur(${Math.max(12, config.backdropBlur)}px) saturate(${config.saturation}%) brightness(${config.brightness}%) contrast(${config.contrast}%)`,
+      WebkitBackdropFilter: `blur(${Math.max(12, config.backdropBlur)}px) saturate(${config.saturation}%) brightness(${config.brightness}%) contrast(${config.contrast}%)`,
+      border,
+      boxShadow: buildNavBoxShadow(config),
     };
   }, [config]);
 
@@ -304,9 +316,7 @@ export function Navigation() {
           id="theme-toggle-btn"
           type="button"
           onClick={() => setIsOpen((prev) => !prev)}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.88 }}
-          transition={{ type: "spring", stiffness: 450, damping: 22 }}
+          whileTap={{ opacity: 0.85 }}
           className={`ios-glass-icon w-9 h-9 sm:w-10 sm:h-10 cursor-pointer flex items-center justify-center relative ${
             isOpen 
               ? "bg-[rgba(255,255,255,0.12)] border-[rgba(140,190,255,0.45)] shadow-[0_0_12px_rgba(120,170,255,0.25)] text-white" 
@@ -345,44 +355,56 @@ export function Navigation() {
           {isOpen && (
             <motion.div
               id="more-menu-dropdown"
-              initial={{ opacity: 0, scale: 0.35, y: -12 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ 
-                opacity: 0, 
-                scale: 0.35, 
-                y: -10, 
-                transition: { duration: 0.2, ease: [0.32, 0, 0.67, 0] } 
-              }}
-              transition={{ 
-                type: "spring", 
-                stiffness: 440, 
-                damping: 26, 
-                mass: 0.75 
-              }}
-              className="more-menu-dropdown absolute top-11 right-0 sm:top-12 w-[185px] sm:w-[195px] rounded-xl p-1.5 z-50 flex flex-col gap-1 origin-top-right"
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6, transition: { duration: 0.18, ease: "easeInOut" } }}
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              style={dropdownContainerStyle}
+              className="more-menu-dropdown absolute top-11 right-0 sm:top-12 w-[190px] sm:w-[205px] rounded-2xl p-1.5 z-50 flex flex-col gap-1 origin-top-right overflow-hidden"
             >
-              {/* Universal Self-Rendering Glass Surface */}
-              <div className="glass-surface-base" aria-hidden="true" />
-              <div className="glass-surface-diffusion" aria-hidden="true" />
-              <div className="glass-surface-highlight" aria-hidden="true" />
-              <div className="glass-surface-border" aria-hidden="true" />
+              {/* Universal Self-Rendering Glass Surface Highlight */}
+              <div className="glass-surface-highlight pointer-events-none" aria-hidden="true" />
 
               {/* Interactive Menu Content */}
-              <div className="relative z-10 flex flex-col gap-0.5">
+              <div className="relative z-10 flex flex-col gap-1">
                 {SECONDARY_LINKS.map((link) => (
                   <NavLink
                     key={link.path}
                     to={link.path}
                     id={`menu-item-${link.id}`}
                     onClick={() => setIsOpen(false)}
+                    style={({ isActive }) => ({
+                      borderRadius: `${Math.min(12, config.itemBorderRadius)}px`,
+                      color: isActive ? config.activeTextColor : hexToRgba(config.textColor, config.textOpacity / 100),
+                      background: isActive 
+                        ? `linear-gradient(165deg, ${hexToRgba(config.activeBgColor, config.activeBgOpacity / 100)}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity * 0.6) / 100)})`
+                        : undefined,
+                      borderColor: isActive ? hexToRgba("#ffffff", 0.3) : undefined,
+                    })}
                     className={({ isActive }) =>
                       `liquid-glass-item ${isActive ? "active" : ""}`
                     }
                   >
-                    <span className="p-1 rounded-md bg-white/[0.08] border border-white/15 text-[#7DB3FF] shrink-0">
+                    <span 
+                      style={{
+                        background: "rgba(255, 255, 255, 0.08)",
+                        borderColor: "rgba(255, 255, 255, 0.15)",
+                        color: config.activeIconColor,
+                      }}
+                      className="p-1 rounded-md border shrink-0"
+                    >
                       {link.icon}
                     </span>
-                    <span className="truncate text-[12px] font-medium">{link.label}</span>
+                    <span 
+                      style={{
+                        fontSize: `${config.fontSize + 0.5}px`,
+                        fontWeight: config.fontWeight,
+                        letterSpacing: `${config.letterSpacing}em`,
+                      }}
+                      className="truncate"
+                    >
+                      {link.label}
+                    </span>
                   </NavLink>
                 ))}
 
@@ -391,7 +413,14 @@ export function Navigation() {
 
                 {/* Section Header */}
                 <div className="px-1.5 pt-0.5 pb-0.5 flex items-center">
-                  <span className="text-[9px] font-semibold tracking-wider uppercase text-[#7DB3FF]/80">
+                  <span 
+                    style={{
+                      color: config.activeTextColor,
+                      opacity: 0.8,
+                      letterSpacing: `${config.letterSpacing + 0.04}em`,
+                    }}
+                    className="text-[9px] font-semibold uppercase"
+                  >
                     Background
                   </span>
                 </div>
@@ -401,19 +430,45 @@ export function Navigation() {
                   id="bg-select-molten"
                   type="button"
                   onClick={() => setBackgroundType('molten')}
+                  style={{
+                    borderRadius: `${Math.min(12, config.itemBorderRadius)}px`,
+                    color: backgroundType === 'molten' ? config.activeTextColor : hexToRgba(config.textColor, config.textOpacity / 100),
+                    background: backgroundType === 'molten'
+                      ? `linear-gradient(165deg, ${hexToRgba(config.activeBgColor, config.activeBgOpacity / 100)}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity * 0.6) / 100)})`
+                      : undefined,
+                    borderColor: backgroundType === 'molten' ? hexToRgba("#ffffff", 0.3) : undefined,
+                  }}
                   className={`liquid-glass-item w-full text-left justify-between cursor-pointer ${
                     backgroundType === 'molten' ? 'active' : ''
                   }`}
                   title="Aktifkan latar belakang Molten Metal"
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="p-1 rounded-md bg-white/[0.08] border border-white/15 text-[#7DB3FF] shrink-0">
+                    <span 
+                      style={{ color: config.activeIconColor }}
+                      className="p-1 rounded-md bg-white/[0.08] border border-white/15 shrink-0"
+                    >
                       <Waves size={14} />
                     </span>
-                    <span className="text-[12px] font-medium leading-tight truncate">Molten Metal</span>
+                    <span 
+                      style={{
+                        fontSize: `${config.fontSize + 0.5}px`,
+                        fontWeight: config.fontWeight,
+                      }}
+                      className="leading-tight truncate"
+                    >
+                      Molten Metal
+                    </span>
                   </div>
                   {backgroundType === 'molten' && (
-                    <span className="shrink-0 w-3.5 h-3.5 rounded-full bg-[#7DB3FF]/25 border border-[#7DB3FF]/70 flex items-center justify-center text-[#7DB3FF] ml-1 shadow-[0_0_6px_rgba(125,179,255,0.4)]">
+                    <span 
+                      style={{
+                        backgroundColor: hexToRgba(config.activeBgColor, 0.35),
+                        borderColor: hexToRgba(config.activeBgColor, 0.8),
+                        color: config.activeTextColor,
+                      }}
+                      className="shrink-0 w-3.5 h-3.5 rounded-full border flex items-center justify-center ml-1 shadow-sm"
+                    >
                       <Check size={9} strokeWidth={2.5} />
                     </span>
                   )}
@@ -424,19 +479,45 @@ export function Navigation() {
                   id="bg-select-ghost-fibers"
                   type="button"
                   onClick={() => setBackgroundType('ghost-fibers')}
+                  style={{
+                    borderRadius: `${Math.min(12, config.itemBorderRadius)}px`,
+                    color: backgroundType === 'ghost-fibers' ? config.activeTextColor : hexToRgba(config.textColor, config.textOpacity / 100),
+                    background: backgroundType === 'ghost-fibers'
+                      ? `linear-gradient(165deg, ${hexToRgba(config.activeBgColor, config.activeBgOpacity / 100)}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity * 0.6) / 100)})`
+                      : undefined,
+                    borderColor: backgroundType === 'ghost-fibers' ? hexToRgba("#ffffff", 0.3) : undefined,
+                  }}
                   className={`liquid-glass-item w-full text-left justify-between cursor-pointer ${
                     backgroundType === 'ghost-fibers' ? 'active' : ''
                   }`}
                   title="Aktifkan latar belakang Ghost Fibers"
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="p-1 rounded-md bg-white/[0.08] border border-white/15 text-[#7DB3FF] shrink-0">
+                    <span 
+                      style={{ color: config.activeIconColor }}
+                      className="p-1 rounded-md bg-white/[0.08] border border-white/15 shrink-0"
+                    >
                       <Activity size={14} />
                     </span>
-                    <span className="text-[12px] font-medium leading-tight truncate">Ghost Fibers</span>
+                    <span 
+                      style={{
+                        fontSize: `${config.fontSize + 0.5}px`,
+                        fontWeight: config.fontWeight,
+                      }}
+                      className="leading-tight truncate"
+                    >
+                      Ghost Fibers
+                    </span>
                   </div>
                   {backgroundType === 'ghost-fibers' && (
-                    <span className="shrink-0 w-3.5 h-3.5 rounded-full bg-[#7DB3FF]/25 border border-[#7DB3FF]/70 flex items-center justify-center text-[#7DB3FF] ml-1 shadow-[0_0_6px_rgba(125,179,255,0.4)]">
+                    <span 
+                      style={{
+                        backgroundColor: hexToRgba(config.activeBgColor, 0.35),
+                        borderColor: hexToRgba(config.activeBgColor, 0.8),
+                        color: config.activeTextColor,
+                      }}
+                      className="shrink-0 w-3.5 h-3.5 rounded-full border flex items-center justify-center ml-1 shadow-sm"
+                    >
                       <Check size={9} strokeWidth={2.5} />
                     </span>
                   )}
@@ -447,19 +528,45 @@ export function Navigation() {
                   id="bg-select-light-pillar"
                   type="button"
                   onClick={() => setBackgroundType('light-pillar')}
+                  style={{
+                    borderRadius: `${Math.min(12, config.itemBorderRadius)}px`,
+                    color: backgroundType === 'light-pillar' ? config.activeTextColor : hexToRgba(config.textColor, config.textOpacity / 100),
+                    background: backgroundType === 'light-pillar'
+                      ? `linear-gradient(165deg, ${hexToRgba(config.activeBgColor, config.activeBgOpacity / 100)}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity * 0.6) / 100)})`
+                      : undefined,
+                    borderColor: backgroundType === 'light-pillar' ? hexToRgba("#ffffff", 0.3) : undefined,
+                  }}
                   className={`liquid-glass-item w-full text-left justify-between cursor-pointer ${
                     backgroundType === 'light-pillar' ? 'active' : ''
                   }`}
                   title="Aktifkan latar belakang Light Pillar"
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="p-1 rounded-md bg-white/[0.08] border border-white/15 text-[#7DB3FF] shrink-0">
+                    <span 
+                      style={{ color: config.activeIconColor }}
+                      className="p-1 rounded-md bg-white/[0.08] border border-white/15 shrink-0"
+                    >
                       <Zap size={14} />
                     </span>
-                    <span className="text-[12px] font-medium leading-tight truncate">Light Pillar</span>
+                    <span 
+                      style={{
+                        fontSize: `${config.fontSize + 0.5}px`,
+                        fontWeight: config.fontWeight,
+                      }}
+                      className="leading-tight truncate"
+                    >
+                      Light Pillar
+                    </span>
                   </div>
                   {backgroundType === 'light-pillar' && (
-                    <span className="shrink-0 w-3.5 h-3.5 rounded-full bg-[#7DB3FF]/25 border border-[#7DB3FF]/70 flex items-center justify-center text-[#7DB3FF] ml-1 shadow-[0_0_6px_rgba(125,179,255,0.4)]">
+                    <span 
+                      style={{
+                        backgroundColor: hexToRgba(config.activeBgColor, 0.35),
+                        borderColor: hexToRgba(config.activeBgColor, 0.8),
+                        color: config.activeTextColor,
+                      }}
+                      className="shrink-0 w-3.5 h-3.5 rounded-full border flex items-center justify-center ml-1 shadow-sm"
+                    >
                       <Check size={9} strokeWidth={2.5} />
                     </span>
                   )}
@@ -470,11 +577,11 @@ export function Navigation() {
         </AnimatePresence>
       </div>
 
-      {/* Liquid Glass Navigation Dock: Responsive to both vertical scrolling & horizontal sliding */}
+      {/* Liquid Glass Navigation Dock: Stable and responsive */}
       <nav 
         id="main-navigation-dock"
         aria-label="Navigasi utama"
-        className={`liquid-glass-nav ${isCompact ? "is-compact" : ""}`}
+        className="liquid-glass-nav"
         style={dockStyle}
       >
         {/* Scroll / Slide Track for seamless touch swiping and equal-width tabs */}
@@ -488,13 +595,23 @@ export function Navigation() {
               key={link.path}
               to={link.path}
               id={`nav-item-${link.id}`}
-              style={itemStyle}
+              style={({ isActive }) => ({
+                ...itemStyle,
+                color: isActive 
+                  ? config.activeTextColor 
+                  : hexToRgba(config.textColor, config.textOpacity / 100),
+              })}
               className={({ isActive }) => `lg-item ${isActive ? "active is-active" : ""}`}
             >
               {/* Melt-in Active Highlight Layer */}
               <span className="lg-highlight" style={highlightStyle} aria-hidden="true" />
-              {React.cloneElement(link.icon as React.ReactElement<{ size?: number }>, {
+              {React.cloneElement(link.icon as React.ReactElement<{ size?: number; style?: React.CSSProperties }>, {
                 size: config.iconSize,
+                style: {
+                  opacity: config.iconOpacity / 100,
+                  stroke: config.iconColor,
+                  color: config.iconColor,
+                }
               })}
               <span className="lg-label" style={labelStyle}>{link.label}</span>
             </NavLink>

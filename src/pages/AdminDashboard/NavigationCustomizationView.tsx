@@ -31,7 +31,7 @@ import {
   NavigationConfig 
 } from "../../features/navigation/NavigationCustomizationContext";
 import { hexToRgba, buildNavBoxShadow } from "../../features/navigation/colorUtils";
-import { Home, Briefcase, Image as ImageIcon, MessageSquare, Boxes } from "lucide-react";
+import { Home, Briefcase, Image as ImageIcon, MessageSquare, Boxes, Waves } from "lucide-react";
 
 // Mock links for Live Preview
 const PREVIEW_LINKS = [
@@ -69,7 +69,10 @@ export function NavigationCustomizationView() {
   });
 
   // UI state
+  const [previewComponentMode, setPreviewComponentMode] = useState<"dock" | "dropdown">("dock");
   const [previewActiveTab, setPreviewActiveTab] = useState<string>("home");
+  const [previewDropdownLink, setPreviewDropdownLink] = useState<string>("qna");
+  const [previewDropdownBg, setPreviewDropdownBg] = useState<string>("molten");
   const [previewBgTheme, setPreviewBgTheme] = useState<"molten" | "dark" | "cyber" | "light">("molten");
   const [presetNameInput, setPresetNameInput] = useState("");
   const [showSavePresetModal, setShowSavePresetModal] = useState(false);
@@ -197,14 +200,39 @@ export function NavigationCustomizationView() {
       {/* STICKY / INTERACTIVE LIVE PREVIEW CARD */}
       <div className="sticky top-16 z-30 p-5 rounded-2xl bg-[rgba(8,16,36,0.85)] border border-blue-500/25 backdrop-blur-xl shadow-2xl flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
-          <div className="flex items-center gap-2">
-            <Eye size={16} className="text-[#7DB3FF]" />
-            <span className="text-xs sm:text-sm font-semibold text-white tracking-wide uppercase">
-              Live Interactive Preview
-            </span>
-            <span className="text-[10px] text-text-secondary px-2 py-0.5 rounded-md bg-white/5 border border-white/10">
-              Uji Coba Klik & Hover
-            </span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Eye size={16} className="text-[#7DB3FF]" />
+              <span className="text-xs sm:text-sm font-semibold text-white tracking-wide uppercase">
+                Live Preview
+              </span>
+            </div>
+
+            {/* Target Component Mode Selector */}
+            <div className="flex items-center p-0.5 rounded-lg bg-white/5 border border-white/10">
+              <button
+                type="button"
+                onClick={() => setPreviewComponentMode("dock")}
+                className={`px-2.5 py-1 text-xs rounded-md font-medium cursor-pointer transition-all ${
+                  previewComponentMode === "dock"
+                    ? "bg-blue-600/40 text-white border border-blue-400/40 shadow-sm"
+                    : "text-text-secondary hover:text-white"
+                }`}
+              >
+                Bottom Dock
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewComponentMode("dropdown")}
+                className={`px-2.5 py-1 text-xs rounded-md font-medium cursor-pointer transition-all ${
+                  previewComponentMode === "dropdown"
+                    ? "bg-blue-600/40 text-white border border-blue-400/40 shadow-sm"
+                    : "text-text-secondary hover:text-white"
+                }`}
+              >
+                More Menu Popover
+              </button>
+            </div>
           </div>
 
           <div className="flex items-center gap-2 text-xs">
@@ -247,7 +275,7 @@ export function NavigationCustomizationView() {
 
         {/* Preview Canvas Stage */}
         <div 
-          className={`relative rounded-xl p-8 sm:p-10 flex items-center justify-center overflow-hidden transition-all min-h-[160px] border border-white/10 ${
+          className={`relative rounded-xl p-6 sm:p-10 flex items-center justify-center overflow-hidden transition-all min-h-[170px] border border-white/10 ${
             previewBgTheme === "molten"
               ? "bg-gradient-to-tr from-[#05060d] via-[#101b3d] to-[#0a122c]"
               : previewBgTheme === "cyber"
@@ -260,60 +288,180 @@ export function NavigationCustomizationView() {
           <div className="absolute bottom-2 right-12 w-32 h-32 rounded-full bg-purple-500/30 filter blur-2xl pointer-events-none" />
           <div className="absolute inset-x-0 h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent top-1/2 pointer-events-none" />
 
-          {/* Rendered Live Navigation Bar */}
-          <div className="relative z-10 w-full flex justify-center">
-            <nav className="liquid-glass-nav-preview" style={previewDockStyle}>
-              <div 
-                className="flex items-center justify-between w-full"
-                style={{ gap: `${config.itemSpacing}px` }}
-              >
-                {PREVIEW_LINKS.map((link) => {
-                  const isActive = previewActiveTab === link.id;
-                  return (
-                    <button
-                      key={link.id}
-                      type="button"
-                      onClick={() => setPreviewActiveTab(link.id)}
-                      style={{
-                        ...previewItemStyle,
-                        color: isActive 
-                          ? config.activeTextColor 
-                          : hexToRgba(config.textColor, config.textOpacity / 100),
-                      }}
-                      className="relative flex-1 min-w-0 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 border border-transparent select-none group"
-                    >
-                      {/* Active highlight */}
-                      {isActive && (
-                        <span 
-                          style={previewHighlightStyle} 
-                          className="absolute inset-0 z-0 pointer-events-none"
-                          aria-hidden="true" 
-                        />
-                      )}
-                      
-                      <span className="relative z-10 shrink-0 transition-transform group-hover:scale-105">
-                        {React.cloneElement(link.icon as React.ReactElement<{ size?: number; style?: React.CSSProperties }>, {
-                          size: config.iconSize,
-                          style: {
-                            opacity: isActive ? 1 : config.iconOpacity / 100,
-                            stroke: isActive ? config.activeIconColor : config.iconColor,
-                            filter: isActive && config.hoverGlow ? `drop-shadow(0 1px 4px ${hexToRgba(config.activeBgColor, 0.5)})` : "none"
-                          }
-                        })}
-                      </span>
-                      
-                      <span 
-                        className="relative z-10 truncate w-full text-center mt-0.5" 
-                        style={previewLabelStyle}
+          {previewComponentMode === "dock" ? (
+            /* Rendered Live Navigation Bar */
+            <div className="relative z-10 w-full flex justify-center">
+              <nav className="liquid-glass-nav-preview" style={previewDockStyle}>
+                <div 
+                  className="flex items-center justify-between w-full"
+                  style={{ gap: `${config.itemSpacing}px` }}
+                >
+                  {PREVIEW_LINKS.map((link) => {
+                    const isActive = previewActiveTab === link.id;
+                    return (
+                      <button
+                        key={link.id}
+                        type="button"
+                        onClick={() => setPreviewActiveTab(link.id)}
+                        style={{
+                          ...previewItemStyle,
+                          color: isActive 
+                            ? config.activeTextColor 
+                            : hexToRgba(config.textColor, config.textOpacity / 100),
+                        }}
+                        className="relative flex-1 min-w-0 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 border border-transparent select-none group"
                       >
-                        {link.label}
-                      </span>
-                    </button>
-                  );
-                })}
+                        {/* Active highlight */}
+                        {isActive && (
+                          <span 
+                            style={previewHighlightStyle} 
+                            className="absolute inset-0 z-0 pointer-events-none"
+                            aria-hidden="true" 
+                          />
+                        )}
+                        
+                        <span className="relative z-10 shrink-0 transition-opacity">
+                          {React.cloneElement(link.icon as React.ReactElement<{ size?: number; style?: React.CSSProperties }>, {
+                            size: config.iconSize,
+                            style: {
+                              opacity: isActive ? 1 : config.iconOpacity / 100,
+                              stroke: isActive ? config.activeIconColor : config.iconColor,
+                              color: isActive ? config.activeIconColor : config.iconColor,
+                              filter: isActive && config.hoverGlow ? `drop-shadow(0 1px 4px ${hexToRgba(config.activeBgColor, 0.5)})` : "none"
+                            }
+                          })}
+                        </span>
+                        
+                        <span 
+                          className="relative z-10 truncate w-full text-center mt-0.5" 
+                          style={previewLabelStyle}
+                        >
+                          {link.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </nav>
+            </div>
+          ) : (
+            /* Rendered Live More Menu Dropdown Popover */
+            <div className="relative z-10 flex justify-center">
+              <div 
+                style={{
+                  ...previewDockStyle,
+                  maxWidth: "205px",
+                  padding: "6px",
+                  borderRadius: "16px",
+                }}
+                className="flex flex-col gap-1 shadow-2xl relative overflow-hidden"
+              >
+                <div className="glass-surface-highlight pointer-events-none" aria-hidden="true" />
+                
+                <div className="relative z-10 flex flex-col gap-1">
+                  {[
+                    { id: "qna", label: "Tanya & Jawab (QnA)", icon: <MessageSquare size={14} /> },
+                    { id: "certificate", label: "Sertifikat Keaslian", icon: <ShieldCheck size={14} /> },
+                  ].map((item) => {
+                    const isActive = previewDropdownLink === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setPreviewDropdownLink(item.id)}
+                        style={{
+                          borderRadius: `${Math.min(12, config.itemBorderRadius)}px`,
+                          color: isActive ? config.activeTextColor : hexToRgba(config.textColor, config.textOpacity / 100),
+                          background: isActive 
+                            ? `linear-gradient(165deg, ${hexToRgba(config.activeBgColor, config.activeBgOpacity / 100)}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity * 0.6) / 100)})`
+                            : undefined,
+                          borderColor: isActive ? hexToRgba("#ffffff", 0.3) : "transparent",
+                          fontSize: `${config.fontSize + 0.5}px`,
+                          fontWeight: config.fontWeight,
+                        }}
+                        className="p-1.5 flex items-center gap-2 text-left cursor-pointer border transition-all text-xs"
+                      >
+                        <span 
+                          style={{
+                            background: "rgba(255, 255, 255, 0.08)",
+                            borderColor: "rgba(255, 255, 255, 0.15)",
+                            color: config.activeIconColor,
+                          }}
+                          className="p-1 rounded-md border shrink-0"
+                        >
+                          {item.icon}
+                        </span>
+                        <span className="truncate">{item.label}</span>
+                      </button>
+                    );
+                  })}
+
+                  <div className="h-px bg-white/10 my-0.5 mx-1" />
+
+                  <div className="px-1.5 pt-0.5 pb-0.5 flex items-center">
+                    <span 
+                      style={{
+                        color: config.activeTextColor,
+                        opacity: 0.8,
+                        letterSpacing: `${config.letterSpacing + 0.04}em`,
+                      }}
+                      className="text-[9px] font-semibold uppercase"
+                    >
+                      Background
+                    </span>
+                  </div>
+
+                  {[
+                    { id: "molten", label: "Molten Metal", icon: <Waves size={14} /> },
+                    { id: "ghost-fibers", label: "Ghost Fibers", icon: <Compass size={14} /> },
+                    { id: "light-pillar", label: "Light Pillar", icon: <Zap size={14} /> },
+                  ].map((bg) => {
+                    const isActive = previewDropdownBg === bg.id;
+                    return (
+                      <button
+                        key={bg.id}
+                        type="button"
+                        onClick={() => setPreviewDropdownBg(bg.id)}
+                        style={{
+                          borderRadius: `${Math.min(12, config.itemBorderRadius)}px`,
+                          color: isActive ? config.activeTextColor : hexToRgba(config.textColor, config.textOpacity / 100),
+                          background: isActive
+                            ? `linear-gradient(165deg, ${hexToRgba(config.activeBgColor, config.activeBgOpacity / 100)}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity * 0.6) / 100)})`
+                            : undefined,
+                          borderColor: isActive ? hexToRgba("#ffffff", 0.3) : "transparent",
+                          fontSize: `${config.fontSize + 0.5}px`,
+                          fontWeight: config.fontWeight,
+                        }}
+                        className="p-1.5 flex items-center justify-between text-left cursor-pointer border transition-all text-xs"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span 
+                            style={{ color: config.activeIconColor }}
+                            className="p-1 rounded-md bg-white/[0.08] border border-white/15 shrink-0"
+                          >
+                            {bg.icon}
+                          </span>
+                          <span className="truncate">{bg.label}</span>
+                        </div>
+                        {isActive && (
+                          <span 
+                            style={{
+                              backgroundColor: hexToRgba(config.activeBgColor, 0.35),
+                              borderColor: hexToRgba(config.activeBgColor, 0.8),
+                              color: config.activeTextColor,
+                            }}
+                            className="shrink-0 w-3.5 h-3.5 rounded-full border flex items-center justify-center ml-1"
+                          >
+                            <Check size={9} strokeWidth={2.5} />
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </nav>
-          </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1054,16 +1202,15 @@ export function NavigationCustomizationView() {
 
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between text-xs font-medium text-text-secondary">
-                    <span>Hover Scale Animation</span>
-                    <span className="font-mono text-emerald-400 font-semibold">{config.hoverScale}x</span>
+                    <span>Item Padding Horizontal</span>
+                    <span className="font-mono text-emerald-400 font-semibold">{config.itemPaddingX}px</span>
                   </div>
                   <input
                     type="range"
-                    min="0.95"
-                    max="1.15"
-                    step="0.01"
-                    value={config.hoverScale}
-                    onChange={(e) => updateConfig({ hoverScale: Number(e.target.value) })}
+                    min="2"
+                    max="16"
+                    value={config.itemPaddingX}
+                    onChange={(e) => updateConfig({ itemPaddingX: Number(e.target.value) })}
                     className="w-full accent-emerald-400 cursor-pointer"
                   />
                 </div>

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { hexToRgba } from "./colorUtils";
 
 export interface NavigationConfig {
   // Background
@@ -156,10 +157,10 @@ export const DEFAULT_NAVIGATION_CONFIG: NavigationConfig = {
   itemPaddingY: 7,
   itemPaddingX: 4,
   itemBorderRadius: 999,
-  hoverAnimation: "scale",
+  hoverAnimation: "glow",
   activeAnimation: "melt",
   transitionSpeed: 380,
-  hoverScale: 1.05,
+  hoverScale: 1,
   hoverGlow: true,
   hoverGlowIntensity: 40,
 
@@ -432,14 +433,14 @@ export const NavigationCustomizationProvider: React.FC<{ children: React.ReactNo
     root.style.setProperty("--nav-shadow-y", `${config.shadowY}px`);
 
     // Item Typography & Colors
-    const textOpacityFrac = (config.textOpacity / 100).toFixed(2);
-    root.style.setProperty("--nav-text-color", config.textColor);
-    root.style.setProperty("--nav-text-opacity", textOpacityFrac);
+    const textOpacityFrac = config.textOpacity / 100;
+    root.style.setProperty("--nav-text-color", hexToRgba(config.textColor, textOpacityFrac));
+    root.style.setProperty("--nav-text-opacity", textOpacityFrac.toFixed(2));
     root.style.setProperty("--nav-hover-text-color", config.hoverTextColor);
     root.style.setProperty("--nav-active-text-color", config.activeTextColor);
-    root.style.setProperty("--nav-active-bg-color", config.activeBgColor);
+    root.style.setProperty("--nav-active-bg-color", hexToRgba(config.activeBgColor, config.activeBgOpacity / 100));
     root.style.setProperty("--nav-active-bg-opacity", (config.activeBgOpacity / 100).toFixed(2));
-    root.style.setProperty("--nav-hover-bg-color", config.hoverBgColor);
+    root.style.setProperty("--nav-hover-bg-color", hexToRgba(config.hoverBgColor, config.hoverBgOpacity / 100));
     root.style.setProperty("--nav-hover-bg-opacity", (config.hoverBgOpacity / 100).toFixed(2));
     root.style.setProperty("--nav-font-size", `${config.fontSize}px`);
     root.style.setProperty("--nav-font-weight", `${config.fontWeight}`);
@@ -450,7 +451,7 @@ export const NavigationCustomizationProvider: React.FC<{ children: React.ReactNo
     root.style.setProperty("--nav-item-radius", `${config.itemBorderRadius}px`);
 
     // Icon vars
-    root.style.setProperty("--nav-icon-color", config.iconColor);
+    root.style.setProperty("--nav-icon-color", hexToRgba(config.iconColor, config.iconOpacity / 100));
     root.style.setProperty("--nav-icon-size", `${config.iconSize}px`);
     root.style.setProperty("--nav-icon-opacity", (config.iconOpacity / 100).toFixed(2));
     root.style.setProperty("--nav-active-icon-color", config.activeIconColor);
@@ -466,7 +467,7 @@ export const NavigationCustomizationProvider: React.FC<{ children: React.ReactNo
     // Animation & Transition
     root.style.setProperty("--nav-transition-duration", `${config.transitionDuration}ms`);
     root.style.setProperty("--nav-transition-speed", `${config.transitionSpeed}ms`);
-    root.style.setProperty("--nav-hover-scale", `${config.hoverScale}`);
+    root.style.setProperty("--nav-hover-scale", "1");
 
     // Persist to localStorage
     try {
