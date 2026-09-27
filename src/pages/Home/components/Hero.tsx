@@ -55,7 +55,7 @@ export function Hero({ profile }: HeroProps) {
   const firstName = profile?.firstName || profile?.name?.split(" ")[0] || "Bintang";
   const lastName = profile?.lastName || profile?.name?.split(" ").slice(1).join(" ") || "Prasetyo";
   const fullName = profile?.name || `${firstName} ${lastName}`;
-  const role = profile?.title || "Full Stack Developer";
+  const role = profile?.title || "Creative Developer & Illustrator";
   const description = profile?.heroDescription || profile?.about || "I'm a passionate developer who loves building web applications, exploring new technologies, and turning ideas into real, useful products.";
   const bioAlign = profile?.heroDescriptionAlign || "left";
 

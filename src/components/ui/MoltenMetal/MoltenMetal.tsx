@@ -188,12 +188,15 @@ export const MoltenMetal: React.FC<MoltenMetalProps> = ({
 
     let renderer: Renderer;
     try {
+      const isMobile = typeof window !== 'undefined' && (window.innerWidth < 768 || (typeof navigator !== 'undefined' && navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4));
+      const targetDpr = isMobile ? 1.0 : Math.min(window.devicePixelRatio || 1, 1.5);
+
       renderer = new Renderer({
         webgl: 2,
         alpha: true,
         premultipliedAlpha: true,
         antialias: false,
-        dpr: Math.min(window.devicePixelRatio || 1, 2)
+        dpr: targetDpr
       });
     } catch (err) {
       console.warn('MoltenMetal: WebGL2 context creation failed, using fallback', err);

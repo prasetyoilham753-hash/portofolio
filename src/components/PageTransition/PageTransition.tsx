@@ -11,11 +11,15 @@ interface PageTransitionProps {
 export function PageTransition({ children }: PageTransitionProps) {
   const shouldReduceMotion = useReducedMotion();
   const [isInitialLaunch] = useState(() => isFirstWebsiteLaunch);
+  const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768);
 
   useEffect(() => {
     if (isFirstWebsiteLaunch) {
       isFirstWebsiteLaunch = false;
     }
+    const checkViewport = () => setIsDesktop(window.innerWidth >= 768);
+    window.addEventListener("resize", checkViewport, { passive: true });
+    return () => window.removeEventListener("resize", checkViewport);
   }, []);
 
   // First-time website opening: majestic, smooth, spatial deblur and elevation
@@ -30,56 +34,56 @@ export function PageTransition({ children }: PageTransitionProps) {
     ? {
         initial: {
           opacity: 0,
-          y: 44,
-          scale: 0.96,
-          filter: "blur(10px)",
+          y: 36,
+          scale: 0.97,
+          ...(isDesktop ? { filter: "blur(10px)" } : {}),
         },
         animate: {
           opacity: 1,
           y: 0,
           scale: 1,
-          filter: "blur(0px)",
+          ...(isDesktop ? { filter: "blur(0px)" } : {}),
         },
         exit: {
           opacity: 0,
-          x: -40,
-          z: -80,
-          rotateY: 8,
-          filter: "blur(8px)",
+          x: -36,
+          z: -60,
+          rotateY: 6,
+          ...(isDesktop ? { filter: "blur(8px)" } : {}),
         },
       }
     : {
         initial: {
           opacity: 0,
-          x: 40,
-          z: -80,
-          rotateY: -8,
-          filter: "blur(8px)",
+          x: 36,
+          z: -60,
+          rotateY: -6,
+          ...(isDesktop ? { filter: "blur(8px)" } : {}),
         },
         animate: {
           opacity: 1,
           x: 0,
           z: 0,
           rotateY: 0,
-          filter: "blur(0px)",
+          ...(isDesktop ? { filter: "blur(0px)" } : {}),
         },
         exit: {
           opacity: 0,
-          x: -40,
-          z: -80,
-          rotateY: 8,
-          filter: "blur(8px)",
+          x: -36,
+          z: -60,
+          rotateY: 6,
+          ...(isDesktop ? { filter: "blur(8px)" } : {}),
         },
       };
 
   const transitionConfig = isInitialLaunch && !shouldReduceMotion
     ? {
-        duration: 1.2,
+        duration: isDesktop ? 1.1 : 0.85,
         ease: [0.16, 1, 0.3, 1] as [number, number, number, number], // Apple fluid cubic-bezier curve
-        delay: 0.05,
+        delay: 0.02,
       }
     : {
-        duration: 0.7,
+        duration: isDesktop ? 0.65 : 0.5,
         ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
       };
 

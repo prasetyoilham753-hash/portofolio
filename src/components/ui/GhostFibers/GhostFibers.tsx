@@ -231,11 +231,14 @@ export const GhostFibers: React.FC<GhostFibersProps> = ({
 
     let renderer: Renderer;
     try {
+      const isMobile = typeof window !== 'undefined' && (window.innerWidth < 768 || (typeof navigator !== 'undefined' && navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4));
+      const targetDpr = isMobile ? 1.0 : Math.min(Math.max(dpr, 0.5), 1.5);
+
       renderer = new Renderer({
         webgl: 2,
         alpha: false,
         antialias: false,
-        dpr: Math.min(Math.max(dpr, 0.5), 2)
+        dpr: targetDpr
       });
     } catch (e) {
       console.warn('GhostFibers: WebGL2 context failed', e);
