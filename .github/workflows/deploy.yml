@@ -39,6 +39,15 @@ jobs:
         env:
           VITE_GA_MEASUREMENT_ID: ${{ secrets.VITE_GA_MEASUREMENT_ID || vars.VITE_GA_MEASUREMENT_ID || 'G-Q8VPHD4S7V' }}
 
+      - name: Ensure CNAME and .nojekyll in dist
+        run: |
+          if [ -f CNAME ]; then
+            cp CNAME dist/CNAME
+          else
+            echo "bintangprasetyo.com" > dist/CNAME
+          fi
+          touch dist/.nojekyll
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
