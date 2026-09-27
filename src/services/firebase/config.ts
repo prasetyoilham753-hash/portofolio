@@ -24,55 +24,44 @@ if (typeof window !== "undefined") {
       (app.options as any).measurementId = measurementId;
     }
 
-    // 2. Initialize official Google tag (gtag.js) for robust GA4 collection on custom domain
-    try {
-      if (!document.getElementById("ga-gtag-script")) {
-        const script = document.createElement("script");
-        script.id = "ga-gtag-script";
-        script.async = true;
-        script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`;
-        document.head.appendChild(script);
-
-        const win = window as any;
-        win.dataLayer = win.dataLayer || [];
-        function gtag(...args: any[]) {
-          win.dataLayer.push(arguments);
-        }
-        win.gtag = win.gtag || gtag;
-        win.gtag("js", new Date());
-        win.gtag("config", measurementId, {
-          send_page_view: false, // SPA page views are cleanly dispatched by AppLayout router navigation
-        });
-      }
-    } catch {
-      // Non-blocking fallback
+    // 2. Pre-configure dataLayer and gtag function safely without redundant manual script injection
+    const win = window as any;
+    win.dataLayer = win.dataLayer || [];
+    function gtag(...args: any[]) {
+      win.dataLayer.push(arguments);
+    }
+    if (!win.gtag) {
+      win.gtag = gtag;
     }
 
     // 3. Initialize Firebase Analytics instance if supported
+    // Firebase Analytics manages gtag.js script loading and configuration as the single source of truth
     isSupported().then((supported) => {
       if (supported) {
         try {
           analyticsInstance = getAnalytics(app);
         } catch {
-          // Gracefully fallback to window.gtag
+          // Gracefully continue
         }
       }
     }).catch(() => {
-      // Gracefully continue with window.gtag
+      // Gracefully continue
     });
   }
 }
 
 export const logAnalyticsEvent = (eventName: string, eventParams?: Record<string, any>) => {
-  // Dispatch to Firebase Analytics
+  // 1. Dispatch through Firebase Analytics if initialized (it internally forwards to gtag)
   if (analyticsInstance) {
     try {
       logEvent(analyticsInstance, eventName, eventParams);
+      return; // Event successfully logged via Firebase Analytics; avoid duplicate dispatch
     } catch {
-      // Silently continue to gtag
+      // Fallback to window.gtag if logEvent encounters an error
     }
   }
-  // Dispatch to Google tag (gtag.js)
+
+  // 2. Fallback to Google tag (gtag.js) only if Firebase Analytics instance is unavailable
   if (typeof window !== "undefined" && typeof (window as any).gtag === "function") {
     try {
       (window as any).gtag("event", eventName, eventParams);
