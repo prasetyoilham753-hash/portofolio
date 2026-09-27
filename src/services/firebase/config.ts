@@ -16,7 +16,7 @@ export const auth = getAuth(app);
 // Initialize Google Analytics (GA4) / Firebase Analytics safely
 export let analyticsInstance: any = null;
 if (typeof window !== "undefined") {
-  const measurementId = (import.meta.env.VITE_GA_MEASUREMENT_ID || firebaseConfig.measurementId || "G-Q8VPHD4S7V").trim();
+  const measurementId = (import.meta.env.VITE_GA_MEASUREMENT_ID || firebaseConfig.measurementId || "G-RM6XBW359Y").trim();
 
   if (measurementId) {
     // 1. Ensure measurementId is configured on Firebase App options for SDK compatibility
