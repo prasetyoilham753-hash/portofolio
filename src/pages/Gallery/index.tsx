@@ -231,14 +231,14 @@ export default function Gallery() {
                   key={item.id}
                   id={`art-item-${item.id}`}
                   onClick={() => handleOpenLightbox(item, index)}
-                  className={`group relative flex-grow cursor-pointer transition-all duration-500 hover:z-20 ${offsetClass}`}
+                  className={`group relative flex-grow cursor-pointer transition-all duration-500 hover:z-20 flex flex-col gap-3 ${offsetClass}`}
                   style={{
                     flexBasis,
                     minWidth,
                     maxWidth,
                   }}
                 >
-                  {/* Dynamic Abstract Card Container */}
+                  {/* Image Frame Container (Clean pristine image with zero text overlap) */}
                   <div
                     className={`relative w-full overflow-hidden bg-black/40 border border-white/15 backdrop-blur-md transition-all duration-500 group-hover:border-[#7DB3FF]/60 group-hover:shadow-[0_16px_40px_-10px_rgba(125,179,255,0.25)] group-hover:-translate-y-1.5 ${borderRadiusClass}`}
                     style={{ height: containerHeight }}
@@ -251,10 +251,7 @@ export default function Gallery() {
                       className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-108"
                     />
 
-                    {/* Glossy Ambient Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/10 opacity-70 group-hover:opacity-90 transition-opacity duration-300" />
-
-                    {/* Top Badges (Category & Year / Dimensions) */}
+                    {/* Top Badges (Category & Year / Cloudinary icon) */}
                     <div className="absolute top-3.5 left-3.5 right-3.5 flex items-center justify-between pointer-events-none z-10">
                       {item.category ? (
                         <span className="px-2.5 py-1 rounded-full text-[10px] font-medium tracking-wide uppercase bg-black/60 backdrop-blur-md text-white/90 border border-white/15 shadow-sm">
@@ -277,31 +274,28 @@ export default function Gallery() {
                         )}
                       </div>
                     </div>
+                  </div>
 
-                    {/* Bottom Metadata & Hover View Prompt */}
-                    <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-5 flex flex-col gap-1.5 z-10 pointer-events-none">
-                      {item.title && (
-                        <h3 className="text-base sm:text-lg font-display font-medium text-white tracking-tight drop-shadow-md group-hover:text-[#7DB3FF] transition-colors duration-300">
-                          {item.title}
-                        </h3>
-                      )}
+                  {/* Metadata Section (Title & Caption placed cleanly BELOW the image) */}
+                  <div className="flex flex-col gap-1 px-1">
+                    {item.title && (
+                      <h3 className="text-base sm:text-lg font-display font-medium text-white tracking-tight group-hover:text-[#7DB3FF] transition-colors duration-300">
+                        {item.title}
+                      </h3>
+                    )}
 
-                      {item.caption && (
-                        <p className="text-xs text-white/75 font-light line-clamp-2 leading-relaxed drop-shadow-sm">
-                          {item.caption}
-                        </p>
-                      )}
+                    {item.caption && (
+                      <p className="text-xs text-white/70 font-light line-clamp-2 leading-relaxed">
+                        {item.caption}
+                      </p>
+                    )}
 
-                      {/* View Action Cue */}
-                      <div className="pt-2 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform translate-y-2 group-hover:translate-y-0">
-                        <span className="text-[11px] font-mono text-white/60">
-                          {item.width && item.height ? `${item.width} × ${item.height} px` : "View Fullscreen"}
-                        </span>
-                        <span className="ios-glass-btn px-3 py-1 text-[11px] font-semibold text-white flex items-center gap-1">
-                          <Maximize2 size={11} />
-                          <span>Expand</span>
-                        </span>
-                      </div>
+                    <div className="pt-1 flex items-center justify-between text-[11px] font-mono text-white/50">
+                      <span>{item.width && item.height ? `${item.width} × ${item.height} px` : "View Fullscreen"}</span>
+                      <span className="text-[#7DB3FF] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center gap-1">
+                        <Maximize2 size={10} />
+                        <span>Expand</span>
+                      </span>
                     </div>
                   </div>
                 </div>
