@@ -16,7 +16,7 @@ export async function verifyIsAdmin(user: User | null): Promise<boolean> {
   if (!user) return false;
 
   const userEmail = user.email?.toLowerCase().trim() || "";
-  const isBootstrapped = BOOTSTRAP_ADMIN_EMAILS.includes(userEmail);
+  const isBootstrapped = BOOTSTRAP_ADMIN_EMAILS.includes(userEmail) && user.emailVerified;
 
   // If email is a bootstrapped admin email, grant admin access immediately
   if (isBootstrapped) {
@@ -49,7 +49,7 @@ export async function verifyIsAdmin(user: User | null): Promise<boolean> {
 
     // 3. Fallback for environment-configured admin email
     const envAdminEmail = import.meta.env.VITE_ADMIN_EMAIL?.toLowerCase().trim();
-    if (envAdminEmail && userEmail === envAdminEmail) {
+    if (envAdminEmail && userEmail === envAdminEmail && user.emailVerified) {
       return true;
     }
 

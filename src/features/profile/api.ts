@@ -55,12 +55,29 @@ export async function updateProfile(data: Partial<SiteProfile>): Promise<void> {
   }
 }
 
+const ALLOWED_MIME_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'image/avif',
+  'image/svg+xml',
+  'application/pdf',
+  'video/mp4',
+  'video/webm',
+  'video/quicktime'
+]);
+
+const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB max
+
 export async function uploadFileToCloudinary(file: File): Promise<{ url: string, path: string }> {
-  console.log("[Cloudinary Debug] Starting generic upload:", {
-    fileName: file.name,
-    fileType: file.type,
-    fileSize: file.size,
-  });
+  // Validate file size and type
+  if (file.size > MAX_FILE_SIZE) {
+    throw new Error(`File terlalu besar (maksimal 25 MB). Ukuran file: ${(file.size / (1024 * 1024)).toFixed(2)} MB`);
+  }
+  if (file.type && !ALLOWED_MIME_TYPES.has(file.type)) {
+    throw new Error(`Tipe file tidak didukung: ${file.type}. Harap gunakan gambar (JPG, PNG, WebP, GIF, AVIF), PDF, atau video (MP4, WebM).`);
+  }
 
   const formData = new FormData();
   formData.append('file', file);
@@ -78,22 +95,22 @@ export async function uploadFileToCloudinary(file: File): Promise<{ url: string,
     }
 
     const data = await response.json();
-    console.log("[Cloudinary Debug] Upload successful:", data.secure_url);
-    
     return { url: data.secure_url, path: data.public_id || data.secure_url };
   } catch (error: any) {
-    console.error("[Cloudinary Debug] Upload failed:", error);
+    console.error("[Cloudinary] Upload failed:", error.message || error);
     throw error;
   }
 }
 
 export async function uploadProfilePhoto(file: File, oldPhotoPath?: string): Promise<{ url: string, path: string }> {
-  console.log("[Cloudinary Debug] Starting upload:", {
-    fileName: file.name,
-    fileType: file.type,
-    fileSize: file.size,
-    currentUser: auth.currentUser?.email,
-  });
+  // Validate file size and type (photos only)
+  if (file.size > 10 * 1024 * 1024) {
+    throw new Error(`Foto profil terlalu besar (maksimal 10 MB).`);
+  }
+  const allowedPhotoTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
+  if (file.type && !allowedPhotoTypes.has(file.type)) {
+    throw new Error(`Format foto profil harus berupa JPG, PNG, WebP, atau AVIF.`);
+  }
 
   const formData = new FormData();
   formData.append('file', file);
@@ -111,12 +128,9 @@ export async function uploadProfilePhoto(file: File, oldPhotoPath?: string): Pro
     }
 
     const data = await response.json();
-    console.log("[Cloudinary Debug] Upload successful:", data.secure_url);
-
-    // Return the Cloudinary secure URL. We can store the public_id in photoPath if needed.
     return { url: data.secure_url, path: data.public_id || data.secure_url };
   } catch (error: any) {
-    console.error("[Cloudinary Debug] Upload failed:", error);
+    console.error("[Cloudinary] Photo upload failed:", error.message || error);
     throw error;
   }
 }

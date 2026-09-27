@@ -26,8 +26,10 @@ service cloud.firestore {
     function isAdmin() { 
       return isSignedIn() && (
         exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
-        request.auth.token.email == 'prasetyoilham753@gmail.com' ||
-        request.auth.token.email == 'contact@bintangprasetyo.com'
+        (request.auth.token.email_verified == true && (
+          request.auth.token.email == 'prasetyoilham753@gmail.com' ||
+          request.auth.token.email == 'contact@bintangprasetyo.com'
+        ))
       );
     }
 
@@ -68,7 +70,7 @@ service cloud.firestore {
     // 2. Admins
     match /admins/{adminId} {
       allow read: if isValidId(adminId) && isSignedIn() && (request.auth.uid == adminId || isAdmin());
-      allow write: if isValidId(adminId) && (isAdmin() || (isSignedIn() && request.auth.uid == adminId && (request.auth.token.email == 'prasetyoilham753@gmail.com' || request.auth.token.email == 'contact@bintangprasetyo.com')));
+      allow write: if isValidId(adminId) && (isAdmin() || (isSignedIn() && request.auth.uid == adminId && request.auth.token.email_verified == true && (request.auth.token.email == 'prasetyoilham753@gmail.com' || request.auth.token.email == 'contact@bintangprasetyo.com')));
     }
 
     // 3. Site Content (e.g. profile, about, gallery, certificates)
