@@ -78,13 +78,13 @@ export function PageTransition({ children }: PageTransitionProps) {
 
   const transitionConfig = isInitialLaunch && !shouldReduceMotion
     ? {
-        duration: isDesktop ? 1.1 : 0.85,
+        duration: isDesktop ? 0.9 : 0.7,
         ease: [0.16, 1, 0.3, 1] as [number, number, number, number], // Apple fluid cubic-bezier curve
         delay: 0.02,
       }
     : {
-        duration: isDesktop ? 0.65 : 0.5,
-        ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+        duration: isDesktop ? 0.42 : 0.34,
+        ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
       };
 
   return (

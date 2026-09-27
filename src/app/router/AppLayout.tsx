@@ -35,7 +35,7 @@ export default function AppLayout() {
           <Navigation />
           
           <main className="flex-grow relative z-10 pb-24 sm:pb-28" style={{ perspective: "1200px" }}>
-            <AnimatePresence mode="wait">
+            <AnimatePresence mode="popLayout">
               {/* using a div inside AnimatePresence for the key to work correctly if PageTransition doesn't accept key */}
               <div key={location.pathname} className="w-full h-full">
                 <PageTransition>

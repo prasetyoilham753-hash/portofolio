@@ -61,6 +61,7 @@ export function Navigation() {
   const [activeRect, setActiveRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const [isGliding, setIsGliding] = useState(false);
   const [isReleasing, setIsReleasing] = useState(false);
+  const [releaseStartX, setReleaseStartX] = useState<number | null>(null);
 
   // Dynamic Liquid Fluid Morphing State (Governed by Continuum Mechanics & Hydrodynamics)
   const [dragSpeed, setDragSpeed] = useState<number>(0);
@@ -279,29 +280,45 @@ export function Navigation() {
 
     const hadHoldOrDrag = isHolding || wasDraggingRef.current;
 
-    if (heldIndex !== null) {
-      if (cachedLayoutRef.current && cachedLayoutRef.current.items[heldIndex]) {
-        const targetItem = cachedLayoutRef.current.items[heldIndex];
-        setActiveRect({
-          x: targetItem.left,
-          y: targetItem.top,
-          width: targetItem.width,
-          height: targetItem.height,
-        });
+    let targetItem = null;
+    if (heldIndex !== null && cachedLayoutRef.current && cachedLayoutRef.current.items[heldIndex]) {
+      targetItem = cachedLayoutRef.current.items[heldIndex];
+    } else if (cachedLayoutRef.current && cachedLayoutRef.current.items.length > 0) {
+      const currentCenterX = dragGlassX + (dragGlassWidth / 2);
+      let closest = cachedLayoutRef.current.items[0];
+      let minDist = Infinity;
+      for (const item of cachedLayoutRef.current.items) {
+        const d = Math.abs(currentCenterX - item.centerX);
+        if (d < minDist) {
+          minDist = d;
+          closest = item;
+        }
       }
-      const targetLink = NAV_LINKS[heldIndex];
+      targetItem = closest;
+    }
+
+    if (targetItem) {
+      setActiveRect({
+        x: targetItem.left,
+        y: targetItem.top,
+        width: targetItem.width,
+        height: targetItem.height,
+      });
+      const targetLink = NAV_LINKS[targetItem.index];
       if (targetLink && targetLink.path !== location.pathname) {
         navigate(targetLink.path);
       }
     }
 
     if (hadHoldOrDrag) {
+      setReleaseStartX(dragGlassX);
       skipGlideRef.current = true;
       setIsReleasing(true);
       if (releaseTimerRef.current) clearTimeout(releaseTimerRef.current);
       releaseTimerRef.current = setTimeout(() => {
         setIsReleasing(false);
-      }, 260);
+        setReleaseStartX(null);
+      }, 320);
     }
 
     setIsHolding(false);
@@ -312,6 +329,45 @@ export function Navigation() {
     wasDraggingRef.current = false;
     setIsGliding(false);
   }, [heldIndex, isHolding, location.pathname, navigate]);
+
+  const handleNavClick = useCallback((index: number, path: string, e: React.MouseEvent) => {
+    if (path === location.pathname) return;
+    e.preventDefault();
+
+    if (isHolding) return;
+
+    if (!cachedLayoutRef.current) {
+      prepareLayoutCache();
+    }
+    const layout = cachedLayoutRef.current;
+    if (!layout || !layout.items[index]) {
+      navigate(path);
+      return;
+    }
+
+    const targetItem = layout.items[index];
+
+    setActiveRect({
+      x: targetItem.left,
+      y: targetItem.top,
+      width: targetItem.width,
+      height: targetItem.height,
+    });
+
+    setIsHolding(true);
+    setIsReleasing(true);
+    skipGlideRef.current = true;
+
+    if (releaseTimerRef.current) clearTimeout(releaseTimerRef.current);
+    releaseTimerRef.current = setTimeout(() => {
+      navigate(path);
+      setIsHolding(false);
+      setIsReleasing(false);
+      setReleaseStartX(null);
+      setHeldIndex(null);
+      cachedLayoutRef.current = null;
+    }, 580);
+  }, [isHolding, location.pathname, navigate, prepareLayoutCache]);
 
   // Detect mobile viewport
   useEffect(() => {
@@ -331,7 +387,7 @@ export function Navigation() {
       setIsGliding(false);
     } else {
       setIsGliding(true);
-      glideTimer = setTimeout(() => setIsGliding(false), 450);
+      glideTimer = setTimeout(() => setIsGliding(false), 650);
     }
 
     const updateActiveRect = () => {
@@ -903,7 +959,7 @@ export function Navigation() {
         >
           {/* Unified Dynamic Living Glass Capsule Indicator (Floating centered vertically in the nav dock) */}
           {activeRect && (() => {
-            const isInteractive = isHolding || isPressed;
+            const isInteractive = isHolding || isPressed || isGliding;
             const isExpandedState = isInteractive;
             
             // Dynamic capsule dimensions controlled via Dashboard (Supports Oversized Floating Capsule beyond Nav Dock during interaction)
@@ -913,19 +969,21 @@ export function Navigation() {
             // Strict Physical Law:
             // - When Interacting (Hold, Drag/Slide, Click): Capsule expands to the configured dynamic size (can be large / outside nav)
             // - When Static / Released: Capsule ALWAYS contracts to compact resting size strictly INSIDE the nav dock (extra = 0px)
-            const extraW = isInteractive ? (configuredExtraW + (isHolding ? 8 : 4)) : 0;
-            const extraH = isInteractive ? (configuredExtraH + (isHolding ? 2 : 1)) : 0;
+            const extraW = isInteractive ? (configuredExtraW + 8) : 0;
+            const extraH = isInteractive ? (configuredExtraH + 2) : 0;
 
-            const targetW = isHolding 
-              ? dragGlassWidth + extraW 
+            const targetW = (isHolding || isGliding) 
+              ? ((isHolding && dragGlassWidth ? dragGlassWidth : activeRect.width) + extraW) 
               : activeRect.width + extraW;
 
-            const targetH = isHolding 
-              ? (dragGlassHeight || activeRect.height) + extraH 
+            const targetH = (isHolding || isGliding) 
+              ? ((isHolding && dragGlassHeight ? dragGlassHeight : activeRect.height) + extraH) 
               : activeRect.height + extraH;
 
             const targetX = isHolding 
-              ? dragGlassX - (extraW / 2) 
+              ? (isReleasing ? activeRect.x - (extraW / 2) : dragGlassX - (extraW / 2)) 
+              : (isReleasing && releaseStartX !== null)
+              ? releaseStartX - (extraW / 2)
               : activeRect.x - (extraW / 2);
 
             // Floating vertically centered and aligned directly with the nav dock at all times:
@@ -953,7 +1011,11 @@ export function Navigation() {
             const fluidBorderRadius = "9999px";
 
             if (isHolding) {
-              if (isMoving) {
+              if (isReleasing) {
+                // Stable, proportional shape during click glide transition
+                fluidScaleX = 1.0;
+                fluidScaleY = 1.0;
+              } else if (isMoving) {
                 // Clearly visible horizontal fluid elongation when moving/dragging
                 const speedFactor = Math.min(0.35, (dragSpeed + 0.25) * 0.20);
                 fluidScaleX = 1 + speedFactor; // 1.15 to 1.35
@@ -970,9 +1032,9 @@ export function Navigation() {
                 }
               }
             } else if (isGliding && !isReleasing) {
-              // During pure route click transition: Dynamic in-flight horizontal stretch and elastic landing
-              fluidScaleX = 1.20;
-              fluidScaleY = 1 / 1.20; // ~0.833
+              // During pure route click transition: Keep shape perfectly stable and proportional across any distance
+              fluidScaleX = 1.0;
+              fluidScaleY = 1.0;
             } else if (isPressed) {
               // Tactile touch squash
               fluidScaleX = 1.08;
@@ -997,7 +1059,7 @@ export function Navigation() {
                   skewX: fluidSkewX,
                   borderRadius: fluidBorderRadius,
                 }}
-                transition={isHolding ? {
+                transition={isHolding && !isReleasing ? {
                   // Active interactive drag: Responsive and attached directly to finger/pointer
                   x: { type: "spring", stiffness: 460, damping: 30, mass: 0.2 },
                   y: { type: "spring", stiffness: 460, damping: 30, mass: 0.2 },
@@ -1007,6 +1069,16 @@ export function Navigation() {
                   scaleY: { type: "spring", stiffness: 350, damping: 24, mass: 0.2 },
                   skewX: { type: "spring", stiffness: 350, damping: 24, mass: 0.2 },
                   borderRadius: { type: "spring", stiffness: 350, damping: 26 },
+                } : (isHolding && isReleasing) ? {
+                  // Click & Route Glide Transition: Expand, glide smoothly, shrink and fuse into target tab shape
+                  x: { type: "spring", stiffness: 130, damping: 26, mass: 1.0 },
+                  y: { type: "spring", stiffness: 130, damping: 26, mass: 1.0 },
+                  width: { type: "spring", stiffness: 130, damping: 26, mass: 1.0 },
+                  height: { type: "spring", stiffness: 130, damping: 26, mass: 1.0 },
+                  scaleX: { type: "spring", stiffness: 160, damping: 24, mass: 0.8 },
+                  scaleY: { type: "spring", stiffness: 160, damping: 24, mass: 0.8 },
+                  skewX: { type: "spring", stiffness: 160, damping: 24, mass: 0.8 },
+                  borderRadius: { type: "spring", stiffness: 160, damping: 24 },
                 } : isReleasing ? {
                   // Instant crisp shrink and seamless solid fusion into tab shape on finger release (Zero wobble, zero lag)
                   x: { type: "spring", stiffness: 500, damping: 38, mass: 0.2 },
@@ -1019,14 +1091,14 @@ export function Navigation() {
                   borderRadius: { type: "spring", stiffness: 440, damping: 32 },
                 } : {
                   // Click & Route Transition: Slow, luxurious, fluid, elegant and cinematic ease with elastic settle
-                  x: { type: "spring", stiffness: 180, damping: 24, mass: 0.8 },
-                  y: { type: "spring", stiffness: 180, damping: 24, mass: 0.8 },
-                  width: { type: "spring", stiffness: 180, damping: 24, mass: 0.8 },
-                  height: { type: "spring", stiffness: 180, damping: 24, mass: 0.8 },
-                  scaleX: { type: "spring", stiffness: 220, damping: 22, mass: 0.5 },
-                  scaleY: { type: "spring", stiffness: 220, damping: 22, mass: 0.5 },
-                  skewX: { type: "spring", stiffness: 220, damping: 22, mass: 0.5 },
-                  borderRadius: { type: "spring", stiffness: 220, damping: 22 },
+                  x: { type: "spring", stiffness: 125, damping: 26, mass: 1.15 },
+                  y: { type: "spring", stiffness: 125, damping: 26, mass: 1.15 },
+                  width: { type: "spring", stiffness: 125, damping: 26, mass: 1.15 },
+                  height: { type: "spring", stiffness: 125, damping: 26, mass: 1.15 },
+                  scaleX: { type: "spring", stiffness: 155, damping: 24, mass: 0.85 },
+                  scaleY: { type: "spring", stiffness: 155, damping: 24, mass: 0.85 },
+                  skewX: { type: "spring", stiffness: 155, damping: 24, mass: 0.85 },
+                  borderRadius: { type: "spring", stiffness: 155, damping: 24 },
                 }}
                 className={`absolute pointer-events-none rounded-full ${
                   isExpandedState ? "z-30" : "z-10"
@@ -1187,9 +1259,7 @@ export function Navigation() {
                 onPointerDown={(e) => handlePointerDown(index, e)}
                 onContextMenu={(e) => e.preventDefault()}
                 onClick={(e) => {
-                  if (isHolding) {
-                    e.preventDefault();
-                  }
+                  handleNavClick(index, link.path, e);
                 }}
                 onDragStart={(e) => e.preventDefault()}
                 style={{
