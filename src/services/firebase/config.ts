@@ -2,7 +2,7 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { initializeFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
-import { getAnalytics, isSupported, logEvent } from 'firebase/analytics';
+import { initializeAnalytics, getAnalytics, isSupported, logEvent } from 'firebase/analytics';
 import firebaseConfig from '../../../firebase-applet-config.json';
 
 // Initialize Firebase only once
@@ -34,14 +34,23 @@ if (typeof window !== "undefined") {
       win.gtag = gtag;
     }
 
-    // 3. Initialize Firebase Analytics instance if supported
-    // Firebase Analytics manages gtag.js script loading and configuration as the single source of truth
+    // 3. Initialize Firebase Analytics instance with single-source configuration
+    // Disabling automatic send_page_view prevents duplicate page_view triggers on initial mount
+    // since AppLayout router listener manages canonical SPA page_view dispatch.
     isSupported().then((supported) => {
       if (supported) {
         try {
-          analyticsInstance = getAnalytics(app);
+          analyticsInstance = initializeAnalytics(app, {
+            config: {
+              send_page_view: false,
+            },
+          });
         } catch {
-          // Gracefully continue
+          try {
+            analyticsInstance = getAnalytics(app);
+          } catch {
+            // Gracefully continue
+          }
         }
       }
     }).catch(() => {
