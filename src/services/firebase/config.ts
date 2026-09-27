@@ -52,7 +52,7 @@ if (typeof window !== "undefined") {
     isSupported().then((supported) => {
       if (supported) {
         try {
-          analyticsInstance = getAnalytics(app);
+          analyticsInstance = getAnalytics(app, { measurementId });
         } catch {
           // Gracefully fallback to window.gtag
         }
