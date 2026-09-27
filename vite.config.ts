@@ -50,6 +50,12 @@ function githubPagesSpaPlugin(): Plugin {
       const nojekyllDest = path.join(distDir, '.nojekyll');
       fs.writeFileSync(nojekyllDest, '', 'utf8');
 
+      const headersSrc = path.resolve(__dirname, 'public/_headers');
+      const headersDest = path.join(distDir, '_headers');
+      if (fs.existsSync(headersSrc)) {
+        fs.copyFileSync(headersSrc, headersDest);
+      }
+
       console.log('✓ GitHub Pages SPA routing configured (404.html & route directories generated)');
     }
   };

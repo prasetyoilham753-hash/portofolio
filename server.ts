@@ -14,6 +14,19 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 app.use(cors());
 app.use(express.json());
 
+// HTTP Security Headers (Mozilla Observatory A+ Grade)
+app.use((_req, res, next) => {
+  res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://www.google.com/recaptcha/ https://api.cloudinary.com https://*.firebaseapp.com https://*.firebasestorage.app; frame-src 'self' https://www.google.com/recaptcha/ https://recaptcha.google.com/ https://*.firebaseapp.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self';"
+  );
+  next();
+});
+
 // Setup Vite Dev server middleware or static server
 async function setupServer() {
   if (process.env.NODE_ENV !== 'production') {
