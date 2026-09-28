@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { 
   Maximize2, 
   X, 
@@ -39,7 +40,20 @@ function CertificateCard({
     : (item.imageUrl ? [item.imageUrl] : []);
 
   const [currentIdx, setCurrentIdx] = useState(0);
+  const [isSkillsExpanded, setIsSkillsExpanded] = useState(false);
+  const [naturalRatio, setNaturalRatio] = useState<number | null>(item.aspectRatio || null);
   const touchStartX = useRef<number | null>(null);
+
+  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    if (img.naturalWidth && img.naturalHeight) {
+      setNaturalRatio(img.naturalWidth / img.naturalHeight);
+    }
+  };
+
+  const isPortrait = naturalRatio !== null && naturalRatio < 0.95;
+  const isSquare = naturalRatio !== null && naturalRatio >= 0.95 && naturalRatio < 1.15;
+  const aspectClass = isPortrait ? "aspect-[3/4.2] sm:aspect-[3/4]" : isSquare ? "aspect-square" : "aspect-[16/10]";
 
   const handlePrevSlide = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
@@ -78,25 +92,27 @@ function CertificateCard({
       onClick={() => onOpenLightbox(item, index, currentIdx)}
       className={`group relative rounded-[26px] overflow-hidden border border-[rgba(120,170,255,0.18)] bg-[rgba(6,15,35,0.45)] backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.25)] hover:border-[rgba(140,190,255,0.45)] transition-all duration-300 cursor-pointer flex flex-col justify-between hover:shadow-[0_16px_40px_rgba(0,0,0,0.4),0_0_24px_rgba(120,170,255,0.12)] hover:-translate-y-1.5 ${offsetClass}`}
     >
-      {/* Top Image Container & Interactive Slider */}
+      {/* Top Image Container & Interactive Slider with Adaptive Aspect Ratio */}
       <div 
-        className="relative aspect-[16/10] bg-black/40 overflow-hidden select-none"
+        className={`relative ${aspectClass} bg-black/40 overflow-hidden select-none transition-all duration-300`}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
+        {/* Full Edge-to-Edge Certificate Image */}
         <img
           src={currentImageUrl}
           alt={`${item.title} - Foto ${currentIdx + 1}`}
           loading="lazy"
           key={currentImageUrl}
-          className="w-full h-full object-cover transition-all duration-500 ease-out group-hover:scale-105 animate-fade-in"
+          onLoad={handleImageLoad}
+          className="w-full h-full object-cover object-center transition-all duration-500 ease-out group-hover:scale-105 animate-fade-in"
           onError={(e) => {
             (e.target as HTMLElement).style.display = "none";
           }}
         />
 
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[rgba(6,15,35,0.92)] via-[rgba(6,15,35,0.25)] to-transparent opacity-80 group-hover:opacity-60 transition-opacity pointer-events-none" />
+        {/* Subtle Gradient & Glass Vignette Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[rgba(6,15,35,0.85)] via-[rgba(6,15,35,0.2)] to-transparent opacity-75 group-hover:opacity-50 transition-opacity pointer-events-none" />
 
         {/* Top Badges: Category & Featured & Multi-photo counter */}
         <div className="absolute top-3.5 left-3.5 right-3.5 flex items-center justify-between z-10 pointer-events-none">
@@ -197,18 +213,34 @@ function CertificateCard({
 
         {/* Skills Pills */}
         {item.skills && item.skills.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 pt-3 border-t border-white/5">
-            {item.skills.slice(0, 3).map((skill, sIdx) => (
+          <div 
+            className="flex flex-wrap items-center gap-1.5 pt-3 border-t border-white/5 transition-all duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {(isSkillsExpanded ? item.skills : item.skills.slice(0, 3)).map((skill, sIdx) => (
               <span
                 key={sIdx}
-                className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-white/[0.05] border border-white/10 text-[#E2EEFC]/80"
+                className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-white/[0.05] border border-white/10 text-[#E2EEFC]/80 transition-all duration-200"
               >
                 {skill}
               </span>
             ))}
             {item.skills.length > 3 && (
-              <span className="px-2 py-0.5 rounded-full text-[11px] bg-white/[0.05] text-white/50">
-                +{item.skills.length - 3}
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsSkillsExpanded(!isSkillsExpanded);
+                }}
+                role="button"
+                tabIndex={0}
+                className={`px-2 py-0.5 rounded-full text-[11px] font-medium transition-all duration-200 cursor-pointer select-none ${
+                  isSkillsExpanded 
+                    ? "bg-[#7DB3FF]/25 border border-[#7DB3FF]/50 text-[#7DB3FF] hover:bg-[#7DB3FF]/35" 
+                    : "bg-white/[0.08] border border-white/15 text-white/70 hover:text-white hover:bg-white/[0.15] hover:border-[#7DB3FF]/40"
+                }`}
+                title={isSkillsExpanded ? "Sembunyikan tag lainnya" : "Tampilkan semua tag"}
+              >
+                {isSkillsExpanded ? "− Ringkas" : `+${item.skills.length - 3}`}
               </span>
             )}
           </div>
@@ -276,6 +308,17 @@ export default function Certificates() {
         ? activeCert.images.filter(Boolean)
         : (activeCert.imageUrl ? [activeCert.imageUrl] : []))
     : [];
+
+  // Lock background scroll when lightbox preview is active
+  useEffect(() => {
+    if (activeCert) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [activeCert]);
 
   // Keyboard navigation for Lightbox
   useEffect(() => {
@@ -442,10 +485,10 @@ export default function Certificates() {
         </div>
       )}
 
-      {/* FULLSCREEN LIGHTBOX MODAL WITH MULTI-IMAGE SLIDER */}
-      {activeCert && (
+      {/* FULLSCREEN LIGHTBOX MODAL WITH MULTI-IMAGE SLIDER (Rendered in Portal to prevent viewport scroll trap) */}
+      {activeCert && typeof document !== "undefined" && createPortal(
         <div 
-          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl flex items-center justify-center p-3 sm:p-6 md:p-10 animate-fade-in"
+          className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-xl flex items-center justify-center p-3 sm:p-6 md:p-10 animate-fade-in"
           onClick={() => setActiveCert(null)}
         >
           {/* Close Button */}
@@ -670,7 +713,8 @@ export default function Certificates() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

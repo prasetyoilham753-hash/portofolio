@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { 
   Maximize2, 
   X, 
@@ -55,6 +56,17 @@ export default function Gallery() {
 
     return () => unsubscribe();
   }, []);
+
+  // Lock background scroll when lightbox preview is active
+  useEffect(() => {
+    if (activeArtwork) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [activeArtwork]);
 
   // Keyboard navigation for Lightbox
   useEffect(() => {
@@ -305,10 +317,10 @@ export default function Gallery() {
         </div>
       )}
 
-      {/* LIGHTBOX MODAL VIEWER */}
-      {activeArtwork && (
+      {/* LIGHTBOX MODAL VIEWER (Rendered in Portal to prevent viewport scroll trap) */}
+      {activeArtwork && typeof document !== "undefined" && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/90 backdrop-blur-2xl animate-fade-in"
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6 bg-black/90 backdrop-blur-2xl animate-fade-in"
           onClick={() => setActiveArtwork(null)}
         >
           {/* Modal Container */}
@@ -395,7 +407,8 @@ export default function Gallery() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
