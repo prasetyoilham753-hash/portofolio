@@ -221,7 +221,7 @@ export function Hero({ profile }: HeroProps) {
           </div>
         </motion.div>
 
-        {/* Download CV Button (Positioned underneath the social media icons with identical shape and size) */}
+        {/* Download CV Button (Solid Premium Design - Non-Glass) */}
         <motion.div 
           id="hero-download-cv-container"
           initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 16, scale: 0.96 }}
@@ -234,12 +234,12 @@ export function Hero({ profile }: HeroProps) {
               id="hero-download-cv"
               type="button"
               onClick={() => setIsCvModalOpen(true)}
-              className="tactile-start-btn box start-btn w-full max-w-[175px] xs:max-w-[200px] sm:max-w-[270px] md:max-w-[340px] lg:max-w-[380px] xl:max-w-[400px] h-[42px] xs:h-[46px] sm:h-[52px] md:h-[56px] lg:h-[58px] px-3.5 xs:px-4 sm:px-6 md:px-7 text-[12px] xs:text-[13px] sm:text-[15px] md:text-[16px] lg:text-[17px] font-medium whitespace-nowrap flex items-center justify-between rounded-full cursor-pointer transition-all relative overflow-hidden group"
+              className="w-full max-w-[175px] xs:max-w-[200px] sm:max-w-[270px] md:max-w-[340px] lg:max-w-[380px] xl:max-w-[400px] h-[42px] xs:h-[46px] sm:h-[52px] md:h-[56px] lg:h-[58px] px-3.5 xs:px-4 sm:px-6 md:px-7 text-[12px] xs:text-[13px] sm:text-[15px] md:text-[16px] lg:text-[17px] font-semibold whitespace-nowrap flex items-center justify-between rounded-full cursor-pointer transition-all duration-300 relative select-none bg-[#205BF0] hover:bg-[#1A4ED4] active:bg-[#1541B8] text-white shadow-[0_8px_24px_-4px_rgba(32,91,240,0.5),0_2px_6px_rgba(0,0,0,0.3)] hover:shadow-[0_12px_28px_-4px_rgba(32,91,240,0.65),0_4px_10px_rgba(0,0,0,0.35)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] border border-blue-400/40 group"
             >
-              <span className="text font-semibold tracking-wide text-[#F7FAFF] group-hover:text-white transition-colors z-10">Download CV</span>
-              <div className="btn-icon w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 bg-[#3D7CFF] rounded-full flex items-center justify-center shadow-md transition-transform duration-300 group-hover:scale-110 z-10 shrink-0">
+              <span className="tracking-wide text-white transition-colors">Download CV</span>
+              <div className="w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 bg-white text-[#205BF0] rounded-full flex items-center justify-center shadow-sm transition-transform duration-300 group-hover:scale-110 group-hover:bg-[#FFFFFF] group-hover:text-[#1A4ED4] shrink-0">
                 <svg
-                  className="svg w-3.5 h-3.5 sm:w-4 sm:h-4 fill-white"
+                  className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current transition-transform duration-300 group-hover:translate-x-0.5"
                   viewBox="0 0 1024 1024"
                   version="1.1"
                   xmlns="http://www.w3.org/2000/svg"
@@ -249,16 +249,14 @@ export function Hero({ profile }: HeroProps) {
                   ></path>
                 </svg>
               </div>
-              <div className="circle-overlay pointer-events-none"></div>
             </button>
           ) : (
             <button 
               id="hero-download-cv-disabled"
               disabled
-              className="tactile-start-btn box start-btn w-full max-w-[175px] xs:max-w-[200px] sm:max-w-[270px] md:max-w-[340px] lg:max-w-[380px] xl:max-w-[400px] h-[42px] xs:h-[46px] sm:h-[52px] md:h-[56px] lg:h-[58px] px-3.5 xs:px-4 sm:px-6 md:px-7 text-[12px] xs:text-[13px] sm:text-[15px] md:text-[16px] lg:text-[17px] font-medium whitespace-nowrap opacity-50 pointer-events-none flex items-center justify-between rounded-full relative overflow-hidden"
+              className="w-full max-w-[175px] xs:max-w-[200px] sm:max-w-[270px] md:max-w-[340px] lg:max-w-[380px] xl:max-w-[400px] h-[42px] xs:h-[46px] sm:h-[52px] md:h-[56px] lg:h-[58px] px-3.5 xs:px-4 sm:px-6 md:px-7 text-[12px] xs:text-[13px] sm:text-[15px] md:text-[16px] lg:text-[17px] font-medium whitespace-nowrap opacity-40 pointer-events-none flex items-center justify-between rounded-full bg-[#111A2E] text-slate-400 border border-white/10"
             >
-              <span className="text font-semibold text-[#A8B8CC] z-10">CV Not Available</span>
-              <div className="circle-overlay pointer-events-none"></div>
+              <span className="font-semibold text-[#8B9BB4]">CV Not Available</span>
             </button>
           )}
         </motion.div>
