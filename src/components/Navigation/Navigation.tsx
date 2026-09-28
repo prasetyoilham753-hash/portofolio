@@ -45,7 +45,6 @@ export function Navigation() {
   const menuRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const lastScrollY = useRef(0);
-  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -60,8 +59,6 @@ export function Navigation() {
   const [navCenterY, setNavCenterY] = useState<number>(19);
   const [activeRect, setActiveRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const [isGliding, setIsGliding] = useState(false);
-  const [isReleasing, setIsReleasing] = useState(false);
-  const [releaseStartX, setReleaseStartX] = useState<number | null>(null);
 
   // Dynamic Liquid Fluid Morphing State (Governed by Continuum Mechanics & Hydrodynamics)
   const [dragSpeed, setDragSpeed] = useState<number>(0);
@@ -72,8 +69,6 @@ export function Navigation() {
   const lastSpeedRef = useRef<number>(0);
   const lastDirectionRef = useRef<"left" | "right">("right");
   const wasDraggingRef = useRef<boolean>(false);
-  const skipGlideRef = useRef<boolean>(false);
-  const releaseTimerRef = useRef<NodeJS.Timeout | null>(null);
   const velocityDecayTimerRef = useRef<NodeJS.Timeout | null>(null);
   const fastStopTimerRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -278,8 +273,6 @@ export function Navigation() {
       navDockRef.current = null;
     }
 
-    const hadHoldOrDrag = isHolding || wasDraggingRef.current;
-
     let targetItem = null;
     if (heldIndex !== null && cachedLayoutRef.current && cachedLayoutRef.current.items[heldIndex]) {
       targetItem = cachedLayoutRef.current.items[heldIndex];
@@ -310,17 +303,6 @@ export function Navigation() {
       }
     }
 
-    if (hadHoldOrDrag) {
-      setReleaseStartX(dragGlassX);
-      skipGlideRef.current = true;
-      setIsReleasing(true);
-      if (releaseTimerRef.current) clearTimeout(releaseTimerRef.current);
-      releaseTimerRef.current = setTimeout(() => {
-        setIsReleasing(false);
-        setReleaseStartX(null);
-      }, 320);
-    }
-
     setIsHolding(false);
     setIsPressed(false);
     setHeldIndex(null);
@@ -328,7 +310,7 @@ export function Navigation() {
     cachedLayoutRef.current = null;
     wasDraggingRef.current = false;
     setIsGliding(false);
-  }, [heldIndex, isHolding, location.pathname, navigate]);
+  }, [dragGlassWidth, dragGlassX, heldIndex, location.pathname, navigate]);
 
   const handleNavClick = useCallback((index: number, path: string, e: React.MouseEvent) => {
     if (path === location.pathname) return;
@@ -340,33 +322,17 @@ export function Navigation() {
       prepareLayoutCache();
     }
     const layout = cachedLayoutRef.current;
-    if (!layout || !layout.items[index]) {
-      navigate(path);
-      return;
+    if (layout && layout.items[index]) {
+      const targetItem = layout.items[index];
+      setActiveRect({
+        x: targetItem.left,
+        y: targetItem.top,
+        width: targetItem.width,
+        height: targetItem.height,
+      });
     }
 
-    const targetItem = layout.items[index];
-
-    setActiveRect({
-      x: targetItem.left,
-      y: targetItem.top,
-      width: targetItem.width,
-      height: targetItem.height,
-    });
-
-    setIsHolding(true);
-    setIsReleasing(true);
-    skipGlideRef.current = true;
-
-    if (releaseTimerRef.current) clearTimeout(releaseTimerRef.current);
-    releaseTimerRef.current = setTimeout(() => {
-      navigate(path);
-      setIsHolding(false);
-      setIsReleasing(false);
-      setReleaseStartX(null);
-      setHeldIndex(null);
-      cachedLayoutRef.current = null;
-    }, 580);
+    navigate(path);
   }, [isHolding, location.pathname, navigate, prepareLayoutCache]);
 
   // Detect mobile viewport
@@ -381,14 +347,8 @@ export function Navigation() {
 
   // Update active item geometry for continuous smooth glass capsule gliding on click
   useEffect(() => {
-    let glideTimer: NodeJS.Timeout | null = null;
-    if (skipGlideRef.current) {
-      skipGlideRef.current = false;
-      setIsGliding(false);
-    } else {
-      setIsGliding(true);
-      glideTimer = setTimeout(() => setIsGliding(false), 650);
-    }
+    setIsGliding(true);
+    const glideTimer = setTimeout(() => setIsGliding(false), 450);
 
     const updateActiveRect = () => {
       if (!trackRef.current) return;
@@ -422,9 +382,6 @@ export function Navigation() {
     };
   }, [location.pathname, config.verticalPadding, config.itemPaddingY, config.fontSize]);
 
-  // Find index of current primary route for horizontal slide transitions
-  const currentPrimaryIndex = NAV_LINKS.findIndex((link) => link.path === location.pathname);
-
   // Check if any secondary link is currently active
   const isSecondaryActive = SECONDARY_LINKS.some(
     (link) => location.pathname === link.path || (link.id === "certificates" && location.pathname === "/certificate")
@@ -450,60 +407,6 @@ export function Navigation() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  // 2. Horizontal Slide / Swipe Gesture Adaptation (slide kesamping antar halaman utama)
-  const handleTouchStart = useCallback((e: TouchEvent) => {
-    // Only track single touch points
-    if (e.touches.length === 1) {
-      touchStartRef.current = {
-        x: e.touches[0].clientX,
-        y: e.touches[0].clientY,
-        time: Date.now()
-      };
-    }
-  }, []);
-
-  const handleTouchEnd = useCallback((e: TouchEvent) => {
-    if (!touchStartRef.current || e.changedTouches.length !== 1) return;
-
-    const touchEnd = {
-      x: e.changedTouches[0].clientX,
-      y: e.changedTouches[0].clientY,
-      time: Date.now()
-    };
-
-    const deltaX = touchEnd.x - touchStartRef.current.x;
-    const deltaY = touchEnd.y - touchStartRef.current.y;
-    const duration = touchEnd.time - touchStartRef.current.time;
-
-    // Check if touch originated from an interactive element like textarea, input, or horizontal scrollable container
-    const target = e.target as HTMLElement | null;
-    const isInteractive = target?.closest('textarea, input, [data-prevent-swipe], .scrollable-carousel, .no-swipe');
-
-    if (!isInteractive && duration < 450 && Math.abs(deltaX) > 65 && Math.abs(deltaY) < 50) {
-      // Horizontal swipe detected
-      if (currentPrimaryIndex !== -1) {
-        if (deltaX < 0 && currentPrimaryIndex < NAV_LINKS.length - 1) {
-          // Swipe Left -> Navigate to next tab
-          navigate(NAV_LINKS[currentPrimaryIndex + 1].path);
-        } else if (deltaX > 0 && currentPrimaryIndex > 0) {
-          // Swipe Right -> Navigate to previous tab
-          navigate(NAV_LINKS[currentPrimaryIndex - 1].path);
-        }
-      }
-    }
-
-    touchStartRef.current = null;
-  }, [currentPrimaryIndex, navigate]);
-
-  useEffect(() => {
-    window.addEventListener("touchstart", handleTouchStart, { passive: true });
-    window.addEventListener("touchend", handleTouchEnd, { passive: true });
-    return () => {
-      window.removeEventListener("touchstart", handleTouchStart);
-      window.removeEventListener("touchend", handleTouchEnd);
-    };
-  }, [handleTouchStart, handleTouchEnd]);
 
   // Center active item in scroll track when path changes
   useEffect(() => {
@@ -969,21 +872,19 @@ export function Navigation() {
             // Strict Physical Law:
             // - When Interacting (Hold, Drag/Slide, Click): Capsule expands to the configured dynamic size (can be large / outside nav)
             // - When Static / Released: Capsule ALWAYS contracts to compact resting size strictly INSIDE the nav dock (extra = 0px)
-            const extraW = isInteractive ? (configuredExtraW + 8) : 0;
-            const extraH = isInteractive ? (configuredExtraH + 2) : 0;
+            const extraW = isInteractive ? configuredExtraW : 0;
+            const extraH = isInteractive ? configuredExtraH : 0;
 
-            const targetW = (isHolding || isGliding) 
-              ? ((isHolding && dragGlassWidth ? dragGlassWidth : activeRect.width) + extraW) 
+            const targetW = (isHolding && dragGlassWidth) 
+              ? (dragGlassWidth + extraW) 
               : activeRect.width + extraW;
 
-            const targetH = (isHolding || isGliding) 
-              ? ((isHolding && dragGlassHeight ? dragGlassHeight : activeRect.height) + extraH) 
+            const targetH = (isHolding && dragGlassHeight) 
+              ? (dragGlassHeight + extraH) 
               : activeRect.height + extraH;
 
             const targetX = isHolding 
-              ? (isReleasing ? activeRect.x - (extraW / 2) : dragGlassX - (extraW / 2)) 
-              : (isReleasing && releaseStartX !== null)
-              ? releaseStartX - (extraW / 2)
+              ? dragGlassX - (extraW / 2) 
               : activeRect.x - (extraW / 2);
 
             // Floating vertically centered and aligned directly with the nav dock at all times:
@@ -997,13 +898,7 @@ export function Navigation() {
 
             // ============================================================
             // HYDRODYNAMICS & CONTINUUM FLUID MECHANICS:
-            // 1. Law of Conservation of Volume (Fluid Incompressibility):
-            //    Area = scaleX * scaleY = constant = 1.0 -> scaleY = 1 / scaleX
-            // 2. Pure Symmetrical Capsule / Oval Geometry (Zero Triangle / Symmetrical 9999px):
-            //    - Moving / Dragging: Capsule elongates horizontally (scaleX > 1.15) and contracts vertically (scaleY = 1 / scaleX)
-            //    - Braking / Sudden Stop: Capsule narrows horizontally (scaleX < 0.8) and surges vertically (scaleY = 1.30)
-            //    - Route Click Gliding: Dynamic horizontal stretching in mid-flight (scaleX = 1.25), followed by gentle elastic landing
-            //    - Static / Equilibrium: Pure symmetrical capsule (scaleX = 1.0, scaleY = 1.0)
+            // Symmetrical, continuous fluid capsule
             // ============================================================
             let fluidScaleX = 1;
             let fluidScaleY = 1;
@@ -1011,36 +906,21 @@ export function Navigation() {
             const fluidBorderRadius = "9999px";
 
             if (isHolding) {
-              if (isReleasing) {
-                // Stable, proportional shape during click glide transition
+              if (isMoving) {
+                const speedFactor = Math.min(0.25, (dragSpeed + 0.15) * 0.15);
+                fluidScaleX = 1 + speedFactor;
+                fluidScaleY = 1 / fluidScaleX;
+              } else if (isFastStop) {
+                fluidScaleY = 1.16;
+                fluidScaleX = 1 / 1.16;
+              } else {
                 fluidScaleX = 1.0;
                 fluidScaleY = 1.0;
-              } else if (isMoving) {
-                // Clearly visible horizontal fluid elongation when moving/dragging
-                const speedFactor = Math.min(0.35, (dragSpeed + 0.25) * 0.20);
-                fluidScaleX = 1 + speedFactor; // 1.15 to 1.35
-                fluidScaleY = 1 / fluidScaleX; // 0.87 to 0.74 (volume conservation)
-              } else {
-                if (isFastStop) {
-                  // Deceleration surge: Fluid narrows horizontally and surges vertically (memanjang ke atas-bawah)
-                  fluidScaleY = 1.25;
-                  fluidScaleX = 1 / 1.25; // ~0.80
-                } else {
-                  // Equilibrium relaxed capsule
-                  fluidScaleX = 1.0;
-                  fluidScaleY = 1.0;
-                }
               }
-            } else if (isGliding && !isReleasing) {
-              // During pure route click transition: Keep shape perfectly stable and proportional across any distance
-              fluidScaleX = 1.0;
-              fluidScaleY = 1.0;
             } else if (isPressed) {
-              // Tactile touch squash
-              fluidScaleX = 1.08;
-              fluidScaleY = 1 / 1.08;
+              fluidScaleX = 1.05;
+              fluidScaleY = 1 / 1.05;
             } else {
-              // Static resting or released state: strictly 1.0 and merges cleanly into active tab shape
               fluidScaleX = 1.0;
               fluidScaleY = 1.0;
             }
@@ -1059,46 +939,26 @@ export function Navigation() {
                   skewX: fluidSkewX,
                   borderRadius: fluidBorderRadius,
                 }}
-                transition={isHolding && !isReleasing ? {
-                  // Active interactive drag: Responsive and attached directly to finger/pointer
-                  x: { type: "spring", stiffness: 460, damping: 30, mass: 0.2 },
-                  y: { type: "spring", stiffness: 460, damping: 30, mass: 0.2 },
-                  width: { type: "spring", stiffness: 420, damping: 28, mass: 0.2 },
-                  height: { type: "spring", stiffness: 420, damping: 28, mass: 0.2 },
-                  scaleX: { type: "spring", stiffness: 350, damping: 24, mass: 0.2 },
-                  scaleY: { type: "spring", stiffness: 350, damping: 24, mass: 0.2 },
-                  skewX: { type: "spring", stiffness: 350, damping: 24, mass: 0.2 },
-                  borderRadius: { type: "spring", stiffness: 350, damping: 26 },
-                } : (isHolding && isReleasing) ? {
-                  // Click & Route Glide Transition: Expand, glide smoothly, shrink and fuse into target tab shape
-                  x: { type: "spring", stiffness: 130, damping: 26, mass: 1.0 },
-                  y: { type: "spring", stiffness: 130, damping: 26, mass: 1.0 },
-                  width: { type: "spring", stiffness: 130, damping: 26, mass: 1.0 },
-                  height: { type: "spring", stiffness: 130, damping: 26, mass: 1.0 },
-                  scaleX: { type: "spring", stiffness: 160, damping: 24, mass: 0.8 },
-                  scaleY: { type: "spring", stiffness: 160, damping: 24, mass: 0.8 },
-                  skewX: { type: "spring", stiffness: 160, damping: 24, mass: 0.8 },
-                  borderRadius: { type: "spring", stiffness: 160, damping: 24 },
-                } : isReleasing ? {
-                  // Instant crisp shrink and seamless solid fusion into tab shape on finger release (Zero wobble, zero lag)
-                  x: { type: "spring", stiffness: 500, damping: 38, mass: 0.2 },
-                  y: { type: "spring", stiffness: 500, damping: 38, mass: 0.2 },
-                  width: { type: "spring", stiffness: 480, damping: 36, mass: 0.2 },
-                  height: { type: "spring", stiffness: 480, damping: 36, mass: 0.2 },
-                  scaleX: { type: "spring", stiffness: 460, damping: 34, mass: 0.2 },
-                  scaleY: { type: "spring", stiffness: 460, damping: 34, mass: 0.2 },
-                  skewX: { type: "spring", stiffness: 460, damping: 34, mass: 0.2 },
-                  borderRadius: { type: "spring", stiffness: 440, damping: 32 },
+                transition={isHolding ? {
+                  // Active interactive drag: Instant, tightly-coupled response to touch/pointer
+                  x: { type: "spring", stiffness: 520, damping: 34, mass: 0.15 },
+                  y: { type: "spring", stiffness: 520, damping: 34, mass: 0.15 },
+                  width: { type: "spring", stiffness: 450, damping: 30, mass: 0.15 },
+                  height: { type: "spring", stiffness: 450, damping: 30, mass: 0.15 },
+                  scaleX: { type: "spring", stiffness: 380, damping: 26, mass: 0.15 },
+                  scaleY: { type: "spring", stiffness: 380, damping: 26, mass: 0.15 },
+                  skewX: { type: "spring", stiffness: 380, damping: 26, mass: 0.15 },
+                  borderRadius: { type: "spring", stiffness: 380, damping: 26 },
                 } : {
-                  // Click & Route Transition: Slow, luxurious, fluid, elegant and cinematic ease with elastic settle
-                  x: { type: "spring", stiffness: 125, damping: 26, mass: 1.15 },
-                  y: { type: "spring", stiffness: 125, damping: 26, mass: 1.15 },
-                  width: { type: "spring", stiffness: 125, damping: 26, mass: 1.15 },
-                  height: { type: "spring", stiffness: 125, damping: 26, mass: 1.15 },
-                  scaleX: { type: "spring", stiffness: 155, damping: 24, mass: 0.85 },
-                  scaleY: { type: "spring", stiffness: 155, damping: 24, mass: 0.85 },
-                  skewX: { type: "spring", stiffness: 155, damping: 24, mass: 0.85 },
-                  borderRadius: { type: "spring", stiffness: 155, damping: 24 },
+                  // Release & Route Click: Immediate smooth fusion without bounce/overshoot
+                  x: { type: "spring", stiffness: 380, damping: 40, mass: 0.6, bounce: 0 },
+                  y: { type: "spring", stiffness: 380, damping: 40, mass: 0.6, bounce: 0 },
+                  width: { type: "spring", stiffness: 380, damping: 40, mass: 0.6, bounce: 0 },
+                  height: { type: "spring", stiffness: 380, damping: 40, mass: 0.6, bounce: 0 },
+                  scaleX: { type: "spring", stiffness: 400, damping: 42, mass: 0.6, bounce: 0 },
+                  scaleY: { type: "spring", stiffness: 400, damping: 42, mass: 0.6, bounce: 0 },
+                  skewX: { type: "spring", stiffness: 400, damping: 42, mass: 0.6, bounce: 0 },
+                  borderRadius: { type: "spring", stiffness: 400, damping: 42, bounce: 0 },
                 }}
                 className={`absolute pointer-events-none rounded-full ${
                   isExpandedState ? "z-30" : "z-10"
@@ -1110,65 +970,65 @@ export function Navigation() {
                   WebkitBackfaceVisibility: "hidden",
                   borderRadius: fluidBorderRadius,
                   boxShadow: isExpandedState
-                    ? `0 18px 36px -4px rgba(0, 0, 0, 0.55), 0 6px 14px -2px rgba(0, 0, 0, 0.35), 0 0 ${Math.round(18 * ((config.capsuleGlowIntensity ?? 60) / 100))}px ${hexToRgba(config.activeBgColor, 0.25 * ((config.capsuleGlowIntensity ?? 60) / 100))}`
+                    ? `0 4px 14px -2px rgba(0, 0, 0, 0.35), 0 0 ${Math.round(18 * ((config.capsuleGlowIntensity ?? 60) / 100))}px ${hexToRgba(config.activeBgColor, 0.25 * ((config.capsuleGlowIntensity ?? 60) / 100))}`
                     : `0 2px 8px rgba(0, 0, 0, 0.18)`,
                 }}
               >
-                {/* Layer 1: Ambient Occlusion & Expanding Bloom Under Glass (Active only on hold/click) */}
+                {/* Layer 1: Ambient Drop Shadow & Under-Glow (Inspired by Button shadow container) */}
                 <motion.div
                   className="absolute -inset-1 rounded-full pointer-events-none"
                   animate={{
-                    scale: isExpandedState ? 1.15 : 0.95,
-                    opacity: isExpandedState ? 0.9 : 0,
+                    scale: isExpandedState ? 1.08 : 0.95,
+                    opacity: isExpandedState ? 0.85 : 0,
                   }}
                   transition={{ type: "spring", stiffness: 350, damping: 28 }}
                   style={{
                     borderRadius: fluidBorderRadius,
-                    background: `radial-gradient(ellipse at ${lightShiftPercent}% 50%, ${hexToRgba(config.activeBgColor, 0.40 * ((config.capsuleGlowIntensity ?? 60) / 100))} 0%, ${hexToRgba(config.activeBgColor, 0.08 * ((config.capsuleGlowIntensity ?? 60) / 100))} 55%, transparent 75%)`,
-                    filter: `blur(${Math.round(10 * ((config.capsuleGlowIntensity ?? 60) / 100) + 3)}px)`,
-                    WebkitFilter: `blur(${Math.round(10 * ((config.capsuleGlowIntensity ?? 60) / 100) + 3)}px)`,
+                    background: `linear-gradient(180deg, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.10)), radial-gradient(ellipse at ${lightShiftPercent}% 50%, ${hexToRgba(config.activeBgColor, 0.35 * ((config.capsuleGlowIntensity ?? 60) / 100))} 0%, transparent 70%)`,
+                    filter: "blur(4px)",
+                    WebkitFilter: "blur(4px)",
                     transform: "translate3d(0, 0, 0)",
                     WebkitTransform: "translate3d(0, 0, 0)",
                   }}
                 />
 
-                {/* Layer 2: Capsule Body: Clean pill shape when static -> Organic 3D Liquid Glass when held/clicked */}
+                {/* Layer 2: Capsule Base Body (Inspired by Button Base styling, gradients & multi-layered inset shadows) */}
                 <div 
                   className="absolute inset-0 rounded-full overflow-hidden"
                   style={{
                     borderRadius: fluidBorderRadius,
                     backdropFilter: isExpandedState 
-                      ? "blur(0.5px) saturate(220%) brightness(108%) contrast(104%)" 
+                      ? "blur(4px)" 
                       : "none",
                     WebkitBackdropFilter: isExpandedState 
-                      ? "blur(0.5px) saturate(220%) brightness(108%) contrast(104%)" 
+                      ? "blur(4px)" 
                       : "none",
                     background: isExpandedState
-                      ? `linear-gradient(${lightAngleDeg}deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.02) 45%, ${hexToRgba(config.activeBgColor, 0.10)} 100%)`
+                      ? `linear-gradient(-75deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.20), rgba(255, 255, 255, 0.05))`
                       : `linear-gradient(180deg, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity ?? 30) / 100 * 1.35)}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity ?? 30) / 100 * 0.75)})`,
                     border: isExpandedState 
-                      ? "1px solid rgba(255, 255, 255, 0.50)"
+                      ? "1px solid rgba(255, 255, 255, 0.40)"
                       : `1px solid ${hexToRgba("#ffffff", 0.14)}`,
                     boxShadow: isExpandedState
-                      ? "inset 0 1.5px 2px rgba(255, 255, 255, 0.85), inset 0 -2px 3px rgba(0, 0, 0, 0.30), inset 0 0 16px rgba(255, 255, 255, 0.10)"
+                      ? "inset 0 2px 2px rgba(0, 0, 0, 0.05), inset 0 -2px 2px rgba(255, 255, 255, 0.50), 0 4px 2px -2px rgba(0, 0, 0, 0.20), inset 0 0 2px 4px rgba(255, 255, 255, 0.20)"
                       : "inset 0 1px 1.5px rgba(255, 255, 255, 0.22), 0 2px 8px rgba(0, 0, 0, 0.18)",
                     transition: "background 0.28s ease, border 0.28s ease, box-shadow 0.28s ease",
                   }}
                 >
-                  {/* Expanding & Gliding Caustic Light Flare (Only in Glass State) */}
+                  {/* Layer 3: Angled Glass Sheen Reflection (Inspired by Button span::after -45deg surface shine) */}
                   <motion.div 
                     animate={{
-                      scale: isExpandedState ? 1.25 : 0.9,
-                      opacity: isExpandedState ? 0.95 : 0,
+                      opacity: isExpandedState ? 1 : 0,
                     }}
-                    transition={{ type: "spring", stiffness: 350, damping: 26 }}
+                    transition={{ duration: 0.22 }}
                     className="absolute inset-0 rounded-full pointer-events-none"
                     style={{
-                      background: `radial-gradient(ellipse 65% 55% at ${lightShiftPercent}% 30%, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.08) 40%, transparent 70%)`,
+                      background: "linear-gradient(-45deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.50) 40% 50%, rgba(255, 255, 255, 0) 55%)",
+                      mixBlendMode: "screen",
                     }}
                   />
 
-                  {/* Soft Optical Refraction Dispersion (Only in Glass State) */}
+                  {/* Soft Optical Refraction Dispersion */}
                   {(config.capsuleChromaticEnabled ?? true) && (
                     <motion.div 
                       animate={{
@@ -1190,33 +1050,7 @@ export function Navigation() {
                     />
                   )}
 
-                  {/* Organic Curved Meniscus Reflection Dome */}
-                  <motion.div 
-                    animate={{
-                      opacity: isExpandedState ? 1 : 0,
-                    }}
-                    transition={{ duration: 0.25 }}
-                    className="absolute inset-x-1.5 top-0.5 h-[52%] rounded-full pointer-events-none"
-                    style={{
-                      background: `radial-gradient(ellipse 80% 90% at ${lightShiftPercent}% 0%, rgba(255, 255, 255, 0.50) 0%, rgba(255, 255, 255, 0.12) 45%, transparent 75%)`,
-                      filter: "blur(0.5px)",
-                    }}
-                  />
-
-                  {/* Smooth Curved Crest Highlight */}
-                  <motion.div 
-                    animate={{
-                      opacity: isExpandedState ? 0.95 : 0,
-                    }}
-                    transition={{ duration: 0.22 }}
-                    className="absolute inset-x-2 top-0.5 h-[40%] rounded-full pointer-events-none"
-                    style={{
-                      background: `radial-gradient(ellipse 60% 70% at ${lightShiftPercent}% 15%, rgba(255, 255, 255, 0.80) 0%, transparent 65%)`,
-                      filter: "blur(0.8px)",
-                    }}
-                  />
-
-                  {/* Deep 3D Chamfered Glass Bevel Edge (Only in Glass State) */}
+                  {/* Layer 4: Precision Conic Outline Ring (Inspired by Button button::after outline) */}
                   <motion.div 
                     animate={{
                       opacity: isExpandedState ? 1 : 0,
@@ -1225,20 +1059,12 @@ export function Navigation() {
                     className="absolute inset-0 rounded-full pointer-events-none"
                     style={{
                       borderRadius: fluidBorderRadius,
-                      boxShadow: "inset 0 0 0 1px rgba(255, 255, 255, 0.20), inset 0 2px 3px rgba(255, 255, 255, 0.55), inset 0 -2px 3px rgba(0, 0, 0, 0.22)",
-                    }}
-                  />
-
-                  {/* Organic Curved Bottom Internal Reflection */}
-                  <motion.div 
-                    animate={{ 
-                      opacity: isExpandedState ? 0.80 : 0,
-                    }}
-                    transition={{ duration: 0.22 }}
-                    className="absolute inset-x-2.5 bottom-0.5 h-[35%] rounded-full pointer-events-none"
-                    style={{
-                      background: `radial-gradient(ellipse 70% 80% at ${lightShiftPercent}% 90%, rgba(255, 255, 255, 0.40) 0%, rgba(255, 255, 255, 0.05) 50%, transparent 75%)`,
-                      filter: "blur(0.8px)",
+                      padding: "1px",
+                      background: "conic-gradient(from -75deg at 50% 50%, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0) 5% 40%, rgba(0, 0, 0, 0.4) 50%, rgba(0, 0, 0, 0) 60% 95%, rgba(0, 0, 0, 0.4)), linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.5))",
+                      WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                      WebkitMaskComposite: "xor",
+                      maskComposite: "exclude",
+                      boxShadow: "inset 0 0 0 1px rgba(255, 255, 255, 0.5)",
                     }}
                   />
                 </div>
@@ -1286,7 +1112,20 @@ export function Navigation() {
                     zIndex: 10,
                   }
                 })}
-                <span className="lg-label relative z-10" style={labelStyle}>{link.label}</span>
+                <span 
+                  className="lg-label relative z-10" 
+                  style={{
+                    ...labelStyle,
+                    color: (isActive || isTargetHeld) 
+                      ? config.activeTextColor 
+                      : hexToRgba(config.textColor, config.textOpacity / 100),
+                    transition: isHolding 
+                      ? "color 0.08s ease-out" 
+                      : "color 0.38s ease",
+                  }}
+                >
+                  {link.label}
+                </span>
               </NavLink>
             );
           })}

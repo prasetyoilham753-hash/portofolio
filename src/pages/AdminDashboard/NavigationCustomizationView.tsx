@@ -1196,6 +1196,66 @@ export function NavigationCustomizationView() {
               
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 
+                {/* Warna Teks Inaktif (Normal Text Color) */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-medium text-text-secondary flex justify-between">
+                    <span>Warna Teks (Inaktif)</span>
+                    <span className="font-mono text-white">{config.textColor}</span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={config.textColor.startsWith("#") ? config.textColor : "#ffffff"}
+                      onChange={(e) => updateConfig({ textColor: e.target.value })}
+                      className="w-9 h-9 rounded-lg cursor-pointer border border-white/20 bg-transparent p-0.5"
+                    />
+                    <input
+                      type="text"
+                      value={config.textColor}
+                      onChange={(e) => updateConfig({ textColor: e.target.value })}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs font-mono text-white"
+                    />
+                  </div>
+                </div>
+
+                {/* Warna Teks Aktif (Active Text Color) */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-medium text-text-secondary flex justify-between">
+                    <span>Warna Teks (Aktif/Hold)</span>
+                    <span className="font-mono text-emerald-400 font-semibold">{config.activeTextColor}</span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={config.activeTextColor.startsWith("#") ? config.activeTextColor : "#ffffff"}
+                      onChange={(e) => updateConfig({ activeTextColor: e.target.value })}
+                      className="w-9 h-9 rounded-lg cursor-pointer border border-white/20 bg-transparent p-0.5"
+                    />
+                    <input
+                      type="text"
+                      value={config.activeTextColor}
+                      onChange={(e) => updateConfig({ activeTextColor: e.target.value })}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs font-mono text-white"
+                    />
+                  </div>
+                </div>
+
+                {/* Opasitas Teks Inaktif */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex justify-between text-xs font-medium text-text-secondary">
+                    <span>Opasitas Teks (Inaktif)</span>
+                    <span className="font-mono text-emerald-400 font-semibold">{config.textOpacity}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="10"
+                    max="100"
+                    value={config.textOpacity}
+                    onChange={(e) => updateConfig({ textOpacity: Number(e.target.value) })}
+                    className="w-full accent-emerald-400 cursor-pointer"
+                  />
+                </div>
+
                 {/* Active Highlight Color */}
                 <div className="flex flex-col gap-2">
                   <label className="text-xs font-medium text-text-secondary flex justify-between">
@@ -1343,8 +1403,52 @@ export function NavigationCustomizationView() {
 
           {!collapsedSections.icons && (
             <div className="p-4 sm:p-5 pt-0 border-t border-white/5 flex flex-col gap-6">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 
+                {/* Warna Ikon Inaktif (Normal Icon Color) */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-medium text-text-secondary flex justify-between">
+                    <span>Warna Ikon (Inaktif)</span>
+                    <span className="font-mono text-white">{config.iconColor}</span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={config.iconColor.startsWith("#") ? config.iconColor : "#ffffff"}
+                      onChange={(e) => updateConfig({ iconColor: e.target.value })}
+                      className="w-9 h-9 rounded-lg cursor-pointer border border-white/20 bg-transparent p-0.5"
+                    />
+                    <input
+                      type="text"
+                      value={config.iconColor}
+                      onChange={(e) => updateConfig({ iconColor: e.target.value })}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs font-mono text-white"
+                    />
+                  </div>
+                </div>
+
+                {/* Warna Ikon Aktif (Active Icon Color) */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-medium text-text-secondary flex justify-between">
+                    <span>Warna Ikon (Aktif/Hold)</span>
+                    <span className="font-mono text-amber-400 font-semibold">{config.activeIconColor}</span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={config.activeIconColor.startsWith("#") ? config.activeIconColor : "#ffffff"}
+                      onChange={(e) => updateConfig({ activeIconColor: e.target.value })}
+                      className="w-9 h-9 rounded-lg cursor-pointer border border-white/20 bg-transparent p-0.5"
+                    />
+                    <input
+                      type="text"
+                      value={config.activeIconColor}
+                      onChange={(e) => updateConfig({ activeIconColor: e.target.value })}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs font-mono text-white"
+                    />
+                  </div>
+                </div>
+
                 {/* Icon Size */}
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between text-xs font-medium text-text-secondary">

@@ -40,7 +40,9 @@ export function buildNavBoxShadow(config: {
   const color = hexToRgba(config.shadowColor, config.shadowOpacity / 100);
   const mainShadow = `${config.shadowX}px ${config.shadowY}px ${config.shadowBlur}px ${config.shadowSpread}px ${color}`;
   const ambientShadow = `0 2px 10px rgba(0, 0, 0, ${(config.shadowOpacity * 0.6) / 100})`;
-  const innerTopHighlight = `inset 0 1px 1px rgba(255, 255, 255, 0.45)`;
-  const innerBottomShadow = `inset 0 -1px 2px rgba(0, 0, 0, 0.2)`;
-  return `${mainShadow}, ${ambientShadow}, ${innerTopHighlight}, ${innerBottomShadow}`;
+  const dropOcclusion = `0 4px 8px -2px rgba(0, 0, 0, 0.2)`;
+  const innerTopShadow = `inset 0 1.5px 2px rgba(0, 0, 0, 0.05)`;
+  const innerBottomHighlight = `inset 0 -1.5px 2px rgba(255, 255, 255, 0.5)`;
+  const innerRimHighlight = `inset 0 0 2px 2px rgba(255, 255, 255, 0.2)`;
+  return `${mainShadow}, ${ambientShadow}, ${dropOcclusion}, ${innerTopShadow}, ${innerBottomHighlight}, ${innerRimHighlight}`;
 }
