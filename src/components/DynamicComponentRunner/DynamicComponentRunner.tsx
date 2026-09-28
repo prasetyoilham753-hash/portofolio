@@ -168,19 +168,26 @@ export function DynamicComponentRunner({
       const sandboxModule = { exports: sandboxExports };
 
       // 4. Assemble execution scope (require, exports, module + global fallback hooks/components)
-      const scopeKeys = [
-        "require",
-        "exports",
-        "module",
-        ...Object.keys(GLOBAL_SCOPE),
-      ];
+      const declaredInCode = new Set<string>();
+      const declMatches = transpiled.matchAll(/(?:var|let|const|function)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)/g);
+      for (const m of declMatches) {
+        if (m[1]) declaredInCode.add(m[1]);
+      }
 
-      const scopeValues = [
-        sandboxRequire,
-        sandboxExports,
-        sandboxModule,
-        ...Object.values(GLOBAL_SCOPE),
-      ];
+      const availableScope: Record<string, any> = {
+        require: sandboxRequire,
+        exports: sandboxExports,
+        module: sandboxModule,
+      };
+
+      for (const [key, value] of Object.entries(GLOBAL_SCOPE)) {
+        if (!declaredInCode.has(key) && key !== "require" && key !== "exports" && key !== "module") {
+          availableScope[key] = value;
+        }
+      }
+
+      const scopeKeys = Object.keys(availableScope);
+      const scopeValues = Object.values(availableScope);
 
       // 5. Safely evaluate module factory in isolated scope
       const factory = new Function(...scopeKeys, transpiled);

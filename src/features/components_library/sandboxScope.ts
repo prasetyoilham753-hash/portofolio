@@ -170,8 +170,6 @@ export const GLOBAL_SCOPE: Record<string, any> = {
   THREE: ThreeJs,
   clsx,
   twMerge,
-  ...OGL,
-  ...LucideIcons,
 };
 
 /**
