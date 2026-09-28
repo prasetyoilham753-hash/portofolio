@@ -32,16 +32,23 @@ import {
   NavigationConfig 
 } from "../../features/navigation/NavigationCustomizationContext";
 import { hexToRgba, buildNavBoxShadow } from "../../features/navigation/colorUtils";
-import { Home, Briefcase, Image as ImageIcon, MessageSquare, Boxes, Waves } from "lucide-react";
+import { Waves } from "lucide-react";
 import { GlassSwitch } from "../../components/ui/GlassSwitch";
+import { 
+  IOSHomeIcon, 
+  IOSProjectsIcon, 
+  IOSGalleryIcon, 
+  IOSFeaturesIcon, 
+  IOSCommentsIcon 
+} from "../../components/Navigation/IOSNavIcons";
 
-// Mock links for Live Preview
+// Mock links for Live Preview (iOS 26 Style)
 const PREVIEW_LINKS = [
-  { id: "home", label: "Home", icon: <Home /> },
-  { id: "projects", label: "Projects", icon: <Briefcase /> },
-  { id: "gallery", label: "Gallery", icon: <ImageIcon /> },
-  { id: "features", label: "Feature", icon: <Boxes /> },
-  { id: "comments", label: "Comments", icon: <MessageSquare /> },
+  { id: "home", label: "Home", icon: <IOSHomeIcon /> },
+  { id: "projects", label: "Projects", icon: <IOSProjectsIcon /> },
+  { id: "gallery", label: "Gallery", icon: <IOSGalleryIcon /> },
+  { id: "features", label: "Feature", icon: <IOSFeaturesIcon /> },
+  { id: "comments", label: "Comments", icon: <IOSCommentsIcon /> },
 ];
 
 export function NavigationCustomizationView() {
@@ -446,8 +453,9 @@ export function NavigationCustomizationView() {
                         )}
                         
                         <span className="relative z-10 shrink-0 transition-opacity">
-                          {React.cloneElement(link.icon as React.ReactElement<{ size?: number; style?: React.CSSProperties }>, {
+                          {React.cloneElement(link.icon as React.ReactElement<{ size?: number; filled?: boolean; style?: React.CSSProperties }>, {
                             size: config.iconSize,
+                            filled: isActive,
                             style: {
                               opacity: isActive ? 1 : config.iconOpacity / 100,
                               stroke: isActive ? config.activeIconColor : config.iconColor,
@@ -480,7 +488,7 @@ export function NavigationCustomizationView() {
                 
                 <div className="relative z-10 flex flex-col gap-1">
                   {[
-                    { id: "qna", label: "Tanya & Jawab (QnA)", icon: <MessageSquare size={14} /> },
+                    { id: "qna", label: "Tanya & Jawab (QnA)", icon: <IOSCommentsIcon size={14} /> },
                     { id: "certificate", label: "Sertifikat Keaslian", icon: <ShieldCheck size={14} /> },
                   ].map((item) => {
                     const isActive = previewDropdownLink === item.id;

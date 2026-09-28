@@ -1,39 +1,41 @@
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { 
-  Home, 
-  Briefcase, 
-  Image as ImageIcon, 
-  MessageSquare, 
   MoreHorizontal,
   X,
-  User,
-  Award,
   Sparkles,
   Waves,
   Activity,
   Zap,
-  Check,
-  Boxes
+  Check
 } from "lucide-react";
+import { 
+  IOSHomeIcon, 
+  IOSProjectsIcon, 
+  IOSGalleryIcon, 
+  IOSFeaturesIcon, 
+  IOSCommentsIcon,
+  IOSUserIcon,
+  IOSAwardIcon 
+} from "./IOSNavIcons";
 import { motion, AnimatePresence } from "motion/react";
 import { useBackground } from "../../features/background/BackgroundContext";
 import { useNavigationCustomization } from "../../features/navigation/NavigationCustomizationContext";
 import { hexToRgba, buildNavBoxShadow } from "../../features/navigation/colorUtils";
 
-// Primary navigation links for the liquid glass bottom dock
+// Primary navigation links for the liquid glass bottom dock (iOS 26 Style)
 const NAV_LINKS = [
-  { id: "home", label: "Home", path: "/", icon: <Home /> },
-  { id: "projects", label: "Projects", path: "/projects", icon: <Briefcase /> },
-  { id: "gallery", label: "Gallery", path: "/gallery", icon: <ImageIcon /> },
-  { id: "features", label: "Feature", path: "/features", icon: <Boxes /> },
-  { id: "comments", label: "Comments", path: "/comments", icon: <MessageSquare /> },
+  { id: "home", label: "Home", path: "/", icon: <IOSHomeIcon /> },
+  { id: "projects", label: "Projects", path: "/projects", icon: <IOSProjectsIcon /> },
+  { id: "gallery", label: "Gallery", path: "/gallery", icon: <IOSGalleryIcon /> },
+  { id: "features", label: "Feature", path: "/features", icon: <IOSFeaturesIcon /> },
+  { id: "comments", label: "Comments", path: "/comments", icon: <IOSCommentsIcon /> },
 ];
 
 // Secondary navigation links stored inside the three-dots button
 const SECONDARY_LINKS = [
-  { id: "about", label: "About Me", path: "/about", icon: <User size={14} /> },
-  { id: "certificates", label: "Certificate", path: "/certificates", icon: <Award size={14} /> },
+  { id: "about", label: "About Me", path: "/about", icon: <IOSUserIcon size={14} /> },
+  { id: "certificates", label: "Certificate", path: "/certificates", icon: <IOSAwardIcon size={14} /> },
 ];
 
 export function Navigation() {
@@ -58,7 +60,6 @@ export function Navigation() {
   const [trackHeight, setTrackHeight] = useState<number>(38);
   const [navCenterY, setNavCenterY] = useState<number>(19);
   const [activeRect, setActiveRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
-  const [isGliding, setIsGliding] = useState(false);
 
   // Dynamic Liquid Fluid Morphing State (Governed by Continuum Mechanics & Hydrodynamics)
   const [dragSpeed, setDragSpeed] = useState<number>(0);
@@ -309,7 +310,6 @@ export function Navigation() {
     startPosRef.current = null;
     cachedLayoutRef.current = null;
     wasDraggingRef.current = false;
-    setIsGliding(false);
   }, [dragGlassWidth, dragGlassX, heldIndex, location.pathname, navigate]);
 
   const handleNavClick = useCallback((index: number, path: string, e: React.MouseEvent) => {
@@ -347,9 +347,6 @@ export function Navigation() {
 
   // Update active item geometry for continuous smooth glass capsule gliding on click
   useEffect(() => {
-    setIsGliding(true);
-    const glideTimer = setTimeout(() => setIsGliding(false), 450);
-
     const updateActiveRect = () => {
       if (!trackRef.current) return;
       const navElem = trackRef.current.closest("nav") || trackRef.current;
@@ -376,7 +373,6 @@ export function Navigation() {
     const raf = requestAnimationFrame(updateActiveRect);
     window.addEventListener("resize", updateActiveRect);
     return () => {
-      if (glideTimer) clearTimeout(glideTimer);
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", updateActiveRect);
     };
@@ -862,7 +858,7 @@ export function Navigation() {
         >
           {/* Unified Dynamic Living Glass Capsule Indicator (Floating centered vertically in the nav dock) */}
           {activeRect && (() => {
-            const isInteractive = isHolding || isPressed || isGliding;
+            const isInteractive = isHolding || isPressed;
             const isExpandedState = isInteractive;
             
             // Dynamic capsule dimensions controlled via Dashboard (Supports Oversized Floating Capsule beyond Nav Dock during interaction)
@@ -870,8 +866,8 @@ export function Navigation() {
             const configuredExtraH = config.capsuleExtraHeight ?? 3;
 
             // Strict Physical Law:
-            // - When Interacting (Hold, Drag/Slide, Click): Capsule expands to the configured dynamic size (can be large / outside nav)
-            // - When Static / Released: Capsule ALWAYS contracts to compact resting size strictly INSIDE the nav dock (extra = 0px)
+            // - When Interacting (Hold / Drag): Capsule expands to the configured dynamic size
+            // - When Released / Static: Capsule contracts directly to compact resting size and fuses into tab (extra = 0px)
             const extraW = isInteractive ? configuredExtraW : 0;
             const extraH = isInteractive ? configuredExtraH : 0;
 
@@ -974,7 +970,7 @@ export function Navigation() {
                     : `0 2px 8px rgba(0, 0, 0, 0.18)`,
                 }}
               >
-                {/* Layer 1: Ambient Drop Shadow & Under-Glow (Inspired by Button shadow container) */}
+                {/* Layer 1: Ambient Drop Shadow & Under-Glow */}
                 <motion.div
                   className="absolute -inset-1 rounded-full pointer-events-none"
                   animate={{
@@ -984,7 +980,7 @@ export function Navigation() {
                   transition={{ type: "spring", stiffness: 350, damping: 28 }}
                   style={{
                     borderRadius: fluidBorderRadius,
-                    background: `linear-gradient(180deg, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.10)), radial-gradient(ellipse at ${lightShiftPercent}% 50%, ${hexToRgba(config.activeBgColor, 0.35 * ((config.capsuleGlowIntensity ?? 60) / 100))} 0%, transparent 70%)`,
+                    background: `radial-gradient(ellipse at ${lightShiftPercent}% 50%, ${hexToRgba(config.activeBgColor, 0.35 * ((config.capsuleGlowIntensity ?? 60) / 100))} 0%, transparent 70%)`,
                     filter: "blur(4px)",
                     WebkitFilter: "blur(4px)",
                     transform: "translate3d(0, 0, 0)",
@@ -992,39 +988,34 @@ export function Navigation() {
                   }}
                 />
 
-                {/* Layer 2: Capsule Base Body (Inspired by Button Base styling, gradients & multi-layered inset shadows) */}
+                {/* Layer 2: Capsule Base Body (Pure Transparent Crystal Glass) */}
                 <div 
                   className="absolute inset-0 rounded-full overflow-hidden"
                   style={{
                     borderRadius: fluidBorderRadius,
-                    backdropFilter: isExpandedState 
-                      ? "blur(4px)" 
-                      : "none",
-                    WebkitBackdropFilter: isExpandedState 
-                      ? "blur(4px)" 
-                      : "none",
+                    backdropFilter: "none",
+                    WebkitBackdropFilter: "none",
                     background: isExpandedState
-                      ? `linear-gradient(-75deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.20), rgba(255, 255, 255, 0.05))`
+                      ? "transparent"
                       : `linear-gradient(180deg, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity ?? 30) / 100 * 1.35)}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity ?? 30) / 100 * 0.75)})`,
                     border: isExpandedState 
-                      ? "1px solid rgba(255, 255, 255, 0.40)"
+                      ? "1px solid rgba(255, 255, 255, 0.38)"
                       : `1px solid ${hexToRgba("#ffffff", 0.14)}`,
                     boxShadow: isExpandedState
-                      ? "inset 0 2px 2px rgba(0, 0, 0, 0.05), inset 0 -2px 2px rgba(255, 255, 255, 0.50), 0 4px 2px -2px rgba(0, 0, 0, 0.20), inset 0 0 2px 4px rgba(255, 255, 255, 0.20)"
+                      ? "inset 0 1.5px 2px rgba(255, 255, 255, 0.35), inset 0 -1.5px 2px rgba(255, 255, 255, 0.20), 0 2px 8px rgba(0, 0, 0, 0.12)"
                       : "inset 0 1px 1.5px rgba(255, 255, 255, 0.22), 0 2px 8px rgba(0, 0, 0, 0.18)",
                     transition: "background 0.28s ease, border 0.28s ease, box-shadow 0.28s ease",
                   }}
                 >
-                  {/* Layer 3: Angled Glass Sheen Reflection (Inspired by Button span::after -45deg surface shine) */}
+                  {/* Subtle Soft Optical Ambient Glow */}
                   <motion.div 
                     animate={{
-                      opacity: isExpandedState ? 1 : 0,
+                      opacity: isExpandedState ? 0.35 : 0,
                     }}
                     transition={{ duration: 0.22 }}
                     className="absolute inset-0 rounded-full pointer-events-none"
                     style={{
-                      background: "linear-gradient(-45deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.50) 40% 50%, rgba(255, 255, 255, 0) 55%)",
-                      mixBlendMode: "screen",
+                      background: `radial-gradient(ellipse at ${lightShiftPercent}% 50%, rgba(255, 255, 255, 0.22) 0%, transparent 75%)`,
                     }}
                   />
 
@@ -1032,41 +1023,23 @@ export function Navigation() {
                   {(config.capsuleChromaticEnabled ?? true) && (
                     <motion.div 
                       animate={{
-                        opacity: isExpandedState ? 0.32 : 0,
-                        scale: isExpandedState ? 1.12 : 0.9,
+                        opacity: isExpandedState ? 0.25 : 0,
+                        scale: isExpandedState ? 1.05 : 0.95,
                       }}
                       transition={{ type: "spring", stiffness: 350, damping: 26 }}
                       className="absolute inset-0 rounded-full pointer-events-none"
                       style={{
-                        padding: "1.2px",
+                        padding: "1px",
                         borderRadius: "9999px",
-                        background: `conic-gradient(from ${lightAngleDeg}deg at ${lightShiftPercent}% 50%, rgba(56,189,248,0.40), rgba(74,222,128,0.30) 25%, rgba(251,191,36,0.25) 50%, rgba(244,63,94,0.32) 75%, rgba(56,189,248,0.40))`,
+                        background: `conic-gradient(from ${lightAngleDeg}deg at ${lightShiftPercent}% 50%, rgba(56,189,248,0.30), rgba(74,222,128,0.25) 25%, rgba(251,191,36,0.20) 50%, rgba(244,63,94,0.25) 75%, rgba(56,189,248,0.30))`,
                         WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
                         WebkitMaskComposite: "xor",
                         maskComposite: "exclude",
-                        filter: "blur(1.8px)",
-                        WebkitFilter: "blur(1.8px)",
+                        filter: "blur(1.5px)",
+                        WebkitFilter: "blur(1.5px)",
                       }}
                     />
                   )}
-
-                  {/* Layer 4: Precision Conic Outline Ring (Inspired by Button button::after outline) */}
-                  <motion.div 
-                    animate={{
-                      opacity: isExpandedState ? 1 : 0,
-                    }}
-                    transition={{ duration: 0.22 }}
-                    className="absolute inset-0 rounded-full pointer-events-none"
-                    style={{
-                      borderRadius: fluidBorderRadius,
-                      padding: "1px",
-                      background: "conic-gradient(from -75deg at 50% 50%, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0) 5% 40%, rgba(0, 0, 0, 0.4) 50%, rgba(0, 0, 0, 0) 60% 95%, rgba(0, 0, 0, 0.4)), linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.5))",
-                      WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-                      WebkitMaskComposite: "xor",
-                      maskComposite: "exclude",
-                      boxShadow: "inset 0 0 0 1px rgba(255, 255, 255, 0.5)",
-                    }}
-                  />
                 </div>
               </motion.div>
             );
@@ -1074,7 +1047,7 @@ export function Navigation() {
 
           {NAV_LINKS.map((link, index) => {
             const isActive = location.pathname === link.path || (link.id === "certificates" && (location.pathname === "/certificate" || location.pathname.startsWith("/certificate")));
-            const isTargetHeld = isHolding && heldIndex === index;
+            const isCurrentFocus = isHolding ? (heldIndex === index) : isActive;
 
             return (
               <NavLink
@@ -1090,23 +1063,24 @@ export function Navigation() {
                 onDragStart={(e) => e.preventDefault()}
                 style={{
                   ...itemStyle,
-                  color: (isActive || isTargetHeld) 
+                  color: isCurrentFocus 
                     ? config.activeTextColor 
                     : hexToRgba(config.textColor, config.textOpacity / 100),
-                  transform: isTargetHeld ? "scale(1.08)" : (isActive ? "scale(1.02)" : "scale(1)"),
+                  transform: (isHolding && heldIndex === index) ? "scale(1.08)" : (isActive && !isHolding ? "scale(1.02)" : "scale(1)"),
                   transition: isHolding 
                     ? "transform 0.08s ease-out, color 0.08s ease-out"
                     : "transform 0.52s cubic-bezier(0.16, 1, 0.3, 1), color 0.38s ease",
                 }}
-                className={`lg-item relative z-20 ${isActive ? "active is-active" : ""} ${isTargetHeld ? "held-target" : ""}`}
+                className={`lg-item relative z-20 ${isActive ? "active is-active" : ""} ${isHolding && heldIndex === index ? "held-target" : ""}`}
               >
-                {React.cloneElement(link.icon as React.ReactElement<{ size?: number; style?: React.CSSProperties }>, {
+                {React.cloneElement(link.icon as React.ReactElement<{ size?: number; filled?: boolean; style?: React.CSSProperties }>, {
                   size: config.iconSize,
+                  filled: isCurrentFocus,
                   style: {
-                    opacity: (isActive || isTargetHeld) ? 1 : config.iconOpacity / 100,
-                    stroke: (isActive || isTargetHeld) ? config.activeIconColor : config.iconColor,
-                    color: (isActive || isTargetHeld) ? config.activeIconColor : config.iconColor,
-                    transform: isTargetHeld ? "scale(1.14)" : "scale(1)",
+                    opacity: isCurrentFocus ? 1 : config.iconOpacity / 100,
+                    stroke: isCurrentFocus ? config.activeIconColor : config.iconColor,
+                    color: isCurrentFocus ? config.activeIconColor : config.iconColor,
+                    transform: (isHolding && heldIndex === index) ? "scale(1.14)" : "scale(1)",
                     transition: isHolding ? "transform 0.08s ease, opacity 0.08s ease" : "transform 0.52s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.38s ease",
                     position: "relative",
                     zIndex: 10,
@@ -1116,7 +1090,7 @@ export function Navigation() {
                   className="lg-label relative z-10" 
                   style={{
                     ...labelStyle,
-                    color: (isActive || isTargetHeld) 
+                    color: isCurrentFocus 
                       ? config.activeTextColor 
                       : hexToRgba(config.textColor, config.textOpacity / 100),
                     transition: isHolding 
