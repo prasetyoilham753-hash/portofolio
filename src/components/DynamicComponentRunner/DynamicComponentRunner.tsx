@@ -14,6 +14,7 @@ import {
   createSandboxRequire,
   GLOBAL_SCOPE 
 } from "../../features/components_library/sandboxScope";
+import { getPrecompiledComponent } from "../../features/components_library/precompiledRegistry";
 
 // Robust Error Boundary to isolate component runtime errors
 interface ErrorBoundaryProps {
@@ -136,10 +137,20 @@ export function DynamicComponentRunner({
       return;
     }
 
+    // 1. Fast-path: Check safe precompiled registry first (zero eval / CSP-compliant)
+    const Precompiled = getPrecompiledComponent(componentName, code);
+    if (Precompiled) {
+      setRenderedComponent(() => Precompiled);
+      setCompileError(null);
+      setMissingPackages([]);
+      setDetectedPackages([]);
+      return;
+    }
+
     try {
       setCompileError(null);
 
-      // 1. Analyze imports & dependencies
+      // 2. Analyze imports & dependencies
       const analysis = analyzeAndPrepareCode(code);
       setMissingPackages(analysis.unsupportedImports);
       setDetectedPackages(analysis.detectedImports);
@@ -152,14 +163,14 @@ export function DynamicComponentRunner({
         return;
       }
 
-      // 2. Transpile TSX/JSX & imports with Sucrase
+      // 3. Transpile TSX/JSX & imports with Sucrase
       const transpiled = transform(analysis.preparedCode, {
         transforms: ["jsx", "typescript", "imports"],
         jsxRuntime: "classic",
         production: true,
       }).code;
 
-      // 3. Module resolver function to provide inside sandbox
+      // 4. Module resolver function to provide inside sandbox
       const sandboxRequire = createSandboxRequire((missing) => {
         setMissingPackages((prev) => Array.from(new Set([...prev, missing])));
       });
@@ -167,7 +178,7 @@ export function DynamicComponentRunner({
       const sandboxExports: Record<string, any> = {};
       const sandboxModule = { exports: sandboxExports };
 
-      // 4. Assemble execution scope (require, exports, module + global fallback hooks/components)
+      // 5. Assemble execution scope (require, exports, module + global fallback hooks/components)
       const declaredInCode = new Set<string>();
       const declMatches = transpiled.matchAll(/(?:var|let|const|function)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)/g);
       for (const m of declMatches) {
@@ -189,7 +200,7 @@ export function DynamicComponentRunner({
       const scopeKeys = Object.keys(availableScope);
       const scopeValues = Object.values(availableScope);
 
-      // 5. Safely evaluate module factory in isolated scope
+      // 6. Safely evaluate module factory in isolated scope
       try {
         const factory = new Function(...scopeKeys, transpiled);
         factory(...scopeValues);
@@ -204,7 +215,7 @@ export function DynamicComponentRunner({
         throw evalErr;
       }
 
-      // 6. Extract component from default or named exports
+      // 7. Extract component from default or named exports
       const resolved = 
         sandboxExports.default || 
         sandboxModule.exports.default || 
@@ -240,7 +251,7 @@ export function DynamicComponentRunner({
       setCompileError(err.message || "Gagal mengkompilasi JSX/React code.");
       setRenderedComponent(null);
     }
-  }, [code]);
+  }, [code, componentName]);
 
   const handleReset = () => {
     setResetKey(prev => prev + 1);
