@@ -981,23 +981,19 @@ export function Navigation() {
 
             if (isHolding) {
               if (isMoving) {
-                const speedFactor = Math.min(0.25, (dragSpeed + 0.15) * 0.15);
+                const speedFactor = Math.min(0.12, (dragSpeed + 0.1) * 0.08);
                 fluidScaleX = 1 + speedFactor;
                 fluidScaleY = 1 / fluidScaleX;
-              } else if (isFastStop) {
-                fluidScaleY = 1.16;
-                fluidScaleX = 1 / 1.16;
               } else {
                 fluidScaleX = 1.0;
                 fluidScaleY = 1.0;
               }
             } else if (isGliding) {
-              // Aerodynamic fluid stretch while gliding between tabs on click
-              fluidScaleX = 1.07;
-              fluidScaleY = 1 / 1.07;
+              fluidScaleX = 1.02;
+              fluidScaleY = 1 / 1.02;
             } else if (isPressed) {
-              fluidScaleX = 1.05;
-              fluidScaleY = 1 / 1.05;
+              fluidScaleX = 1.02;
+              fluidScaleY = 1 / 1.02;
             } else {
               fluidScaleX = 1.0;
               fluidScaleY = 1.0;
@@ -1019,34 +1015,34 @@ export function Navigation() {
                 }}
                 transition={isHolding ? {
                   // Active interactive drag: Instant, tightly-coupled response to touch/pointer
-                  x: { type: "spring", stiffness: 520, damping: 34, mass: 0.15 },
-                  y: { type: "spring", stiffness: 520, damping: 34, mass: 0.15 },
-                  width: { type: "spring", stiffness: 450, damping: 30, mass: 0.15 },
-                  height: { type: "spring", stiffness: 450, damping: 30, mass: 0.15 },
-                  scaleX: { type: "spring", stiffness: 380, damping: 26, mass: 0.15 },
-                  scaleY: { type: "spring", stiffness: 380, damping: 26, mass: 0.15 },
-                  skewX: { type: "spring", stiffness: 380, damping: 26, mass: 0.15 },
-                  borderRadius: { type: "spring", stiffness: 380, damping: 26 },
+                  x: { type: "spring", stiffness: 500, damping: 35, mass: 0.15 },
+                  y: { type: "spring", stiffness: 500, damping: 35, mass: 0.15 },
+                  width: { type: "spring", stiffness: 450, damping: 32, mass: 0.15 },
+                  height: { type: "spring", stiffness: 450, damping: 32, mass: 0.15 },
+                  scaleX: { type: "spring", stiffness: 380, damping: 28, mass: 0.15 },
+                  scaleY: { type: "spring", stiffness: 380, damping: 28, mass: 0.15 },
+                  skewX: { type: "spring", stiffness: 380, damping: 28, mass: 0.15 },
+                  borderRadius: { type: "spring", stiffness: 380, damping: 28 },
                 } : isGliding ? {
                   // Floating click glide: High-speed, fluid flight across the dock (holding shape)
-                  x: { type: "spring", stiffness: 400, damping: 36, mass: 0.45 },
-                  y: { type: "spring", stiffness: 400, damping: 36, mass: 0.45 },
-                  width: { type: "spring", stiffness: 480, damping: 28, mass: 0.2 },
-                  height: { type: "spring", stiffness: 480, damping: 28, mass: 0.2 },
-                  scaleX: { type: "spring", stiffness: 420, damping: 28, mass: 0.2 },
-                  scaleY: { type: "spring", stiffness: 420, damping: 28, mass: 0.2 },
-                  skewX: { type: "spring", stiffness: 420, damping: 28, mass: 0.2 },
-                  borderRadius: { type: "spring", stiffness: 400, damping: 28 },
+                  x: { type: "spring", stiffness: 380, damping: 36, mass: 0.35 },
+                  y: { type: "spring", stiffness: 380, damping: 36, mass: 0.35 },
+                  width: { type: "spring", stiffness: 380, damping: 36, mass: 0.35 },
+                  height: { type: "spring", stiffness: 380, damping: 36, mass: 0.35 },
+                  scaleX: { type: "spring", stiffness: 380, damping: 36, mass: 0.35 },
+                  scaleY: { type: "spring", stiffness: 380, damping: 36, mass: 0.35 },
+                  skewX: { type: "spring", stiffness: 380, damping: 36, mass: 0.35 },
+                  borderRadius: { type: "spring", stiffness: 380, damping: 36 },
                 } : {
-                  // Touchdown & Fusion back into tab: Smooth, satisfying merge into resting state
-                  x: { type: "spring", stiffness: 400, damping: 38, mass: 0.5, bounce: 0 },
-                  y: { type: "spring", stiffness: 400, damping: 38, mass: 0.5, bounce: 0 },
-                  width: { type: "spring", stiffness: 420, damping: 32, mass: 0.35, bounce: 0 },
-                  height: { type: "spring", stiffness: 420, damping: 32, mass: 0.35, bounce: 0 },
-                  scaleX: { type: "spring", stiffness: 440, damping: 32, mass: 0.3, bounce: 0 },
-                  scaleY: { type: "spring", stiffness: 440, damping: 32, mass: 0.3, bounce: 0 },
-                  skewX: { type: "spring", stiffness: 440, damping: 32, mass: 0.3, bounce: 0 },
-                  borderRadius: { type: "spring", stiffness: 420, damping: 32, bounce: 0 },
+                  // Direct Fusion on release: Smooth single-stroke merge directly into tab
+                  x: { type: "spring", stiffness: 380, damping: 36, mass: 0.35, bounce: 0 },
+                  y: { type: "spring", stiffness: 380, damping: 36, mass: 0.35, bounce: 0 },
+                  width: { type: "spring", stiffness: 380, damping: 36, mass: 0.35, bounce: 0 },
+                  height: { type: "spring", stiffness: 380, damping: 36, mass: 0.35, bounce: 0 },
+                  scaleX: { type: "spring", stiffness: 380, damping: 36, mass: 0.35, bounce: 0 },
+                  scaleY: { type: "spring", stiffness: 380, damping: 36, mass: 0.35, bounce: 0 },
+                  skewX: { type: "spring", stiffness: 380, damping: 36, mass: 0.35, bounce: 0 },
+                  borderRadius: { type: "spring", stiffness: 380, damping: 36, bounce: 0 },
                 }}
                 className={`absolute pointer-events-none ${
                   isExpandedState ? "z-30" : "z-10"
@@ -1066,10 +1062,10 @@ export function Navigation() {
                 <motion.div
                   className="absolute -inset-1 pointer-events-none"
                   animate={{
-                    scale: isExpandedState ? 1.08 : 0.95,
+                    scale: isExpandedState ? 1.04 : 1.0,
                     opacity: isExpandedState ? 0.85 : 0,
                   }}
-                  transition={{ type: "spring", stiffness: 350, damping: 28 }}
+                  transition={{ type: "spring", stiffness: 360, damping: 32 }}
                   style={{
                     borderRadius: fluidBorderRadius,
                     background: `radial-gradient(ellipse at ${lightShiftPercent}% 50%, ${hexToRgba(config.activeBgColor, 0.35 * ((config.capsuleGlowIntensity ?? 60) / 100))} 0%, transparent 70%)`,
@@ -1117,9 +1113,9 @@ export function Navigation() {
                     <motion.div 
                       animate={{
                         opacity: isExpandedState ? 0.25 : 0,
-                        scale: isExpandedState ? 1.05 : 0.95,
+                        scale: isExpandedState ? 1.02 : 1.0,
                       }}
-                      transition={{ type: "spring", stiffness: 350, damping: 26 }}
+                      transition={{ type: "spring", stiffness: 360, damping: 32 }}
                       className="absolute inset-0 pointer-events-none"
                       style={{
                         padding: "1px",
