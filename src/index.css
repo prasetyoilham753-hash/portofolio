@@ -458,74 +458,65 @@
   }
 
   /* ============================================================
-     LIQUID GLASS NAVIGATION DOCK (DUAL SCROLL & SLIDE ADAPTIVE)
-     Connected to Navigation Customization Engine
+     iOS 26 LIQUID GLASS BOTTOM NAVIGATION BAR & LENS SYSTEM
+     (WhatsApp iOS 26 Style Optics: Frosted Glass Bar + 2-Layer Optical Lens)
      ============================================================ */
   nav#main-navigation-dock,
   .liquid-glass-nav {
     position: fixed;
     left: 50%;
-    bottom: var(--nav-bottom-offset, max(16px, calc(10px + env(safe-area-inset-bottom, 0px))));
+    bottom: max(16px, calc(8px + env(safe-area-inset-bottom, 0px)));
     transform: translateX(-50%);
     display: flex;
     align-items: center;
-    width: min(92vw, var(--nav-max-width, 430px));
-    padding: var(--nav-padding-y, 4px) var(--nav-padding-x, 8px);
-    border-radius: var(--nav-border-radius, 999px);
-    background: 
-      linear-gradient(
-        -75deg,
-        rgba(255, 255, 255, 0.05),
-        rgba(255, 255, 255, 0.2),
-        rgba(255, 255, 255, 0.05)
-      ),
-      linear-gradient(180deg, rgba(12, 24, 50, 0.28) 0%, rgba(3, 8, 20, 0.35) 100%);
-    backdrop-filter: blur(var(--nav-backdrop-blur, 13px)) saturate(var(--nav-saturation, 145%)) brightness(var(--nav-brightness, 100%)) contrast(var(--nav-contrast, 100%));
-    -webkit-backdrop-filter: blur(var(--nav-backdrop-blur, 13px)) saturate(var(--nav-saturation, 145%)) brightness(var(--nav-brightness, 100%)) contrast(var(--nav-contrast, 100%));
-    border: var(--nav-border-width, 1px) var(--nav-border-style, solid) rgba(255, 255, 255, var(--nav-border-opacity, 0.18));
+    width: calc(100% - 36px);
+    max-width: 440px;
+    height: 60px;
+    padding: 0;
+    border-radius: 999px;
+    background: rgba(20, 24, 32, 0.35);
+    backdrop-filter: blur(14px) saturate(180%);
+    -webkit-backdrop-filter: blur(14px) saturate(180%);
+    box-shadow: 
+      0 10px 30px rgba(0, 0, 0, 0.18),
+      inset 0 0 12px rgba(255, 255, 255, 0.10);
+    z-index: 50;
     -webkit-touch-callout: none !important;
     -webkit-user-select: none !important;
     user-select: none !important;
     touch-action: none !important;
-    box-shadow: 
-      inset 0 1.5px 2px rgba(0, 0, 0, 0.05),
-      inset 0 -1.5px 2px rgba(255, 255, 255, 0.5),
-      0 4px 8px -2px rgba(0, 0, 0, 0.2),
-      inset 0 0 2px 2px rgba(255, 255, 255, 0.2),
-      0 12px 36px rgba(0, 0, 0, 0.35),
-      0 2px 10px rgba(0, 0, 0, 0.2);
-    z-index: 50;
     transition: 
-      width var(--nav-transition-duration, 0.52s) cubic-bezier(0.16, 1, 0.3, 1), 
-      padding 0.48s cubic-bezier(0.16, 1, 0.3, 1), 
-      box-shadow 0.4s ease,
       background 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-      border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow 0.3s ease;
   }
 
-  .liquid-glass-nav::before {
+  /* 1.5px Gradient Rim on the Nav Bar with Mask Composite */
+  .liquid-glass-nav::after {
     content: "";
     position: absolute;
     inset: 0;
-    border-radius: inherit;
-    padding: var(--nav-border-width, 1px);
-    box-sizing: border-box;
-    background: conic-gradient(
-        from -75deg at 50% 50%,
-        rgba(0, 0, 0, 0.45),
-        rgba(0, 0, 0, 0) 5% 40%,
-        rgba(0, 0, 0, 0.45) 50%,
-        rgba(0, 0, 0, 0) 60% 95%,
-        rgba(0, 0, 0, 0.45)
-      ),
-      linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.25));
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    border-radius: 999px;
+    padding: 1.5px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.12) 35%, rgba(255, 255, 255, 0.12) 65%, rgba(255, 255, 255, 0.8) 100%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
-    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask-composite: exclude;
-    box-shadow: inset 0 0 0 calc(var(--nav-border-width, 1px) / 2) rgba(255, 255, 255, 0.5);
-    opacity: 0.85;
     pointer-events: none;
+    z-index: 2;
+  }
+
+  /* Light Theme Variant Support */
+  :root:not(.dark) nav#main-navigation-dock,
+  :root:not(.dark) .liquid-glass-nav {
+    background: rgba(255, 255, 255, 0.55);
+    box-shadow: 
+      0 10px 30px rgba(0, 0, 0, 0.12),
+      inset 0 0 12px rgba(255, 255, 255, 0.18);
+  }
+
+  :root:not(.dark) .liquid-glass-nav::after {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.28) 35%, rgba(255, 255, 255, 0.28) 65%, rgba(255, 255, 255, 0.95) 100%);
   }
 
   .lg-scroll-track {
@@ -535,7 +526,8 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    gap: var(--nav-item-spacing, 2px);
+    height: 100%;
+    padding: 0 4px;
     overflow: visible;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
@@ -546,19 +538,21 @@
     display: none;
   }
 
+  /* Base Layer Tab Item (Dull / Outline Non-Active Style, White ±80%) */
   .lg-item {
     position: relative;
     flex: 1 1 0;
     min-width: 0;
+    height: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: var(--nav-icon-spacing, 2px);
+    gap: 2px;
     font-family: inherit;
-    color: var(--nav-text-color, rgba(255, 255, 255, 0.65));
-    padding: var(--nav-item-padding-y, 5px) var(--nav-item-padding-x, 4px);
-    border-radius: var(--nav-item-radius, 999px);
+    color: rgba(255, 255, 255, 0.80);
+    padding: 0 4px;
+    border-radius: 999px;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none !important;
@@ -566,87 +560,148 @@
     user-select: none !important;
     touch-action: none !important;
     background: transparent;
-    border: 1px solid transparent;
+    border: none;
     text-decoration: none;
-    user-select: none;
     transform: none;
-    overflow: hidden;
-    transition: 
-      color var(--nav-transition-speed, 0.38s) cubic-bezier(0.16, 1, 0.3, 1), 
-      background 0.35s ease;
+    overflow: visible;
+    transition: color 0.2s ease, opacity 0.2s ease;
   }
 
-  /* Single shared active highlight shape gliding smoothly between items - No outside glow */
-  .lg-highlight {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    border-radius: inherit;
-    background: linear-gradient(165deg, rgba(140, 175, 255, 0.38), rgba(80, 100, 220, 0.22));
-    border: 1px solid rgba(255, 255, 255, 0.28);
-    box-shadow: 
-      inset 0 1px 1px rgba(255, 255, 255, 0.40),
-      inset 0 -1px 2px rgba(60, 80, 200, 0.18);
-    pointer-events: none;
+  :root:not(.dark) .lg-item {
+    color: rgba(0, 0, 0, 0.65);
   }
 
   .lg-item svg {
     position: relative;
-    z-index: 1;
-    width: var(--nav-icon-size, 20px);
-    height: var(--nav-icon-size, 20px);
+    width: 26px;
+    height: 26px;
     display: block;
     flex-shrink: 0;
-    stroke-width: 2.1;
-    opacity: var(--nav-icon-opacity, 0.85);
-    filter: none !important;
-    transition: 
-      opacity var(--nav-transition-speed, 0.38s) cubic-bezier(0.16, 1, 0.3, 1);
+    opacity: 0.80;
+    transition: opacity 0.2s ease, transform 0.2s ease;
   }
 
   .lg-label {
     position: relative;
-    z-index: 1;
     display: block;
-    font-size: var(--nav-font-size, 10.5px);
-    font-weight: var(--nav-font-weight, 600);
-    letter-spacing: var(--nav-letter-spacing, 0.01em);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: -0.1px;
+    line-height: 1.1;
     width: 100%;
     text-align: center;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    opacity: var(--nav-text-opacity, 1);
-    max-height: 14px;
-    transition: 
-      opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
-      color var(--nav-transition-speed, 0.38s) cubic-bezier(0.16, 1, 0.3, 1);
+    opacity: 0.80;
+    color: rgba(255, 255, 255, 0.80);
+    transition: font-weight 0.2s ease, opacity 0.2s ease, color 0.2s ease;
   }
 
-  .lg-item.is-active,
-  .lg-item.active {
-    color: var(--nav-active-text-color, #ffffff);
-  }
-
-  .lg-item.is-active svg,
-  .lg-item.active svg {
-    filter: none !important;
+  .lg-item.is-active .lg-label {
+    font-weight: 600;
+    color: #ffffff;
     opacity: 1;
   }
 
-  .lg-item:active {
-    transform: none;
+  .lg-item.is-active svg {
+    opacity: 1;
   }
 
-  .lg-item:focus-visible {
-    outline: 2px solid rgba(255, 255, 255, 0.85);
-    outline-offset: 2px;
+  :root:not(.dark) .lg-item.is-active .lg-label {
+    color: #000000;
   }
 
-  @media (hover: hover) {
-    .lg-item:not(.is-active):not(.active):hover {
-      color: var(--nav-hover-text-color, rgba(255, 255, 255, 0.88));
-      background: var(--nav-hover-bg-color, rgba(255, 255, 255, 0.08));
+  /* Static Flat Resting Pill (Active Tab without touch/drag) */
+  .lg-static-pill {
+    position: absolute;
+    top: 4.5px;
+    height: 51px; /* 85% of 60px bar */
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    box-shadow: none !important;
+    pointer-events: none;
+    z-index: 1;
+    transition: opacity 0.18s ease;
+  }
+
+  :root:not(.dark) .lg-static-pill {
+    background: rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  }
+
+  /* iOS 26 Dynamic Optical Glass Lens */
+  .ios26-glass-lens {
+    position: absolute;
+    top: -4px; /* 1.13 * 60px = 68px => (68 - 60)/2 = 4px overhang symmetrically */
+    height: 68px; /* 1.13 x bar height (60px) */
+    border-radius: 999px; /* Kapsul lonjong */
+    overflow: hidden;
+    z-index: 10;
+    pointer-events: none;
+    will-change: transform, left, width;
+    backdrop-filter: blur(1px) brightness(1.35) saturate(1.3);
+    -webkit-backdrop-filter: blur(1px) brightness(1.35) saturate(1.3);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 
+      inset 1.5px 1.5px 3px rgba(255, 255, 255, 0.45),
+      inset -1.5px -1.5px 3px rgba(255, 255, 255, 0.20),
+      0 8px 24px rgba(0, 0, 0, 0.22);
+    transition: opacity 0.18s ease;
+  }
+
+  /* SVG Lens Filter Enhancement when supported */
+  @supports (backdrop-filter: url("#lens")) or (-webkit-backdrop-filter: url("#lens")) {
+    .ios26-glass-lens {
+      backdrop-filter: url("#lens") blur(1px) brightness(1.35) saturate(1.3);
+      -webkit-backdrop-filter: url("#lens") blur(1px) brightness(1.35) saturate(1.3);
+    }
+  }
+
+  /* Neutral White Gradient Rim 1.5px: rgba(255,255,255,.8) top-left & bottom-right, .15 elsewhere */
+  .ios26-glass-lens::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    padding: 1.5px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.15) 35%, rgba(255, 255, 255, 0.15) 65%, rgba(255, 255, 255, 0.8) 100%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  /* Subtle Soft Spectral Edge Dispersion only in Top-Left and Bottom-Right Corners (Zero Mint/Green Patches) */
+  .ios26-glass-lens::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    padding: 1.5px;
+    background: 
+      radial-gradient(ellipse 24px 24px at 12px 12px, rgba(147, 197, 253, 0.40) 0%, rgba(244, 114, 182, 0.30) 40%, transparent 70%),
+      radial-gradient(ellipse 24px 24px at calc(100% - 12px) calc(100% - 12px), rgba(253, 186, 116, 0.35) 0%, rgba(147, 197, 253, 0.30) 40%, transparent 70%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+    z-index: 9;
+    mix-blend-mode: screen;
+  }
+
+  /* Prefers Reduced Motion: disable spring oscillations & elongation */
+  @media (prefers-reduced-motion: reduce) {
+    .ios26-glass-lens,
+    .liquid-glass-nav,
+    .lg-item,
+    .lg-static-pill {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
     }
   }
 

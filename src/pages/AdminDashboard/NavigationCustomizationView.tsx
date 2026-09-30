@@ -1672,6 +1672,42 @@ export function NavigationCustomizationView() {
                   <span className="text-[11px] text-text-muted">Rentang: -16px s/d +100px (dapat mengambang jauh di atas & bawah dock)</span>
                 </div>
 
+                {/* Static Capsule Inset X */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex justify-between items-center text-xs font-medium text-text-secondary">
+                    <span>Padding Samping Kapsul Statis</span>
+                    <span className="font-mono text-cyan-400 font-semibold">{config.capsuleStaticPaddingX ?? 0.4}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="14"
+                    step="0.1"
+                    value={config.capsuleStaticPaddingX ?? 0.4}
+                    onChange={(e) => updateConfig({ capsuleStaticPaddingX: Number(e.target.value) })}
+                    className="w-full accent-cyan-400 cursor-pointer"
+                  />
+                  <span className="text-[11px] text-text-muted">Jarak inset horizontal kapsul di dalam batas nav saat diam (default: 0.4px ~ 0.1mm)</span>
+                </div>
+
+                {/* Static Capsule Inset Y */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex justify-between items-center text-xs font-medium text-text-secondary">
+                    <span>Padding Atas/Bawah Kapsul Statis</span>
+                    <span className="font-mono text-cyan-400 font-semibold">{config.capsuleStaticPaddingY ?? 0.4}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="10"
+                    step="0.1"
+                    value={config.capsuleStaticPaddingY ?? 0.4}
+                    onChange={(e) => updateConfig({ capsuleStaticPaddingY: Number(e.target.value) })}
+                    className="w-full accent-cyan-400 cursor-pointer"
+                  />
+                  <span className="text-[11px] text-text-muted">Jarak inset vertikal kapsul di dalam batas nav saat diam (default: 0.4px ~ 0.1mm)</span>
+                </div>
+
                 {/* Chromatic Prism Rim Toggle */}
                 <div className="flex flex-col gap-2">
                   <span className="text-xs font-medium text-text-secondary">Refraksi Spektrum Pelangi (Prism Rim)</span>

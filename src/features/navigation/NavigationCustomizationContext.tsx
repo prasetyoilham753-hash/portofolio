@@ -95,6 +95,8 @@ export interface NavigationConfig {
   capsuleChromaticEnabled: boolean;
   capsuleChromaticOpacity: number; // 0 - 100 (%)
   capsuleGlowIntensity: number; // 0 - 100 (%)
+  capsuleStaticPaddingX: number; // 0 - 16 (px)
+  capsuleStaticPaddingY: number; // 0 - 12 (px)
 
   // Dropdown Popover (Independent Customization - Does NOT affect Nav Dock)
   dropdownBgType: "color" | "gradient" | "glass";
@@ -228,6 +230,8 @@ export const DEFAULT_NAVIGATION_CONFIG: NavigationConfig = {
   capsuleChromaticEnabled: true,
   capsuleChromaticOpacity: 80,
   capsuleGlowIntensity: 60,
+  capsuleStaticPaddingX: 0.4,
+  capsuleStaticPaddingY: 0.4,
 
   // Dropdown Popover (Independent Customization - Does NOT affect Nav Dock)
   dropdownBgType: "glass",

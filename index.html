@@ -75,6 +75,22 @@
           <feMorphology in="black-pixels" operator="dilate" radius="0.5" result="smoothed" />
           <feComposite in="SourceGraphic" in2="smoothed" operator="out" />
         </filter>
+        <!-- iOS 26 Liquid Glass Chromatic Lens Dispersion Filter (R/G/B Channel Split) -->
+        <filter id="lens" color-interpolation-filters="sRGB" x="-20%" y="-20%" width="140%" height="140%">
+          <!-- Full resolution radial gradient convex map with preserveAspectRatio="none" -->
+          <feImage xlink:href="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3CradialGradient id='g' cx='50%25' cy='50%25' r='50%25'%3E%3Cstop offset='0%25' stop-color='%23808080'/%3E%3Cstop offset='72%25' stop-color='%23808080'/%3E%3Cstop offset='88%25' stop-color='%23b8b8b8'/%3E%3Cstop offset='100%25' stop-color='%23ffffff'/%3E%3C/radialGradient%3E%3Crect width='100' height='100' fill='url(%23g)'/%3E%3C/svg%3E" result="rawConvexMap" />
+          <!-- Smooth blur on map to eliminate harsh color boundaries or blotches -->
+          <feGaussianBlur in="rawConvexMap" stdDeviation="2" result="smoothConvexMap" />
+          <feDisplacementMap in="SourceGraphic" in2="smoothConvexMap" scale="8" xChannelSelector="R" yChannelSelector="R" result="dispR" />
+          <feDisplacementMap in="SourceGraphic" in2="smoothConvexMap" scale="11" xChannelSelector="R" yChannelSelector="R" result="dispG" />
+          <feDisplacementMap in="SourceGraphic" in2="smoothConvexMap" scale="14" xChannelSelector="R" yChannelSelector="R" result="dispB" />
+          <!-- Recombine separate R, G, B chromatic channels for subtle 6-8px spectral edge dispersion -->
+          <feColorMatrix in="dispR" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="redOnly" />
+          <feColorMatrix in="dispG" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="greenOnly" />
+          <feColorMatrix in="dispB" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="blueOnly" />
+          <feBlend in="redOnly" in2="greenOnly" mode="screen" result="rgBlend" />
+          <feBlend in="rgBlend" in2="blueOnly" mode="screen" result="finalDisp" />
+        </filter>
       </defs>
     </svg>
     <div id="root"></div>

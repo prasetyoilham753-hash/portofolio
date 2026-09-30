@@ -53,6 +53,7 @@ export function Navigation() {
   // Hold & Drag Left-Right Free Glass Navigation State
   const [isHolding, setIsHolding] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
+  const [isGliding, setIsGliding] = useState(false);
   const [heldIndex, setHeldIndex] = useState<number | null>(null);
   const [dragGlassX, setDragGlassX] = useState<number>(0);
   const [dragGlassWidth, setDragGlassWidth] = useState<number>(0);
@@ -72,6 +73,8 @@ export function Navigation() {
   const wasDraggingRef = useRef<boolean>(false);
   const velocityDecayTimerRef = useRef<NodeJS.Timeout | null>(null);
   const fastStopTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const glideTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const prevPathnameRef = useRef<string>(location.pathname);
   
   const startPosRef = useRef<{ x: number; y: number; time: number; index: number } | null>(null);
   const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -122,6 +125,13 @@ export function Navigation() {
     startPosRef.current = { x: e.clientX, y: e.clientY, time: Date.now(), index };
     setIsPressed(true);
     wasDraggingRef.current = false;
+
+    // If an existing click glide is active, cancel it smoothly so touch immediately takes control
+    if (glideTimerRef.current) {
+      clearTimeout(glideTimerRef.current);
+      glideTimerRef.current = null;
+    }
+    setIsGliding(false);
     
     // Capture pointer on the nav dock container to receive all global move events
     const navElem = e.currentTarget.closest("nav") || (e.currentTarget as HTMLElement);
@@ -239,6 +249,30 @@ export function Navigation() {
     setDragGlassX(clampedLeft);
   }, [isHolding, prepareLayoutCache]);
 
+  // Floating Glide Trigger for tactile click & tab transitions
+  const triggerGlide = useCallback((targetIndex: number, sourceIndex?: number) => {
+    let fromIdx = sourceIndex;
+    if (fromIdx === undefined) {
+      fromIdx = NAV_LINKS.findIndex(link => 
+        location.pathname === link.path || (link.id === "certificates" && (location.pathname === "/certificate" || location.pathname.startsWith("/certificate")))
+      );
+    }
+    const dist = (fromIdx !== -1 && fromIdx !== undefined) ? Math.abs(targetIndex - fromIdx) : 1;
+    if (dist === 0) return;
+
+    // Glide duration proportional to travel distance: 300ms for 1 step, up to 450ms across the full dock
+    const duration = Math.min(460, Math.max(310, 270 + dist * 45));
+
+    setIsGliding(true);
+    if (glideTimerRef.current) {
+      clearTimeout(glideTimerRef.current);
+    }
+    glideTimerRef.current = setTimeout(() => {
+      setIsGliding(false);
+      glideTimerRef.current = null;
+    }, duration);
+  }, [location.pathname]);
+
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     if (holdTimerRef.current) {
       clearTimeout(holdTimerRef.current);
@@ -292,14 +326,22 @@ export function Navigation() {
     }
 
     if (targetItem) {
+      const targetLink = NAV_LINKS[targetItem.index];
+      const isRouteChanging = targetLink && targetLink.path !== location.pathname;
+
+      // When tapped/clicked without finger dragging, launch the floating glide animation!
+      if (isRouteChanging && !wasDraggingRef.current) {
+        triggerGlide(targetItem.index);
+      }
+
       setActiveRect({
         x: targetItem.left,
         y: targetItem.top,
         width: targetItem.width,
         height: targetItem.height,
       });
-      const targetLink = NAV_LINKS[targetItem.index];
-      if (targetLink && targetLink.path !== location.pathname) {
+
+      if (isRouteChanging) {
         navigate(targetLink.path);
       }
     }
@@ -310,13 +352,15 @@ export function Navigation() {
     startPosRef.current = null;
     cachedLayoutRef.current = null;
     wasDraggingRef.current = false;
-  }, [dragGlassWidth, dragGlassX, heldIndex, location.pathname, navigate]);
+  }, [dragGlassWidth, dragGlassX, heldIndex, location.pathname, navigate, triggerGlide]);
 
   const handleNavClick = useCallback((index: number, path: string, e: React.MouseEvent) => {
     if (path === location.pathname) return;
     e.preventDefault();
 
     if (isHolding) return;
+
+    triggerGlide(index);
 
     if (!cachedLayoutRef.current) {
       prepareLayoutCache();
@@ -333,7 +377,28 @@ export function Navigation() {
     }
 
     navigate(path);
-  }, [isHolding, location.pathname, navigate, prepareLayoutCache]);
+  }, [isHolding, location.pathname, navigate, prepareLayoutCache, triggerGlide]);
+
+  // Clean up glide timer on unmount
+  useEffect(() => {
+    return () => {
+      if (glideTimerRef.current) {
+        clearTimeout(glideTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Synchronize floating glide when route changes externally (e.g., browser back/forward)
+  useEffect(() => {
+    if (prevPathnameRef.current !== location.pathname) {
+      const prevIdx = NAV_LINKS.findIndex(l => l.path === prevPathnameRef.current);
+      const nextIdx = NAV_LINKS.findIndex(l => l.path === location.pathname);
+      prevPathnameRef.current = location.pathname;
+      if (prevIdx !== -1 && nextIdx !== -1 && prevIdx !== nextIdx && !wasDraggingRef.current && !isHolding) {
+        triggerGlide(nextIdx, prevIdx);
+      }
+    }
+  }, [location.pathname, isHolding, triggerGlide]);
 
   // Detect mobile viewport
   useEffect(() => {
@@ -858,39 +923,53 @@ export function Navigation() {
         >
           {/* Unified Dynamic Living Glass Capsule Indicator (Floating centered vertically in the nav dock) */}
           {activeRect && (() => {
-            const isInteractive = isHolding || isPressed;
+            const isInteractive = isHolding || isPressed || isGliding;
             const isExpandedState = isInteractive;
             
             // Dynamic capsule dimensions controlled via Dashboard (Supports Oversized Floating Capsule beyond Nav Dock during interaction)
             const configuredExtraW = config.capsuleExtraWidth ?? 24;
             const configuredExtraH = config.capsuleExtraHeight ?? 3;
 
-            // Strict Physical Law:
-            // - When Interacting (Hold / Drag): Capsule expands to the configured dynamic size
-            // - When Released / Static: Capsule contracts directly to compact resting size and fuses into tab (extra = 0px)
+            // Geometry & Proportion Laws:
+            // The capsule must ALWAYS be a true horizontal pill/capsule (never a square or boxy rectangle upon release).
+            // Height is streamlined so it doesn't balloon vertically, and width maintains a sleek horizontal ratio.
             const extraW = isInteractive ? configuredExtraW : 0;
             const extraH = isInteractive ? configuredExtraH : 0;
 
-            const targetW = (isHolding && dragGlassWidth) 
-              ? (dragGlassWidth + extraW) 
-              : activeRect.width + extraW;
+            // In static state, precisely inset 0.1mm (~0.38px - 0.4px) inside the nav bounds
+            const defaultInsetMm = 0.4; // 0.1 mm in standard screen pixels (~0.38px)
+            const staticPadX = config.capsuleStaticPaddingX !== undefined ? config.capsuleStaticPaddingX : defaultInsetMm;
+            const staticPadY = config.capsuleStaticPaddingY !== undefined ? config.capsuleStaticPaddingY : defaultInsetMm;
 
-            const targetH = (isHolding && dragGlassHeight) 
-              ? (dragGlassHeight + extraH) 
-              : activeRect.height + extraH;
+            const restingW = Math.max(32, activeRect.width - (staticPadX * 2));
+            const restingH = Math.max(28, activeRect.height - (staticPadY * 2));
 
-            const targetX = isHolding 
-              ? dragGlassX - (extraW / 2) 
-              : activeRect.x - (extraW / 2);
+            const targetW = isInteractive
+              ? ((isHolding && dragGlassWidth) ? (dragGlassWidth + extraW) : activeRect.width + extraW)
+              : restingW;
 
-            // Floating vertically centered and aligned directly with the nav dock at all times:
-            const targetY = navCenterY - (targetH / 2);
+            const targetH = isInteractive
+              ? ((isHolding && dragGlassHeight) ? (dragGlassHeight + extraH) : activeRect.height + extraH)
+              : restingH;
+
+            const targetX = isInteractive
+              ? (isHolding ? dragGlassX - (extraW / 2) : activeRect.x - (extraW / 2))
+              : (activeRect.x + (activeRect.width - targetW) / 2);
+
+            // In static/release state, center vertically inside the active item cell.
+            // In interactive state, float centered with the dock container.
+            const targetY = isInteractive
+              ? (navCenterY - (targetH / 2))
+              : (activeRect.y + (activeRect.height - targetH) / 2);
 
             // Dynamic normalized horizontal shift for moving refraction light (0 to 100%)
             const trackWidthEst = cachedLayoutRef.current?.trackWidth || 360;
             const progressRatio = Math.min(1, Math.max(0, targetX / Math.max(1, trackWidthEst - targetW)));
             const lightShiftPercent = Math.round(18 + progressRatio * 64); // 18% to 82%
             const lightAngleDeg = Math.round(115 + (progressRatio - 0.5) * 60); // Angle shifts smoothly as you drag
+
+            // True Capsule Pill: ALWAYS pure continuous pill curvature (9999px) so release never looks like a square
+            const fluidBorderRadius = "9999px";
 
             // ============================================================
             // HYDRODYNAMICS & CONTINUUM FLUID MECHANICS:
@@ -899,7 +978,6 @@ export function Navigation() {
             let fluidScaleX = 1;
             let fluidScaleY = 1;
             const fluidSkewX = 0;
-            const fluidBorderRadius = "9999px";
 
             if (isHolding) {
               if (isMoving) {
@@ -913,6 +991,10 @@ export function Navigation() {
                 fluidScaleX = 1.0;
                 fluidScaleY = 1.0;
               }
+            } else if (isGliding) {
+              // Aerodynamic fluid stretch while gliding between tabs on click
+              fluidScaleX = 1.07;
+              fluidScaleY = 1 / 1.07;
             } else if (isPressed) {
               fluidScaleX = 1.05;
               fluidScaleY = 1 / 1.05;
@@ -945,18 +1027,28 @@ export function Navigation() {
                   scaleY: { type: "spring", stiffness: 380, damping: 26, mass: 0.15 },
                   skewX: { type: "spring", stiffness: 380, damping: 26, mass: 0.15 },
                   borderRadius: { type: "spring", stiffness: 380, damping: 26 },
+                } : isGliding ? {
+                  // Floating click glide: High-speed, fluid flight across the dock (holding shape)
+                  x: { type: "spring", stiffness: 400, damping: 36, mass: 0.45 },
+                  y: { type: "spring", stiffness: 400, damping: 36, mass: 0.45 },
+                  width: { type: "spring", stiffness: 480, damping: 28, mass: 0.2 },
+                  height: { type: "spring", stiffness: 480, damping: 28, mass: 0.2 },
+                  scaleX: { type: "spring", stiffness: 420, damping: 28, mass: 0.2 },
+                  scaleY: { type: "spring", stiffness: 420, damping: 28, mass: 0.2 },
+                  skewX: { type: "spring", stiffness: 420, damping: 28, mass: 0.2 },
+                  borderRadius: { type: "spring", stiffness: 400, damping: 28 },
                 } : {
-                  // Release & Route Click: Immediate smooth fusion without bounce/overshoot
-                  x: { type: "spring", stiffness: 380, damping: 40, mass: 0.6, bounce: 0 },
-                  y: { type: "spring", stiffness: 380, damping: 40, mass: 0.6, bounce: 0 },
-                  width: { type: "spring", stiffness: 380, damping: 40, mass: 0.6, bounce: 0 },
-                  height: { type: "spring", stiffness: 380, damping: 40, mass: 0.6, bounce: 0 },
-                  scaleX: { type: "spring", stiffness: 400, damping: 42, mass: 0.6, bounce: 0 },
-                  scaleY: { type: "spring", stiffness: 400, damping: 42, mass: 0.6, bounce: 0 },
-                  skewX: { type: "spring", stiffness: 400, damping: 42, mass: 0.6, bounce: 0 },
-                  borderRadius: { type: "spring", stiffness: 400, damping: 42, bounce: 0 },
+                  // Touchdown & Fusion back into tab: Smooth, satisfying merge into resting state
+                  x: { type: "spring", stiffness: 400, damping: 38, mass: 0.5, bounce: 0 },
+                  y: { type: "spring", stiffness: 400, damping: 38, mass: 0.5, bounce: 0 },
+                  width: { type: "spring", stiffness: 420, damping: 32, mass: 0.35, bounce: 0 },
+                  height: { type: "spring", stiffness: 420, damping: 32, mass: 0.35, bounce: 0 },
+                  scaleX: { type: "spring", stiffness: 440, damping: 32, mass: 0.3, bounce: 0 },
+                  scaleY: { type: "spring", stiffness: 440, damping: 32, mass: 0.3, bounce: 0 },
+                  skewX: { type: "spring", stiffness: 440, damping: 32, mass: 0.3, bounce: 0 },
+                  borderRadius: { type: "spring", stiffness: 420, damping: 32, bounce: 0 },
                 }}
-                className={`absolute pointer-events-none rounded-full ${
+                className={`absolute pointer-events-none ${
                   isExpandedState ? "z-30" : "z-10"
                 }`}
                 style={{
@@ -967,12 +1059,12 @@ export function Navigation() {
                   borderRadius: fluidBorderRadius,
                   boxShadow: isExpandedState
                     ? `0 4px 14px -2px rgba(0, 0, 0, 0.35), 0 0 ${Math.round(18 * ((config.capsuleGlowIntensity ?? 60) / 100))}px ${hexToRgba(config.activeBgColor, 0.25 * ((config.capsuleGlowIntensity ?? 60) / 100))}`
-                    : `0 2px 8px rgba(0, 0, 0, 0.18)`,
+                    : `0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04)`,
                 }}
               >
                 {/* Layer 1: Ambient Drop Shadow & Under-Glow */}
                 <motion.div
-                  className="absolute -inset-1 rounded-full pointer-events-none"
+                  className="absolute -inset-1 pointer-events-none"
                   animate={{
                     scale: isExpandedState ? 1.08 : 0.95,
                     opacity: isExpandedState ? 0.85 : 0,
@@ -988,22 +1080,22 @@ export function Navigation() {
                   }}
                 />
 
-                {/* Layer 2: Capsule Base Body (Pure Transparent Crystal Glass) */}
+                {/* Layer 2: Capsule Base Body */}
                 <div 
-                  className="absolute inset-0 rounded-full overflow-hidden"
+                  className="absolute inset-0 overflow-hidden"
                   style={{
                     borderRadius: fluidBorderRadius,
                     backdropFilter: "none",
                     WebkitBackdropFilter: "none",
                     background: isExpandedState
                       ? "transparent"
-                      : `linear-gradient(180deg, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity ?? 30) / 100 * 1.35)}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity ?? 30) / 100 * 0.75)})`,
+                      : `linear-gradient(180deg, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity ?? 30) / 100 * 1.15)}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity ?? 30) / 100 * 0.80)})`,
                     border: isExpandedState 
                       ? "1px solid rgba(255, 255, 255, 0.38)"
-                      : `1px solid ${hexToRgba("#ffffff", 0.14)}`,
+                      : `1px solid ${hexToRgba("#ffffff", 0.25)}`,
                     boxShadow: isExpandedState
                       ? "inset 0 1.5px 2px rgba(255, 255, 255, 0.35), inset 0 -1.5px 2px rgba(255, 255, 255, 0.20), 0 2px 8px rgba(0, 0, 0, 0.12)"
-                      : "inset 0 1px 1.5px rgba(255, 255, 255, 0.22), 0 2px 8px rgba(0, 0, 0, 0.18)",
+                      : "inset 0 1px 1.5px rgba(255, 255, 255, 0.35), inset 0 -1px 1px rgba(0, 0, 0, 0.04)",
                     transition: "background 0.28s ease, border 0.28s ease, box-shadow 0.28s ease",
                   }}
                 >
@@ -1013,8 +1105,9 @@ export function Navigation() {
                       opacity: isExpandedState ? 0.35 : 0,
                     }}
                     transition={{ duration: 0.22 }}
-                    className="absolute inset-0 rounded-full pointer-events-none"
+                    className="absolute inset-0 pointer-events-none"
                     style={{
+                      borderRadius: fluidBorderRadius,
                       background: `radial-gradient(ellipse at ${lightShiftPercent}% 50%, rgba(255, 255, 255, 0.22) 0%, transparent 75%)`,
                     }}
                   />
@@ -1027,10 +1120,10 @@ export function Navigation() {
                         scale: isExpandedState ? 1.05 : 0.95,
                       }}
                       transition={{ type: "spring", stiffness: 350, damping: 26 }}
-                      className="absolute inset-0 rounded-full pointer-events-none"
+                      className="absolute inset-0 pointer-events-none"
                       style={{
                         padding: "1px",
-                        borderRadius: "9999px",
+                        borderRadius: fluidBorderRadius,
                         background: `conic-gradient(from ${lightAngleDeg}deg at ${lightShiftPercent}% 50%, rgba(56,189,248,0.30), rgba(74,222,128,0.25) 25%, rgba(251,191,36,0.20) 50%, rgba(244,63,94,0.25) 75%, rgba(56,189,248,0.30))`,
                         WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
                         WebkitMaskComposite: "xor",
@@ -1066,9 +1159,13 @@ export function Navigation() {
                   color: isCurrentFocus 
                     ? config.activeTextColor 
                     : hexToRgba(config.textColor, config.textOpacity / 100),
-                  transform: (isHolding && heldIndex === index) ? "scale(1.08)" : (isActive && !isHolding ? "scale(1.02)" : "scale(1)"),
-                  transition: isHolding 
-                    ? "transform 0.08s ease-out, color 0.08s ease-out"
+                  transform: (isHolding && heldIndex === index) 
+                    ? "scale(1.08)" 
+                    : (isGliding && isActive)
+                    ? "scale(1.05)"
+                    : (isActive && !isHolding ? "scale(1.02)" : "scale(1)"),
+                  transition: (isHolding || isGliding) 
+                    ? "transform 0.12s ease-out, color 0.12s ease-out"
                     : "transform 0.52s cubic-bezier(0.16, 1, 0.3, 1), color 0.38s ease",
                 }}
                 className={`lg-item relative z-20 ${isActive ? "active is-active" : ""} ${isHolding && heldIndex === index ? "held-target" : ""}`}
@@ -1080,8 +1177,12 @@ export function Navigation() {
                     opacity: isCurrentFocus ? 1 : config.iconOpacity / 100,
                     stroke: isCurrentFocus ? config.activeIconColor : config.iconColor,
                     color: isCurrentFocus ? config.activeIconColor : config.iconColor,
-                    transform: (isHolding && heldIndex === index) ? "scale(1.14)" : "scale(1)",
-                    transition: isHolding ? "transform 0.08s ease, opacity 0.08s ease" : "transform 0.52s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.38s ease",
+                    transform: (isHolding && heldIndex === index) 
+                      ? "scale(1.14)" 
+                      : (isGliding && isActive)
+                      ? "scale(1.10)"
+                      : "scale(1)",
+                    transition: (isHolding || isGliding) ? "transform 0.12s ease, opacity 0.12s ease" : "transform 0.52s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.38s ease",
                     position: "relative",
                     zIndex: 10,
                   }
@@ -1093,8 +1194,8 @@ export function Navigation() {
                     color: isCurrentFocus 
                       ? config.activeTextColor 
                       : hexToRgba(config.textColor, config.textOpacity / 100),
-                    transition: isHolding 
-                      ? "color 0.08s ease-out" 
+                    transition: (isHolding || isGliding) 
+                      ? "color 0.12s ease-out" 
                       : "color 0.38s ease",
                   }}
                 >
