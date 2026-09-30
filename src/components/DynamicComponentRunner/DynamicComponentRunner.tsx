@@ -190,8 +190,19 @@ export function DynamicComponentRunner({
       const scopeValues = Object.values(availableScope);
 
       // 5. Safely evaluate module factory in isolated scope
-      const factory = new Function(...scopeKeys, transpiled);
-      factory(...scopeValues);
+      try {
+        const factory = new Function(...scopeKeys, transpiled);
+        factory(...scopeValues);
+      } catch (evalErr: any) {
+        if (
+          evalErr.name === "EvalError" || 
+          evalErr.message?.includes("eval") || 
+          evalErr.message?.includes("Content Security Policy")
+        ) {
+          throw new Error("Live JSX interactive execution is restricted by Content Security Policy without 'unsafe-eval'. Komponen ini tetap valid dan dapat disalin langsung menggunakan tombol Copy di bawah.");
+        }
+        throw evalErr;
+      }
 
       // 6. Extract component from default or named exports
       const resolved = 
