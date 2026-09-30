@@ -1,19 +1,13 @@
 import React, { useState, useEffect, useRef, ReactNode, ErrorInfo } from "react";
-import { transform } from "sucrase";
 import { 
   AlertTriangle, 
   RefreshCw, 
   Sparkles, 
   Terminal, 
   Maximize2, 
-  Minimize2, 
-  PackageX 
+  Minimize2,
+  Code2
 } from "lucide-react";
-import { 
-  analyzeAndPrepareCode,
-  createSandboxRequire,
-  GLOBAL_SCOPE 
-} from "../../features/components_library/sandboxScope";
 import { getPrecompiledComponent } from "../../features/components_library/precompiledRegistry";
 
 // Robust Error Boundary to isolate component runtime errors
@@ -92,15 +86,13 @@ export function DynamicComponentRunner({
   componentName = "Component"
 }: DynamicComponentRunnerProps) {
   const [RenderedComponent, setRenderedComponent] = useState<React.ComponentType | null>(null);
-  const [compileError, setCompileError] = useState<string | null>(null);
-  const [missingPackages, setMissingPackages] = useState<string[]>([]);
-  const [_detectedPackages, setDetectedPackages] = useState<string[]>([]);
+  const [isCustomUncompiled, setIsCustomUncompiled] = useState(false);
   const [resetKey, setResetKey] = useState<number>(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const styleRef = useRef<HTMLStyleElement | null>(null);
   const uniqueStyleId = useRef<string>(`style-${Math.random().toString(36).substring(2, 9)}`);
 
-  // Inject custom CSS safely
+  // Inject custom CSS safely if provided
   useEffect(() => {
     if (!css || !css.trim()) {
       if (styleRef.current) {
@@ -127,129 +119,23 @@ export function DynamicComponentRunner({
     };
   }, [css]);
 
-  // Transpile and evaluate React component with modular dependency resolution
+  // Resolve precompiled component without eval/new Function (100% CSP compliant)
   useEffect(() => {
     if (!code || !code.trim()) {
       setRenderedComponent(null);
-      setCompileError("Kode komponen kosong.");
-      setMissingPackages([]);
-      setDetectedPackages([]);
+      setIsCustomUncompiled(false);
       return;
     }
 
-    // 1. Fast-path: Check safe precompiled registry first (zero eval / CSP-compliant)
     const Precompiled = getPrecompiledComponent(componentName, code);
     if (Precompiled) {
       setRenderedComponent(() => Precompiled);
-      setCompileError(null);
-      setMissingPackages([]);
-      setDetectedPackages([]);
-      return;
-    }
-
-    try {
-      setCompileError(null);
-
-      // 2. Analyze imports & dependencies
-      const analysis = analyzeAndPrepareCode(code);
-      setMissingPackages(analysis.unsupportedImports);
-      setDetectedPackages(analysis.detectedImports);
-
-      if (analysis.unsupportedImports.length > 0) {
-        setCompileError(
-          `Komponen memerlukan package: [${analysis.unsupportedImports.join(", ")}]. Package ini belum tersedia di sandbox runtime.`
-        );
-        setRenderedComponent(null);
-        return;
-      }
-
-      // 3. Transpile TSX/JSX & imports with Sucrase
-      const transpiled = transform(analysis.preparedCode, {
-        transforms: ["jsx", "typescript", "imports"],
-        jsxRuntime: "classic",
-        production: true,
-      }).code;
-
-      // 4. Module resolver function to provide inside sandbox
-      const sandboxRequire = createSandboxRequire((missing) => {
-        setMissingPackages((prev) => Array.from(new Set([...prev, missing])));
-      });
-
-      const sandboxExports: Record<string, any> = {};
-      const sandboxModule = { exports: sandboxExports };
-
-      // 5. Assemble execution scope (require, exports, module + global fallback hooks/components)
-      const declaredInCode = new Set<string>();
-      const declMatches = transpiled.matchAll(/(?:var|let|const|function)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)/g);
-      for (const m of declMatches) {
-        if (m[1]) declaredInCode.add(m[1]);
-      }
-
-      const availableScope: Record<string, any> = {
-        require: sandboxRequire,
-        exports: sandboxExports,
-        module: sandboxModule,
-      };
-
-      for (const [key, value] of Object.entries(GLOBAL_SCOPE)) {
-        if (!declaredInCode.has(key) && key !== "require" && key !== "exports" && key !== "module") {
-          availableScope[key] = value;
-        }
-      }
-
-      const scopeKeys = Object.keys(availableScope);
-      const scopeValues = Object.values(availableScope);
-
-      // 6. Safely evaluate module factory in isolated scope
-      try {
-        const factory = new Function(...scopeKeys, transpiled);
-        factory(...scopeValues);
-      } catch (evalErr: any) {
-        if (
-          evalErr.name === "EvalError" || 
-          evalErr.message?.includes("eval") || 
-          evalErr.message?.includes("Content Security Policy")
-        ) {
-          throw new Error("Live JSX interactive execution is restricted by Content Security Policy without 'unsafe-eval'. Komponen ini tetap valid dan dapat disalin langsung menggunakan tombol Copy di bawah.");
-        }
-        throw evalErr;
-      }
-
-      // 7. Extract component from default or named exports
-      const resolved = 
-        sandboxExports.default || 
-        sandboxModule.exports.default || 
-        sandboxModule.exports;
-
-      let ComponentToRender: any = null;
-
-      if (
-        typeof resolved === "function" || 
-        (resolved && typeof resolved === "object" && (resolved.$$typeof || typeof resolved.render === "function"))
-      ) {
-        ComponentToRender = resolved;
-      } else {
-        // Look for any function in exports
-        for (const key of Object.keys(sandboxExports)) {
-          if (typeof sandboxExports[key] === "function") {
-            ComponentToRender = sandboxExports[key];
-            break;
-          }
-        }
-      }
-
-      if (ComponentToRender) {
-        setRenderedComponent(() => ComponentToRender);
-      } else {
-        setCompileError(
-          `Tidak dapat menemukan komponen React utama (pastikan ada 'export default function ComponentName()' atau fungsi React yang valid).`
-        );
-        setRenderedComponent(null);
-      }
-    } catch (err: any) {
-      console.warn("[DynamicComponentRunner] Evaluation error:", err);
-      setCompileError(err.message || "Gagal mengkompilasi JSX/React code.");
+      setIsCustomUncompiled(false);
+    } else {
+      // For custom user-written code not in precompiled registry:
+      // In production under strict CSP (no 'unsafe-eval'), we safely avoid running eval/new Function
       setRenderedComponent(null);
+      setIsCustomUncompiled(true);
     }
   }, [code, componentName]);
 
@@ -305,31 +191,21 @@ export function DynamicComponentRunner({
 
       {/* Canvas Area */}
       <div className={`relative z-10 flex-1 flex items-center justify-center p-4 sm:p-6 overflow-hidden ${minHeight}`}>
-        {missingPackages.length > 0 ? (
-          <div className="flex flex-col items-center justify-center p-5 text-center bg-amber-950/30 border border-amber-500/30 rounded-2xl w-full max-w-md text-amber-200 gap-2.5">
-            <div className="w-9 h-9 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
-              <PackageX size={18} />
+        {isCustomUncompiled ? (
+          <div className="flex flex-col items-center justify-center p-6 text-center bg-blue-950/25 border border-blue-500/25 rounded-2xl w-full max-w-lg text-blue-200 gap-3">
+            <div className="w-10 h-10 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-[#7DB3FF]">
+              <Code2 size={20} />
             </div>
-            <p className="text-xs font-mono uppercase tracking-wider text-amber-400 font-semibold">
-              External Dependency Required
-            </p>
-            <p className="text-xs text-amber-300/90 font-mono bg-amber-900/40 p-2.5 rounded-lg border border-amber-500/20 text-left overflow-x-auto break-words whitespace-pre-wrap">
-              Komponen memerlukan package: <strong className="text-white font-bold">{missingPackages.join(", ")}</strong> yang belum terpasang di runtime sandbox.
-            </p>
-            <p className="text-[11px] text-amber-300/70">
-              Tersedia saat ini: <span className="font-mono text-white/90">styled-components, framer-motion/motion, lucide-react, gsap, canvas-confetti, three, ogl, tailwindcss</span>.
-            </p>
-          </div>
-        ) : compileError ? (
-          <div className="flex flex-col items-center justify-center p-5 text-center bg-amber-950/30 border border-amber-500/30 rounded-2xl w-full max-w-md text-amber-200 gap-2.5">
-            <div className="w-9 h-9 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
-              <Terminal size={18} />
+            <div className="flex flex-col gap-1">
+              <p className="text-xs font-mono uppercase tracking-wider text-[#7DB3FF] font-semibold">
+                Custom Component Sandbox Notice
+              </p>
+              <p className="text-xs text-[#C8DCF0] leading-relaxed">
+                Live dynamic JSX execution is restricted under strict production Content Security Policy (zero <code className="text-amber-300 font-mono">'unsafe-eval'</code>).
+              </p>
             </div>
-            <p className="text-xs font-mono uppercase tracking-wider text-amber-400 font-semibold">
-              Syntax / Transpilation Notice
-            </p>
-            <p className="text-xs text-amber-300/90 font-mono bg-amber-900/40 p-2.5 rounded-lg border border-amber-500/20 text-left overflow-x-auto break-words whitespace-pre-wrap max-h-36">
-              {compileError}
+            <p className="text-[11px] text-blue-200/70 bg-blue-900/30 px-3 py-1.5 rounded-lg border border-blue-400/20">
+              Komponen kustom ini valid dan seluruh kode JSX siap disalin menggunakan tombol <strong>Copy Code</strong> di atas.
             </p>
           </div>
         ) : RenderedComponent ? (

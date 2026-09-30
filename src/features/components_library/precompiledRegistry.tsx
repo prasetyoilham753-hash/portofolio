@@ -361,42 +361,51 @@ export function getPrecompiledComponent(name?: string, code?: string): React.Com
   const normalizedName = (name || "").toLowerCase().trim();
   const normalizedCode = (code || "").trim();
 
+  // 1. Cyberpunk Button
   if (
     normalizedName.includes("cyberpunk") ||
     normalizedCode.includes("StyledCyberpunkButton") ||
     normalizedCode.includes("Ignite Hyperdrive") ||
-    normalizedCode.includes("Hyperdrive Engaged")
+    normalizedCode.includes("Hyperdrive Engaged") ||
+    (normalizedName.includes("button") && normalizedCode.includes("Flame"))
   ) {
     return PrecompiledCyberpunkButton;
   }
 
+  // 2. Glow Spotlight Button
   if (
     normalizedName.includes("spotlight") ||
     normalizedCode.includes("GlowSpotlightButton") ||
     normalizedCode.includes("Explore Universe") ||
-    normalizedCode.includes("Universe Active")
+    normalizedCode.includes("Universe Active") ||
+    (normalizedName.includes("glow") && normalizedCode.includes("Sparkles"))
   ) {
     return PrecompiledGlowSpotlightButton;
   }
 
+  // 3. GSAP Celebration Confetti
   if (
     normalizedName.includes("celebration") ||
     normalizedName.includes("confetti") ||
     normalizedCode.includes("ConfettiCelebration") ||
-    normalizedCode.includes("Celebrate Achievement")
+    normalizedCode.includes("Celebrate Achievement") ||
+    normalizedCode.includes("canvas-confetti")
   ) {
     return PrecompiledConfettiCelebration;
   }
 
+  // 4. Pure React Minimal Badge
   if (
     normalizedName.includes("pure react") ||
     normalizedName.includes("badge") ||
     normalizedCode.includes("PureReactBadge") ||
-    normalizedCode.includes("Engine Online")
+    normalizedCode.includes("Engine Online") ||
+    normalizedCode.includes("Engine Standby")
   ) {
     return PrecompiledPureReactBadge;
   }
 
+  // 5. Shimmer Glass Card
   if (
     normalizedName.includes("shimmer glass") ||
     normalizedName.includes("glass card") ||
@@ -406,15 +415,18 @@ export function getPrecompiledComponent(name?: string, code?: string): React.Com
     return PrecompiledShimmerGlassCard;
   }
 
+  // 6. Animated Gradient Shimmer Text
   if (
     normalizedName.includes("shimmer text") ||
     normalizedName.includes("gradient shimmer") ||
     normalizedCode.includes("ShimmerTextEffect") ||
-    normalizedCode.includes("Crafting Digital Realities")
+    normalizedCode.includes("Crafting Digital Realities") ||
+    normalizedCode.includes("animate-[shimmer")
   ) {
     return PrecompiledShimmerTextEffect;
   }
 
+  // 7. Interactive Magnetic Pill
   if (
     normalizedName.includes("magnetic") ||
     normalizedName.includes("pill") ||
@@ -424,6 +436,7 @@ export function getPrecompiledComponent(name?: string, code?: string): React.Com
     return PrecompiledMagneticPill;
   }
 
+  // 8. Quantum Orbital Loader
   if (
     normalizedName.includes("quantum") ||
     normalizedName.includes("orbital") ||
