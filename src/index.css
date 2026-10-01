@@ -316,40 +316,58 @@
     top: 0;
     left: 0;
     right: 0;
-    height: 1.7cm;
+    height: 2.2cm;
     pointer-events: none;
     z-index: 40;
+    mask-image: linear-gradient(
+      to bottom, 
+      rgba(0, 0, 0, 1) 0%, 
+      rgba(0, 0, 0, 0.95) 25%, 
+      rgba(0, 0, 0, 0.65) 55%, 
+      rgba(0, 0, 0, 0.25) 80%, 
+      rgba(0, 0, 0, 0) 100%
+    );
+    -webkit-mask-image: linear-gradient(
+      to bottom, 
+      rgba(0, 0, 0, 1) 0%, 
+      rgba(0, 0, 0, 0.95) 25%, 
+      rgba(0, 0, 0, 0.65) 55%, 
+      rgba(0, 0, 0, 0.25) 80%, 
+      rgba(0, 0, 0, 0) 100%
+    );
   }
 
   @media (min-width: 640px) {
     .header-glass-veil {
-      height: 1.7cm;
+      height: 2.5cm;
     }
   }
 
-  /* Layer 1: Volumetric Base Optical Substrate */
+  /* Layer 1: Volumetric Base Optical Substrate (Multi-stop smooth dark gradient) */
   .header-glass-base {
     position: absolute;
     inset: 0;
     pointer-events: none;
     background: linear-gradient(
       to bottom, 
-      rgba(2, 9, 20, 0.92) 0%, 
-      rgba(2, 9, 20, 0.70) 40%, 
-      rgba(2, 9, 20, 0.25) 75%, 
+      rgba(2, 9, 20, 0.96) 0%, 
+      rgba(2, 9, 20, 0.82) 20%, 
+      rgba(2, 9, 20, 0.55) 45%, 
+      rgba(2, 9, 20, 0.25) 72%, 
+      rgba(2, 9, 20, 0.08) 88%, 
       transparent 100%
     );
     z-index: 1;
   }
 
-  /* Layer 2: Soft Internal Light Diffusion with Optional Progressive Blur */
+  /* Layer 2: High-Fidelity Progressive Glass Backdrop Blur + Cyan/Blue Optical Diffusion */
   .header-glass-diffusion {
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background: radial-gradient(ellipse 100% 120% at 50% 0%, rgba(120, 180, 255, 0.08), transparent 75%);
-    backdrop-filter: blur(13px) saturate(145%);
-    -webkit-backdrop-filter: blur(13px) saturate(145%);
+    background: radial-gradient(ellipse 120% 100% at 50% 0%, rgba(120, 180, 255, 0.12), rgba(80, 140, 255, 0.03) 60%, transparent 100%);
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
     z-index: 2;
   }
 
@@ -358,7 +376,8 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    border-top: 1px solid rgba(255, 255, 255, 0.14);
+    border-top: 1px solid rgba(255, 255, 255, 0.18);
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 0%, transparent 20%);
     z-index: 3;
   }
 
