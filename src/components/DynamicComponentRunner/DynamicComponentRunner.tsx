@@ -132,8 +132,6 @@ export function DynamicComponentRunner({
       setRenderedComponent(() => Precompiled);
       setIsCustomUncompiled(false);
     } else {
-      // For custom user-written code not in precompiled registry:
-      // In production under strict CSP (no 'unsafe-eval'), we safely avoid running eval/new Function
       setRenderedComponent(null);
       setIsCustomUncompiled(true);
     }
