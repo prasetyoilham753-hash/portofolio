@@ -85,31 +85,51 @@ export function Hero({ profile }: HeroProps) {
   const linkedinUrl = profile?.socialLinks?.linkedin || "https://linkedin.com/in/bintang-prasetyo";
 
   const leftColRef = React.useRef<HTMLDivElement>(null);
-  const [leftColHeight, setLeftColHeight] = React.useState<number | null>(null);
+  const buttonContainerRef = React.useRef<HTMLDivElement>(null);
+  const [targetHeight, setTargetHeight] = React.useState<number | null>(null);
+
+  const updateHeight = React.useCallback(() => {
+    if (buttonContainerRef.current && leftColRef.current) {
+      const btnBottom = buttonContainerRef.current.offsetTop + buttonContainerRef.current.offsetHeight;
+      if (btnBottom > 0) {
+        setTargetHeight(prev => (prev === btnBottom ? prev : btnBottom));
+        return;
+      }
+    }
+    if (leftColRef.current) {
+      const h = leftColRef.current.offsetHeight;
+      if (h > 0) {
+        setTargetHeight(prev => (prev === h ? prev : h));
+      }
+    }
+  }, []);
 
   React.useEffect(() => {
-    if (!leftColRef.current) return;
-    const updateHeight = () => {
-      if (leftColRef.current) {
-        const h = leftColRef.current.offsetHeight;
-        if (h > 0) {
-          setLeftColHeight(prev => (prev === h ? prev : h));
-        }
-      }
-    };
-    
+    updateHeight();
+
     const rafId = requestAnimationFrame(updateHeight);
+    const t1 = setTimeout(updateHeight, 60);
+    const t2 = setTimeout(updateHeight, 250);
+    const t3 = setTimeout(updateHeight, 600);
+    const t4 = setTimeout(updateHeight, 1200);
+
     const observer = new ResizeObserver(() => {
       requestAnimationFrame(updateHeight);
     });
-    observer.observe(leftColRef.current);
+    if (leftColRef.current) observer.observe(leftColRef.current);
+    if (buttonContainerRef.current) observer.observe(buttonContainerRef.current);
     window.addEventListener("resize", updateHeight);
+
     return () => {
       cancelAnimationFrame(rafId);
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(t4);
       observer.disconnect();
       window.removeEventListener("resize", updateHeight);
     };
-  }, []);
+  }, [updateHeight]);
 
   const socialItems = [
     {
@@ -145,13 +165,13 @@ export function Hero({ profile }: HeroProps) {
   return (
     <section 
       id="hero-section"
-      className="grid grid-cols-[175px_1fr] xs:grid-cols-[200px_1fr] sm:grid-cols-[270px_1fr] md:grid-cols-[340px_1fr] lg:grid-cols-[390px_1fr] xl:grid-cols-[440px_1fr] items-stretch justify-start mt-[0.5cm] sm:mt-[0.8cm] pb-4 sm:pb-6 md:pb-8 w-full max-w-[620px] xs:max-w-[680px] sm:max-w-[840px] md:max-w-[1320px] lg:max-w-[1480px] xl:max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-0 sm:px-1 md:px-2 lg:px-4 gap-4 xs:gap-5 sm:gap-7 md:gap-9 lg:gap-12 xl:gap-14"
+      className="grid grid-cols-[175px_1fr] xs:grid-cols-[200px_1fr] sm:grid-cols-[270px_1fr] md:grid-cols-[340px_1fr] lg:grid-cols-[390px_1fr] xl:grid-cols-[440px_1fr] items-start justify-start mt-[0.5cm] sm:mt-[0.8cm] pb-4 sm:pb-6 md:pb-8 w-full max-w-[620px] xs:max-w-[680px] sm:max-w-[840px] md:max-w-[1320px] lg:max-w-[1480px] xl:max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-0 sm:px-1 md:px-2 lg:px-4 gap-4 xs:gap-5 sm:gap-7 md:gap-9 lg:gap-12 xl:gap-14"
     >
       
       {/* Profile Image & Action Area (Card + 4 Social Icons + Download CV Button) */}
       <div 
         ref={leftColRef}
-        className="relative mb-0 w-full max-w-[175px] xs:max-w-[200px] sm:max-w-[270px] md:max-w-[360px] lg:max-w-[410px] xl:max-w-[440px] mx-auto md:mx-0 shrink-0 z-10 flex flex-col items-center"
+        className="relative mb-0 w-full max-w-[175px] xs:max-w-[200px] sm:max-w-[270px] md:max-w-[360px] lg:max-w-[410px] xl:max-w-[440px] mx-auto md:mx-0 shrink-0 z-10 flex flex-col items-center self-start"
       >
         {/* Profile Card with 3D Fly-In + Flip Animation */}
         <div 
@@ -223,6 +243,7 @@ export function Hero({ profile }: HeroProps) {
 
         {/* Download CV Button (Solid Premium Design - Non-Glass) */}
         <motion.div 
+          ref={buttonContainerRef}
           id="hero-download-cv-container"
           initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 16, scale: 0.96 }}
           animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
@@ -273,11 +294,11 @@ export function Hero({ profile }: HeroProps) {
 
       {/* Text Content */}
       <div 
-        className="flex flex-col items-start text-left mt-0 w-full z-10 min-w-0 h-full overflow-visible"
+        className="flex flex-col items-start text-left mt-0 w-full z-10 min-w-0 self-start overflow-visible"
         style={{
-          height: leftColHeight ? `${leftColHeight}px` : undefined,
-          minHeight: leftColHeight ? `${leftColHeight}px` : undefined,
-          maxHeight: leftColHeight ? `${leftColHeight}px` : undefined,
+          height: targetHeight ? `${targetHeight}px` : undefined,
+          minHeight: targetHeight ? `${targetHeight}px` : undefined,
+          maxHeight: targetHeight ? `${targetHeight}px` : undefined,
         }}
       >
         <motion.span 
