@@ -62,8 +62,10 @@ function githubPagesSpaPlugin(): Plugin {
 }
 
 export default defineConfig(() => {
+  const base = process.env.VITE_BASE_PATH || process.env.BASE_PATH || '/';
+
   return {
-    base: '/',
+    base,
     plugins: [react(), tailwindcss(), githubPagesSpaPlugin()],
     resolve: {
       alias: {

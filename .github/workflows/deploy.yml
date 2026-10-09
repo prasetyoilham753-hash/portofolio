@@ -23,6 +23,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -37,12 +41,15 @@ jobs:
       - name: Build
         run: bun run build
         env:
+          VITE_BASE_PATH: ${{ steps.pages.outputs.base_path || '/' }}
           VITE_GA_MEASUREMENT_ID: ${{ secrets.VITE_GA_MEASUREMENT_ID || vars.VITE_GA_MEASUREMENT_ID || 'G-RM6XBW359Y' }}
 
       - name: Ensure CNAME, .nojekyll, and 404.html in dist
         run: |
           if [ -f CNAME ]; then
             cp CNAME dist/CNAME
+          elif [ -f public/CNAME ]; then
+            cp public/CNAME dist/CNAME
           else
             echo "bintangprasetyo.com" > dist/CNAME
           fi
@@ -50,9 +57,6 @@ jobs:
           if [ ! -f dist/404.html ]; then
             cp dist/index.html dist/404.html
           fi
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

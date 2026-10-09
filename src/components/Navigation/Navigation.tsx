@@ -764,6 +764,7 @@ export function Navigation() {
                       ? `linear-gradient(165deg, ${hexToRgba(config.dropdownActiveBgColor, config.dropdownActiveBgOpacity / 100)}, ${hexToRgba(config.dropdownActiveBgColor, (config.dropdownActiveBgOpacity * 0.6) / 100)})`
                       : undefined,
                     borderColor: backgroundType === 'molten' ? hexToRgba("#ffffff", 0.3) : undefined,
+                    transition: "all 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
                   }}
                   className={`liquid-glass-item w-full text-left justify-between cursor-pointer ${
                     backgroundType === 'molten' ? 'active' : ''
@@ -813,6 +814,7 @@ export function Navigation() {
                       ? `linear-gradient(165deg, ${hexToRgba(config.dropdownActiveBgColor, config.dropdownActiveBgOpacity / 100)}, ${hexToRgba(config.dropdownActiveBgColor, (config.dropdownActiveBgOpacity * 0.6) / 100)})`
                       : undefined,
                     borderColor: backgroundType === 'ghost-fibers' ? hexToRgba("#ffffff", 0.3) : undefined,
+                    transition: "all 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
                   }}
                   className={`liquid-glass-item w-full text-left justify-between cursor-pointer ${
                     backgroundType === 'ghost-fibers' ? 'active' : ''
@@ -862,6 +864,7 @@ export function Navigation() {
                       ? `linear-gradient(165deg, ${hexToRgba(config.dropdownActiveBgColor, config.dropdownActiveBgOpacity / 100)}, ${hexToRgba(config.dropdownActiveBgColor, (config.dropdownActiveBgOpacity * 0.6) / 100)})`
                       : undefined,
                     borderColor: backgroundType === 'light-pillar' ? hexToRgba("#ffffff", 0.3) : undefined,
+                    transition: "all 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
                   }}
                   className={`liquid-glass-item w-full text-left justify-between cursor-pointer ${
                     backgroundType === 'light-pillar' ? 'active' : ''
