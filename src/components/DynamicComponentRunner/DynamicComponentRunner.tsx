@@ -8,6 +8,7 @@ import {
   Minimize2,
   Code2
 } from "lucide-react";
+import { compileUserComponent } from "../../features/components_library/dynamicCompiler";
 import { getPrecompiledComponent } from "../../features/components_library/precompiledRegistry";
 
 // Robust Error Boundary to isolate component runtime errors
@@ -119,10 +120,17 @@ export function DynamicComponentRunner({
     };
   }, [css]);
 
-  // Resolve precompiled component without eval/new Function (100% CSP compliant)
+  // Resolve and compile user component dynamically or fallback to precompiled registry
   useEffect(() => {
     if (!code || !code.trim()) {
       setRenderedComponent(null);
+      setIsCustomUncompiled(false);
+      return;
+    }
+
+    const DynamicComp = compileUserComponent(code, componentName);
+    if (DynamicComp) {
+      setRenderedComponent(() => DynamicComp);
       setIsCustomUncompiled(false);
       return;
     }

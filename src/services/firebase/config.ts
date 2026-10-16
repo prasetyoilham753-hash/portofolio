@@ -118,12 +118,9 @@ async function testConnection() {
 
 if (typeof window !== "undefined") {
   if (typeof window.requestIdleCallback === "function") {
-    window.requestIdleCallback(
-      () => {
-        testConnection();
-      },
-      { timeout: 3500 }
-    );
+    window.requestIdleCallback(() => {
+      testConnection();
+    });
   } else {
     setTimeout(() => {
       testConnection();

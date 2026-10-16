@@ -372,17 +372,15 @@ export function Navigation() {
 
       if (targetItem) {
         const targetLink = NAV_LINKS[targetItem.index];
-        const isRouteChanging = targetLink && targetLink.path !== location.pathname;
-
-        setActiveRect({
-          x: targetItem.left,
-          y: targetItem.top,
-          width: targetItem.width,
-          height: targetItem.height,
-        });
-
-        if (isRouteChanging) {
-          navigate(targetLink.path);
+        if (targetLink) {
+          performGlideToTab(targetItem.index, targetLink.path);
+        } else {
+          setActiveRect({
+            x: targetItem.left,
+            y: targetItem.top,
+            width: targetItem.width,
+            height: targetItem.height,
+          });
         }
       }
 
