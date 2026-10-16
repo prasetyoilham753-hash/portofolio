@@ -373,7 +373,7 @@ export default function MagneticPill() {
   },
   {
     name: "Quantum Orbital Loader",
-    category: "Loaders",
+    category: "Feedback",
     description: "Indikator loading orbital futuristik berbasis motion physics dan glow rings.",
     dependencies: ["motion"],
     code: `import React from 'react';
@@ -383,31 +383,113 @@ export default function QuantumLoader() {
   return (
     <div className="flex flex-col items-center justify-center p-8 gap-4">
       <div className="relative w-16 h-16 flex items-center justify-center">
-        {/* Center Nucleus */}
         <motion.div
           animate={{ scale: [1, 1.25, 1], opacity: [0.6, 1, 0.6] }}
           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
           className="w-4 h-4 rounded-full bg-[#7DB3FF] shadow-[0_0_16px_#7DB3FF]"
         />
-
-        {/* Orbit Ring 1 */}
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 2.4, repeat: Infinity, ease: "linear" }}
           className="absolute inset-0 rounded-full border border-t-[#7DB3FF] border-r-transparent border-b-[#7DB3FF]/30 border-l-transparent"
         />
-
-        {/* Orbit Ring 2 */}
-        <motion.div
-          animate={{ rotate: -360 }}
-          transition={{ duration: 3.2, repeat: Infinity, ease: "linear" }}
-          className="absolute -inset-2 rounded-full border border-t-white/80 border-r-transparent border-b-transparent border-l-white/20"
-        />
       </div>
-
       <span className="text-xs font-mono uppercase tracking-widest text-[#A8B8CC]">
         Processing Quantum State...
       </span>
+    </div>
+  );
+}`
+  },
+  {
+    name: "Glassmorphism Card Container",
+    category: "Cards",
+    description: "Kartu kontainer glassmorphism modern dengan header, body, footer, dan badge status.",
+    dependencies: ["lucide-react"],
+    code: `import React, { useState } from 'react';
+import { Sparkles, ArrowRight, ShieldCheck } from 'lucide-react';
+
+export default function GlassCard() {
+  const [isLiked, setIsLiked] = useState(false);
+
+  return (
+    <div className="p-4 w-full max-w-sm">
+      <div className="p-6 rounded-2xl bg-[rgba(8,18,38,0.7)] border border-white/15 backdrop-blur-xl shadow-[0_16px_40px_rgba(0,0,0,0.5)] flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-wider bg-[#7DB3FF]/15 border border-[#7DB3FF]/30 text-[#7DB3FF]">
+            Spatial UI
+          </span>
+          <span className="text-xs text-emerald-400 font-mono flex items-center gap-1">
+            <ShieldCheck size={12} /> Verified
+          </span>
+        </div>
+        <div className="flex flex-col gap-1">
+          <h3 className="text-base font-bold text-white tracking-tight">Immersive Architecture</h3>
+          <p className="text-xs text-[#A8B8CC] font-light leading-relaxed">
+            Designed for high-performance spatial experiences with crisp typography and atmospheric glass.
+          </p>
+        </div>
+        <div className="pt-3 border-t border-white/10 flex items-center justify-between">
+          <button
+            onClick={() => setIsLiked(!isLiked)}
+            className="px-3 py-1.5 rounded-xl text-xs font-medium bg-[#7DB3FF]/15 text-[#7DB3FF] hover:bg-[#7DB3FF]/25 cursor-pointer transition-colors"
+          >
+            {isLiked ? '♥ Liked' : '♡ Like'}
+          </button>
+          <span className="text-xs text-white/60 font-mono">v2.6.0</span>
+        </div>
+      </div>
+    </div>
+  );
+}`
+  },
+  {
+    name: "Interactive Form & Input Field",
+    category: "Forms",
+    description: "Formulir interaktif lengkap dengan input teks, validasi state, dan tombol submit.",
+    dependencies: ["lucide-react"],
+    code: `import React, { useState } from 'react';
+import { Send, CheckCircle2 } from 'lucide-react';
+
+export default function InteractiveForm() {
+  const [email, setEmail] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (email.trim()) setSubmitted(true);
+  };
+
+  return (
+    <div className="p-6 w-full max-w-sm">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-6 rounded-2xl bg-[rgba(6,15,35,0.7)] border border-white/10 backdrop-blur-lg">
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-semibold text-white/90">Newsletter Subscription</label>
+          <p className="text-[11px] text-[#A8B8CC]">Dapatkan pembaruan komponen terbaru langsung.</p>
+        </div>
+        {submitted ? (
+          <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
+            <CheckCircle2 size={16} /> Berhasil berlangganan!
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2.5">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="nama@domain.com"
+              className="px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/15 focus:border-[#7DB3FF] text-white text-xs outline-none"
+              required
+            />
+            <button
+              type="submit"
+              className="px-4 py-2.5 rounded-xl bg-[#7DB3FF] text-slate-950 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer hover:bg-[#93c5fd] transition-colors"
+            >
+              <Send size={14} /> Subscribe
+            </button>
+          </div>
+        )}
+      </form>
     </div>
   );
 }`

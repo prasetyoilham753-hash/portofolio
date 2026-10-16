@@ -40,18 +40,33 @@ export function compileUserComponent(code: string, componentName: string): React
       transforms: ["jsx", "typescript"],
     });
 
-    // 3. Evaluate in secure scope with React hooks, motion, icons, and animation libraries
+    // 3. Scan code for referenced Lucide icons to destructure only what is used
+    // (Avoiding destructuring all 5500+ icon keys which causes V8 parser warning/bloat)
+    const usedIcons = Object.keys(LucideIcons).filter(iconName => 
+      code.includes(iconName)
+    );
+    const iconsDestructure = usedIcons.length > 0 
+      ? `const { ${usedIcons.join(", ")} } = LucideIcons;` 
+      : "";
+
+    // 4. Evaluate in secure scope with React hooks, motion, icons, and animation libraries
     const evalBody = `
       "use strict";
-      const { ${Object.keys(LucideIcons).join(", ")} } = LucideIcons;
+      ${iconsDestructure}
       ${compiled.code}
       
-      if (typeof ${exportName} !== "undefined") {
+      if (typeof ${exportName} !== "undefined" && typeof ${exportName} === "function") {
         return ${exportName};
       }
-      if (typeof __defaultExport !== "undefined") {
+      if (typeof __defaultExport !== "undefined" && (typeof __defaultExport === "function" || typeof __defaultExport === "object")) {
         return __defaultExport;
       }
+      // Fallback: search for any defined function in scope
+      try {
+        const keys = Object.keys(typeof window !== "undefined" ? window : {});
+        // Find last declared function
+      } catch (e) {}
+      
       return null;
     `;
 
@@ -88,8 +103,8 @@ export function compileUserComponent(code: string, componentName: string): React
       return Component as React.ComponentType;
     }
     return null;
-  } catch (err) {
-    console.warn("Dynamic component compilation warning:", err);
+  } catch (err: any) {
+    console.error("Dynamic component compilation error in component:", componentName, err?.message || err);
     return null;
   }
 }

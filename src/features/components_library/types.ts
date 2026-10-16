@@ -1,23 +1,31 @@
 export type ComponentCategory = 
   | 'Buttons'
   | 'Cards'
+  | 'Feedback'
+  | 'Forms'
+  | 'Navigation'
+  | 'Data Display'
+  | 'Overlays'
+  | 'Advanced'
   | 'Text Effects'
   | 'Animations'
   | 'Backgrounds'
   | '3D'
-  | 'Navigation'
-  | 'Loaders'
   | 'Other';
 
 export const COMPONENT_CATEGORIES: ComponentCategory[] = [
   'Buttons',
   'Cards',
+  'Feedback',
+  'Forms',
+  'Navigation',
+  'Data Display',
+  'Overlays',
+  'Advanced',
   'Text Effects',
   'Animations',
   'Backgrounds',
   '3D',
-  'Navigation',
-  'Loaders',
   'Other'
 ];
 
