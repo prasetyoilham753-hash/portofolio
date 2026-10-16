@@ -352,6 +352,70 @@ export function PrecompiledQuantumLoader() {
   );
 }
 
+// 9. Interactive Toggle Switch
+export function PrecompiledToggleSwitch() {
+  const [isOn, setIsOn] = useState(false);
+  return (
+    <div className="flex flex-col items-center justify-center p-6 gap-3">
+      <div 
+        onClick={() => setIsOn(!isOn)}
+        style={{
+          width: '64px',
+          height: '34px',
+          borderRadius: '999px',
+          backgroundColor: isOn ? '#3B82F6' : 'rgba(255, 255, 255, 0.1)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          position: 'relative',
+          cursor: 'pointer',
+          transition: 'background-color 0.3s ease',
+          display: 'flex',
+          alignItems: 'center',
+          padding: '4px'
+        }}
+      >
+        <div 
+          style={{
+            width: '24px',
+            height: '24px',
+            borderRadius: '50%',
+            backgroundColor: '#FFFFFF',
+            transform: isOn ? 'translateX(30px)' : 'translateX(0px)',
+            transition: 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+          }}
+        />
+      </div>
+      <span className="text-xs font-mono text-white/70">
+        {isOn ? 'Toggle Switch: ON' : 'Toggle Switch: OFF'}
+      </span>
+    </div>
+  );
+}
+
+// 10. Radio Button Group
+export function PrecompiledRadioButton() {
+  const [selected, setSelected] = useState('option1');
+  return (
+    <div className="flex flex-col gap-3 p-6 w-full max-w-xs">
+      <span className="text-xs font-semibold text-white/80">Select Preference</span>
+      {['option1', 'option2', 'option3'].map((opt, idx) => (
+        <label 
+          key={opt}
+          onClick={() => setSelected(opt)}
+          className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+            selected === opt ? 'bg-[#7DB3FF]/15 border-[#7DB3FF]' : 'bg-white/5 border-white/10 hover:border-white/20'
+          }`}
+        >
+          <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${selected === opt ? 'border-[#7DB3FF]' : 'border-white/40'}`}>
+            {selected === opt && <div className="w-2 h-2 rounded-full bg-[#7DB3FF]" />}
+          </div>
+          <span className="text-xs text-white font-medium">Option {idx + 1} Selection</span>
+        </label>
+      ))}
+    </div>
+  );
+}
+
 /**
  * Safe Production Component Registry
  * Maps component names, identifiers, categories, or code signatures to native precompiled React components.
@@ -361,7 +425,25 @@ export function getPrecompiledComponent(name?: string, code?: string): React.Com
   const normalizedName = (name || "").toLowerCase().trim();
   const normalizedCode = (code || "").trim().toLowerCase();
 
-  // 1. Confetti / Celebration / Particle Animation
+  // 1. Toggle Switch
+  if (
+    normalizedName.includes("switch") ||
+    normalizedName.includes("toggle") ||
+    normalizedCode.includes("toggleswitch") ||
+    normalizedCode.includes("ison")
+  ) {
+    return PrecompiledToggleSwitch;
+  }
+
+  // 2. Radio Button
+  if (
+    normalizedName.includes("radio") ||
+    normalizedCode.includes("radio")
+  ) {
+    return PrecompiledRadioButton;
+  }
+
+  // 3. Confetti / Celebration / Particle Animation
   if (
     normalizedName.includes("celebration") ||
     normalizedName.includes("confetti") ||
@@ -374,7 +456,7 @@ export function getPrecompiledComponent(name?: string, code?: string): React.Com
     return PrecompiledConfettiCelebration;
   }
 
-  // 2. Spotlight / Glow / Universe Button
+  // 4. Spotlight / Glow / Universe Button
   if (
     normalizedName.includes("spotlight") ||
     normalizedName.includes("glow") ||
@@ -387,7 +469,7 @@ export function getPrecompiledComponent(name?: string, code?: string): React.Com
     return PrecompiledGlowSpotlightButton;
   }
 
-  // 3. Cyberpunk / Flame / Action / Standard Button
+  // 5. Cyberpunk / Flame / Action / Standard Button
   if (
     normalizedName.includes("cyberpunk") ||
     normalizedName.includes("button") ||
@@ -402,7 +484,7 @@ export function getPrecompiledComponent(name?: string, code?: string): React.Com
     return PrecompiledCyberpunkButton;
   }
 
-  // 4. Badge / Tag / Status / Minimal Pill
+  // 6. Badge / Tag / Status / Minimal Pill
   if (
     normalizedName.includes("badge") ||
     normalizedName.includes("tag") ||
@@ -415,7 +497,7 @@ export function getPrecompiledComponent(name?: string, code?: string): React.Com
     return PrecompiledPureReactBadge;
   }
 
-  // 5. Magnetic / Pill / Interactive Float
+  // 7. Magnetic / Pill / Interactive Float
   if (
     normalizedName.includes("magnetic") ||
     normalizedName.includes("pill") ||
@@ -426,18 +508,23 @@ export function getPrecompiledComponent(name?: string, code?: string): React.Com
     return PrecompiledMagneticPill;
   }
 
-  // 6. Shimmer Glass Card / Container / Card
+  // 8. Shimmer Glass Card / Container / Card / Modal / Form
   if (
     normalizedName.includes("card") ||
     normalizedName.includes("glass") ||
-    normalizedName.includes("shimmer glass") ||
+    normalizedName.includes("form") ||
+    normalizedName.includes("input") ||
+    normalizedName.includes("modal") ||
+    normalizedName.includes("dialog") ||
     normalizedCode.includes("shimmerglasscard") ||
-    normalizedCode.includes("spatial glass architecture")
+    normalizedCode.includes("spatial glass architecture") ||
+    normalizedCode.includes("<form") ||
+    normalizedCode.includes("<input")
   ) {
     return PrecompiledShimmerGlassCard;
   }
 
-  // 7. Shimmer Text / Typography / Gradient Text
+  // 9. Shimmer Text / Typography / Gradient Text
   if (
     normalizedName.includes("text") ||
     normalizedName.includes("shimmer text") ||
@@ -450,7 +537,7 @@ export function getPrecompiledComponent(name?: string, code?: string): React.Com
     return PrecompiledShimmerTextEffect;
   }
 
-  // 8. Quantum Orbital Loader / Spinner / Progress
+  // 10. Quantum Orbital Loader / Spinner / Progress
   if (
     normalizedName.includes("loader") ||
     normalizedName.includes("quantum") ||
@@ -463,6 +550,9 @@ export function getPrecompiledComponent(name?: string, code?: string): React.Com
     return PrecompiledQuantumLoader;
   }
 
-  // Default Fallback: Always return a high-fidelity interactive precompiled button component
+  // Default Fallback: Return Shimmer Glass Card if card/form/complex, else Cyberpunk Button
+  if (normalizedCode.includes("div") || normalizedCode.includes("section")) {
+    return PrecompiledShimmerGlassCard;
+  }
   return PrecompiledCyberpunkButton;
 }
