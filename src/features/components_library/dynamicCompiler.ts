@@ -14,8 +14,11 @@ export function compileUserComponent(code: string, componentName: string): React
   if (!code || !code.trim()) return null;
 
   try {
-    // 1. Remove import statements (since packages are provided in scope)
-    let processed = code.replace(/import\s+[\s\S]*?from\s+['"][^'"]+['"];?/g, "");
+    // 1. Clean code: remove imports and strip TS interfaces/types that might conflict
+    let processed = code
+      .replace(/import\s+[\s\S]*?from\s+['"][^'"]+['"];?/g, "")
+      .replace(/interface\s+[a-zA-Z0-9_$]+(\s*<[^>]*>)?\s*\{[\s\S]*?\}/g, "")
+      .replace(/type\s+[a-zA-Z0-9_$]+(\s*<[^>]*>)?\s*=\s*[^;]+;/g, "");
 
     // Extract potential exported component names
     let exportName = "Component";
@@ -26,6 +29,17 @@ export function compileUserComponent(code: string, componentName: string): React
       exportName = exportDefaultMatch[1] || exportDefaultMatch[2] || "Component";
     } else if (exportNamedMatch) {
       exportName = exportNamedMatch[1] || exportNamedMatch[2] || "Component";
+    }
+
+    // Extract function names declared in code for fallback detection
+    const declaredFuncs: string[] = [];
+    const funcMatches = processed.matchAll(/function\s+([a-zA-Z0-9_$]+)/g);
+    for (const match of funcMatches) {
+      if (match[1]) declaredFuncs.push(match[1]);
+    }
+    const constMatches = processed.matchAll(/const\s+([a-zA-Z0-9_$]+)\s*=\s*(?:React\.)?(?:memo\()?\s*(?:\([^)]*\)|[a-zA-Z0-9_$]+)\s*=>/g);
+    for (const match of constMatches) {
+      if (match[1]) declaredFuncs.push(match[1]);
     }
 
     // Replace exports with standard declarations and assignments
@@ -41,7 +55,6 @@ export function compileUserComponent(code: string, componentName: string): React
     });
 
     // 3. Scan code for referenced Lucide icons to destructure only what is used
-    // (Avoiding destructuring all 5500+ icon keys which causes V8 parser warning/bloat)
     const usedIcons = Object.keys(LucideIcons).filter(iconName => 
       code.includes(iconName)
     );
@@ -53,21 +66,31 @@ export function compileUserComponent(code: string, componentName: string): React
     const evalBody = `
       "use strict";
       ${iconsDestructure}
-      ${compiled.code}
       
-      if (typeof ${exportName} !== "undefined" && typeof ${exportName} === "function") {
-        return ${exportName};
-      }
-      if (typeof __defaultExport !== "undefined" && (typeof __defaultExport === "function" || typeof __defaultExport === "object")) {
-        return __defaultExport;
-      }
-      // Fallback: search for any defined function in scope
+      let __resolvedComponent = null;
       try {
-        const keys = Object.keys(typeof window !== "undefined" ? window : {});
-        // Find last declared function
-      } catch (e) {}
-      
-      return null;
+        ${compiled.code}
+        
+        if (typeof ${exportName} !== "undefined" && typeof ${exportName} === "function") {
+          __resolvedComponent = ${exportName};
+        } else if (typeof __defaultExport !== "undefined") {
+          __resolvedComponent = typeof __defaultExport === "function" ? __defaultExport : (() => __defaultExport);
+        } else {
+          // Check declared functions in reverse order (newest first)
+          const candidates = ${JSON.stringify(declaredFuncs)};
+          for (let i = candidates.length - 1; i >= 0; i--) {
+            const name = candidates[i];
+            if (typeof eval(name) === "function") {
+              __resolvedComponent = eval(name);
+              break;
+            }
+          }
+        }
+      } catch (evalErr) {
+        console.error("Runtime evaluation inner error:", evalErr);
+      }
+
+      return __resolvedComponent;
     `;
 
     const factory = new Function(
