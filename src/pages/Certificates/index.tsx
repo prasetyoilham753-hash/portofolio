@@ -17,6 +17,7 @@ import {
 import { subscribeToCertificates } from "../../features/certificates/api";
 import { CertificateItem } from "../../features/certificates/types";
 import { getProfile } from "../../features/profile/api";
+import { getOptimizedImageUrl } from "../../utils/imageUrl";
 
 interface CertificateCardProps {
   key?: React.Key;
@@ -100,9 +101,10 @@ function CertificateCard({
       >
         {/* Full Edge-to-Edge Certificate Image */}
         <img
-          src={currentImageUrl}
+          src={getOptimizedImageUrl(currentImageUrl, { width: 800, quality: "auto" })}
           alt={`${item.title} - Foto ${currentIdx + 1}`}
           loading="lazy"
+          decoding="async"
           key={currentImageUrl}
           onLoad={handleImageLoad}
           className="w-full h-full object-cover object-center transition-all duration-500 ease-out group-hover:scale-105 animate-fade-in"
@@ -563,9 +565,10 @@ export default function Certificates() {
               {/* Main Image View */}
               <div className="flex-1 w-full flex items-center justify-center relative overflow-hidden my-auto">
                 <img
-                  src={activeImages[activePhotoIdx] || activeCert.imageUrl}
+                  src={getOptimizedImageUrl(activeImages[activePhotoIdx] || activeCert.imageUrl, { width: 1400, quality: "auto" })}
                   alt={`${activeCert.title} - ${activePhotoIdx + 1}`}
                   key={activeImages[activePhotoIdx] || activeCert.imageUrl}
+                  decoding="async"
                   className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl transition-all duration-300 animate-fade-in"
                 />
 
@@ -608,8 +611,10 @@ export default function Certificates() {
                       }`}
                     >
                       <img
-                        src={imgUrl}
+                        src={getOptimizedImageUrl(imgUrl, { width: 160, quality: "auto" })}
                         alt={`Thumbnail ${pIdx + 1}`}
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover"
                       />
                     </button>

@@ -1,19 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { getProfile, subscribeToProfile } from "../../features/profile/api";
+import { getCachedProfile, subscribeToProfile } from "../../features/profile/api";
 import { SiteProfile } from "../../features/profile/types";
 import { Hero } from "./components/Hero";
 import { About } from "./components/About";
 
 export default function Home() {
-  const [profile, setProfile] = useState<SiteProfile | null>(null);
+  // Synchronous cache retrieval ensures 0ms blank state on page load
+  const [profile, setProfile] = useState<SiteProfile | null>(() => getCachedProfile());
 
   useEffect(() => {
-    // Initial fetch fallback
-    getProfile().then(data => {
-      if (data) setProfile(data);
-    }).catch(err => console.error("Initial profile load error:", err));
-
-    // Realtime subscription
+    // Realtime subscription automatically hydrates or updates the profile state
     const unsubscribe = subscribeToProfile((updated) => {
       if (updated) {
         setProfile(updated);

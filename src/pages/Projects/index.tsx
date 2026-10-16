@@ -5,6 +5,7 @@ import { db } from "../../services/firebase/config";
 import { SiteProfile } from "../../features/profile/types";
 import { subscribeToProjects } from "../../features/projects/api";
 import { ProjectItem } from "../../features/projects/types";
+import { getOptimizedImageUrl } from "../../utils/imageUrl";
 
 export default function Projects() {
   const [projects, setProjects] = useState<ProjectItem[]>([]);
@@ -169,10 +170,11 @@ export default function Projects() {
                       />
                     ) : (
                       <img
-                        src={project.mediaUrl}
+                        src={getOptimizedImageUrl(project.mediaUrl, { width: 900, quality: "auto" })}
                         alt={project.title}
                         className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 opacity-90 group-hover:opacity-100"
                         loading="lazy"
+                        decoding="async"
                         onError={(e) => {
                           (e.target as HTMLElement).style.display = "none";
                         }}

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import { getOptimizedImageUrl } from "../../../utils/imageUrl";
 
 interface ProfileCard3DProps {
   photos: string[];
@@ -394,12 +395,16 @@ export function ProfileCard3D({ photos, name }: ProfileCard3DProps) {
                   >
                     {totalPhotos > 0 ? (
                       <img
-                        src={photoList[frontIndex % totalPhotos]}
+                        src={getOptimizedImageUrl(photoList[frontIndex % totalPhotos], { width: 750, quality: "auto" })}
                         alt={`${name} - Front view`}
                         className="w-full h-full object-cover block pointer-events-none select-none"
                         referrerPolicy="no-referrer"
                         draggable={false}
                         loading="eager"
+                        decoding="async"
+                        fetchPriority="high"
+                        width={300}
+                        height={360}
                       />
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-[#182a56] to-[#0a1226]">
@@ -455,12 +460,15 @@ export function ProfileCard3D({ photos, name }: ProfileCard3DProps) {
                   >
                     {totalPhotos > 0 ? (
                       <img
-                        src={photoList[backIndex % totalPhotos]}
+                        src={getOptimizedImageUrl(photoList[backIndex % totalPhotos], { width: 750, quality: "auto" })}
                         alt={`${name} - Back view`}
                         className="w-full h-full object-cover block pointer-events-none select-none"
                         referrerPolicy="no-referrer"
                         draggable={false}
                         loading="lazy"
+                        decoding="async"
+                        width={300}
+                        height={360}
                       />
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-[#182a56] to-[#0a1226]">

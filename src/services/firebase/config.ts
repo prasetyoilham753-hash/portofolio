@@ -9,7 +9,7 @@ import firebaseConfig from '../../../firebase-applet-config.json';
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
+  experimentalAutoDetectLongPolling: true,
 }, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
 
@@ -105,14 +105,29 @@ if (typeof window !== "undefined" && recaptchaKey) {
   }
 }
 
-// Test connection on boot to catch configuration errors
+// Deferred connection check to avoid blocking the initial critical rendering path
 async function testConnection() {
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
   } catch (error) {
     if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error("Firebase Connection Error: Please check your configuration or network.");
+      console.warn("Firebase Connection Notice: offline mode active.");
     }
   }
 }
-testConnection();
+
+if (typeof window !== "undefined") {
+  if (typeof window.requestIdleCallback === "function") {
+    window.requestIdleCallback(
+      () => {
+        testConnection();
+      },
+      { timeout: 3500 }
+    );
+  } else {
+    setTimeout(() => {
+      testConnection();
+    }, 3500);
+  }
+}
+

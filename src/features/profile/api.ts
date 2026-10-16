@@ -5,6 +5,43 @@ import { SiteProfile } from "./types";
 
 const PROFILE_DOC_ID = "profile";
 const COLLECTION_NAME = "site_content";
+const PROFILE_CACHE_KEY = "bp_profile_cache";
+
+export const DEFAULT_FALLBACK_PROFILE: SiteProfile = {
+  name: "Bintang Prasetyo",
+  firstName: "Bintang",
+  lastName: "Prasetyo",
+  title: "Creative Developer & Illustrator",
+  heroDescription: "I'm a passionate developer who loves building web applications, exploring new technologies, and turning ideas into real, useful products.",
+  heroDescriptionAlign: "left",
+  about: "Creative developer and digital illustrator bridging spatial interactive experiences and rigorous frontend architecture.",
+  photoUrl: "",
+  photoPath: "",
+  socialLinks: {
+    instagram: "https://instagram.com/bprasety_",
+    x: "https://x.com/bprasety_",
+    twitter: "https://x.com/bprasety_",
+    reddit: "https://reddit.com/user/bprasety_",
+    linkedin: "https://linkedin.com/in/bintang-prasetyo"
+  }
+};
+
+/**
+ * Returns cached profile from localStorage immediately (0ms delay)
+ * ensuring instant render on page load without any waiting state.
+ */
+export function getCachedProfile(): SiteProfile {
+  if (typeof window === "undefined") return DEFAULT_FALLBACK_PROFILE;
+  try {
+    const raw = localStorage.getItem(PROFILE_CACHE_KEY);
+    if (raw) {
+      return { ...DEFAULT_FALLBACK_PROFILE, ...(JSON.parse(raw) as SiteProfile) };
+    }
+  } catch {
+    // Graceful fallback
+  }
+  return DEFAULT_FALLBACK_PROFILE;
+}
 
 export function subscribeToProfile(
   onUpdate: (profile: SiteProfile | null) => void,
@@ -15,29 +52,57 @@ export function subscribeToProfile(
     docRef,
     (docSnap) => {
       if (docSnap.exists()) {
-        onUpdate(docSnap.data() as SiteProfile);
+        const data = docSnap.data() as SiteProfile;
+        try {
+          localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(data));
+        } catch {
+          // Ignore quota errors
+        }
+        onUpdate(data);
       } else {
         onUpdate(null);
       }
     },
     (error) => {
-      console.error("subscribeToProfile error:", error);
+      console.warn("subscribeToProfile notice (falling back to cache):", error);
       if (onError) onError(error);
     }
   );
 }
 
 export async function getProfile(): Promise<SiteProfile | null> {
+  const cached = getCachedProfile();
+  if (cached) {
+    // Fetch in background to re-validate, but return cached immediately
+    (async () => {
+      try {
+        const docRef = doc(db, COLLECTION_NAME, PROFILE_DOC_ID);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const fresh = docSnap.data() as SiteProfile;
+          localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(fresh));
+        }
+      } catch {
+        // Non-blocking
+      }
+    })();
+    return cached;
+  }
+
   try {
     const docRef = doc(db, COLLECTION_NAME, PROFILE_DOC_ID);
     const docSnap = await getDoc(docRef);
     
     if (docSnap.exists()) {
-      return docSnap.data() as SiteProfile;
+      const data = docSnap.data() as SiteProfile;
+      try {
+        localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(data));
+      } catch {}
+      return data;
     }
     return null;
   } catch (error) {
-    console.error("getProfile error:", error);
+    console.warn("getProfile notice:", error);
     return null;
   }
 }

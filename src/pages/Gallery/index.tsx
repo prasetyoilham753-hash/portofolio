@@ -15,6 +15,7 @@ import { Link } from "react-router-dom";
 import { subscribeToGallery } from "../../features/gallery/api";
 import { GalleryItem } from "../../features/gallery/types";
 import { getProfile } from "../../features/profile/api";
+import { getOptimizedImageUrl } from "../../utils/imageUrl";
 
 export default function Gallery() {
   const [artworks, setArtworks] = useState<GalleryItem[]>([]);
@@ -257,9 +258,10 @@ export default function Gallery() {
                   >
                     {/* Natural Photo */}
                     <img
-                      src={item.imageUrl}
+                      src={getOptimizedImageUrl(item.imageUrl, { width: 800, quality: "auto" })}
                       alt={item.title || "Artwork"}
                       loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-108"
                     />
 
@@ -362,8 +364,9 @@ export default function Gallery() {
               {/* Photo Display */}
               <div className="relative flex items-center justify-center max-h-[72vh] w-auto overflow-hidden">
                 <img
-                  src={activeArtwork.imageUrl}
+                  src={getOptimizedImageUrl(activeArtwork.imageUrl, { width: 1600, quality: "auto" })}
                   alt={activeArtwork.title || "Full Artwork"}
+                  decoding="async"
                   className="max-h-[72vh] max-w-full object-contain rounded-t-xl"
                 />
               </div>

@@ -71,10 +71,14 @@ export function Navigation() {
   const lastSpeedRef = useRef<number>(0);
   const lastDirectionRef = useRef<"left" | "right">("right");
   const wasDraggingRef = useRef<boolean>(false);
+  const justDraggedRef = useRef<boolean>(false);
   const velocityDecayTimerRef = useRef<NodeJS.Timeout | null>(null);
   const fastStopTimerRef = useRef<NodeJS.Timeout | null>(null);
   const glideTimerRef = useRef<NodeJS.Timeout | null>(null);
   const prevPathnameRef = useRef<string>(location.pathname);
+  const glideFromRef = useRef<{ width: number; height: number } | null>(null);
+  const [glideDuration, setGlideDuration] = useState<number>(0.26);
+  const lastGlideTimeRef = useRef<number>(0);
   
   const startPosRef = useRef<{ x: number; y: number; time: number; index: number } | null>(null);
   const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -126,38 +130,14 @@ export function Navigation() {
     setIsPressed(true);
     wasDraggingRef.current = false;
 
-    // If an existing click glide is active, cancel it smoothly so touch immediately takes control
-    if (glideTimerRef.current) {
-      clearTimeout(glideTimerRef.current);
-      glideTimerRef.current = null;
-    }
-    setIsGliding(false);
-    
-    // Capture pointer on the nav dock container to receive all global move events
-    const navElem = e.currentTarget.closest("nav") || (e.currentTarget as HTMLElement);
-    navDockRef.current = navElem;
-    try {
-      navElem.setPointerCapture(e.pointerId);
-    } catch {
-      // Fallback
-    }
-
-    const layout = prepareLayoutCache();
-    if (layout && layout.items[index]) {
-      setHeldIndex(index);
-      setDragGlassX(layout.items[index].left);
-      setDragGlassWidth(layout.items[index].width);
-      setDragGlassHeight(layout.items[index].height);
+    // Cache layout for immediate lookup
+    if (!cachedLayoutRef.current) {
+      prepareLayoutCache();
     }
 
     lastPointerPosRef.current = { x: e.clientX, time: performance.now() };
     setDragSpeed(0);
     setIsMoving(false);
-
-    if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
-    holdTimerRef.current = setTimeout(() => {
-      setIsHolding(true);
-    }, 70);
   }, [prepareLayoutCache]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
@@ -214,11 +194,25 @@ export function Navigation() {
       setDragSpeed(0);
     }, 95);
 
-    // If dragged more than 4px, immediately activate hold mode
+    // If dragged more than 4px, activate drag & hold mode
     if (dist > 4) {
-      wasDraggingRef.current = true;
-      if (!isHolding) {
+      if (!wasDraggingRef.current) {
+        wasDraggingRef.current = true;
         setIsHolding(true);
+        if (glideTimerRef.current) {
+          clearTimeout(glideTimerRef.current);
+          glideTimerRef.current = null;
+        }
+        setIsGliding(false);
+
+        // Capture pointer so dragging is tracked continuously across the viewport
+        const navElem = e.currentTarget.closest("nav") || (e.currentTarget as HTMLElement);
+        navDockRef.current = navElem;
+        try {
+          navElem.setPointerCapture(e.pointerId);
+        } catch {
+          // Fallback
+        }
       }
     }
 
@@ -236,10 +230,13 @@ export function Navigation() {
     }
 
     const targetItem = layout.items[closestIndex];
-    const targetWidth = targetItem ? targetItem.width : 60;
-    const targetHeight = targetItem ? targetItem.height : 36;
+    const defaultInsetMm = 0.4;
+    const staticPadX = config.capsuleStaticPaddingX !== undefined ? config.capsuleStaticPaddingX : defaultInsetMm;
+    const staticPadY = config.capsuleStaticPaddingY !== undefined ? config.capsuleStaticPaddingY : defaultInsetMm;
+    const targetWidth = targetItem ? Math.max(32, targetItem.width - (staticPadX * 2)) : 60;
+    const targetHeight = targetItem ? Math.max(28, targetItem.height - (staticPadY * 2)) : 36;
 
-    // Calculate clamped continuous position
+    // Calculate clamped continuous position centered on cursor
     const rawLeft = cursorRelativeX - targetWidth / 2;
     const clampedLeft = Math.max(0, Math.min(layout.trackWidth - targetWidth, rawLeft));
 
@@ -247,9 +244,9 @@ export function Navigation() {
     setDragGlassWidth(targetWidth);
     setDragGlassHeight(targetHeight);
     setDragGlassX(clampedLeft);
-  }, [isHolding, prepareLayoutCache]);
+  }, [config.capsuleStaticPaddingX, config.capsuleStaticPaddingY, prepareLayoutCache]);
 
-  // Floating Glide Trigger for tactile click & tab transitions
+  // Floating Glide Trigger for tactile click & tab transitions (Synchronized with hold physics)
   const triggerGlide = useCallback((targetIndex: number, sourceIndex?: number) => {
     let fromIdx = sourceIndex;
     if (fromIdx === undefined) {
@@ -260,8 +257,8 @@ export function Navigation() {
     const dist = (fromIdx !== -1 && fromIdx !== undefined) ? Math.abs(targetIndex - fromIdx) : 1;
     if (dist === 0) return;
 
-    // Glide duration proportional to travel distance: 300ms for 1 step, up to 450ms across the full dock
-    const duration = Math.min(460, Math.max(310, 270 + dist * 45));
+    // In-flight transit duration before arrival fusion: perfectly matched to spring travel time
+    const travelTimeMs = Math.round(100 + Math.min(dist, 4) * 28);
 
     setIsGliding(true);
     if (glideTimerRef.current) {
@@ -270,8 +267,50 @@ export function Navigation() {
     glideTimerRef.current = setTimeout(() => {
       setIsGliding(false);
       glideTimerRef.current = null;
-    }, duration);
+    }, travelTimeMs);
   }, [location.pathname]);
+
+  // Unified tab glide transition for click and tap events
+  const performGlideToTab = useCallback((targetIndex: number, path: string) => {
+    const now = Date.now();
+    if (now - lastGlideTimeRef.current < 160) return;
+    lastGlideTimeRef.current = now;
+
+    if (path === location.pathname) return;
+
+    const currentIdx = NAV_LINKS.findIndex(link => 
+      location.pathname === link.path || (link.id === "certificates" && (location.pathname === "/certificate" || location.pathname.startsWith("/certificate")))
+    );
+    if (currentIdx === targetIndex) return;
+
+    if (!cachedLayoutRef.current) {
+      prepareLayoutCache();
+    }
+    const layout = cachedLayoutRef.current;
+    if (layout && layout.items[targetIndex]) {
+      const targetItem = layout.items[targetIndex];
+      const sourceItem = currentIdx !== -1 && layout.items[currentIdx] ? layout.items[currentIdx] : null;
+
+      const defaultInsetMm = 0.4;
+      const staticPadX = config.capsuleStaticPaddingX !== undefined ? config.capsuleStaticPaddingX : defaultInsetMm;
+      const staticPadY = config.capsuleStaticPaddingY !== undefined ? config.capsuleStaticPaddingY : defaultInsetMm;
+
+      const fromW = sourceItem ? Math.max(32, sourceItem.width - (staticPadX * 2)) : (activeRect ? activeRect.width - (staticPadX * 2) : 60);
+      const fromH = sourceItem ? Math.max(28, sourceItem.height - (staticPadY * 2)) : (activeRect ? activeRect.height - (staticPadY * 2) : 34);
+      glideFromRef.current = { width: fromW, height: fromH };
+
+      triggerGlide(targetIndex, currentIdx);
+
+      setActiveRect({
+        x: targetItem.left,
+        y: targetItem.top,
+        width: targetItem.width,
+        height: targetItem.height,
+      });
+    }
+
+    navigate(path);
+  }, [config.capsuleStaticPaddingX, config.capsuleStaticPaddingY, activeRect, location.pathname, navigate, prepareLayoutCache, triggerGlide]);
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     if (holdTimerRef.current) {
@@ -308,41 +347,58 @@ export function Navigation() {
       navDockRef.current = null;
     }
 
-    let targetItem = null;
-    if (heldIndex !== null && cachedLayoutRef.current && cachedLayoutRef.current.items[heldIndex]) {
-      targetItem = cachedLayoutRef.current.items[heldIndex];
-    } else if (cachedLayoutRef.current && cachedLayoutRef.current.items.length > 0) {
-      const currentCenterX = dragGlassX + (dragGlassWidth / 2);
-      let closest = cachedLayoutRef.current.items[0];
-      let minDist = Infinity;
-      for (const item of cachedLayoutRef.current.items) {
-        const d = Math.abs(currentCenterX - item.centerX);
-        if (d < minDist) {
-          minDist = d;
-          closest = item;
+    if (wasDraggingRef.current) {
+      justDraggedRef.current = true;
+      setTimeout(() => {
+        justDraggedRef.current = false;
+      }, 120);
+
+      let targetItem = null;
+      if (heldIndex !== null && cachedLayoutRef.current && cachedLayoutRef.current.items[heldIndex]) {
+        targetItem = cachedLayoutRef.current.items[heldIndex];
+      } else if (cachedLayoutRef.current && cachedLayoutRef.current.items.length > 0) {
+        const currentCenterX = dragGlassX + (dragGlassWidth / 2);
+        let closest = cachedLayoutRef.current.items[0];
+        let minDist = Infinity;
+        for (const item of cachedLayoutRef.current.items) {
+          const d = Math.abs(currentCenterX - item.centerX);
+          if (d < minDist) {
+            minDist = d;
+            closest = item;
+          }
+        }
+        targetItem = closest;
+      }
+
+      if (targetItem) {
+        const targetLink = NAV_LINKS[targetItem.index];
+        const isRouteChanging = targetLink && targetLink.path !== location.pathname;
+
+        setActiveRect({
+          x: targetItem.left,
+          y: targetItem.top,
+          width: targetItem.width,
+          height: targetItem.height,
+        });
+
+        if (isRouteChanging) {
+          navigate(targetLink.path);
         }
       }
-      targetItem = closest;
-    }
 
-    if (targetItem) {
-      const targetLink = NAV_LINKS[targetItem.index];
-      const isRouteChanging = targetLink && targetLink.path !== location.pathname;
-
-      // When tapped/clicked without finger dragging, launch the floating glide animation!
-      if (isRouteChanging && !wasDraggingRef.current) {
-        triggerGlide(targetItem.index);
+      if (glideTimerRef.current) {
+        clearTimeout(glideTimerRef.current);
+        glideTimerRef.current = null;
       }
-
-      setActiveRect({
-        x: targetItem.left,
-        y: targetItem.top,
-        width: targetItem.width,
-        height: targetItem.height,
-      });
-
-      if (isRouteChanging) {
-        navigate(targetLink.path);
+      setIsGliding(false);
+    } else {
+      // Tap without drag
+      const clickedIdx = startPosRef.current?.index;
+      if (clickedIdx !== undefined && clickedIdx !== null) {
+        const targetLink = NAV_LINKS[clickedIdx];
+        if (targetLink && targetLink.path !== location.pathname) {
+          performGlideToTab(clickedIdx, targetLink.path);
+        }
       }
     }
 
@@ -352,32 +408,20 @@ export function Navigation() {
     startPosRef.current = null;
     cachedLayoutRef.current = null;
     wasDraggingRef.current = false;
-  }, [dragGlassWidth, dragGlassX, heldIndex, location.pathname, navigate, triggerGlide]);
+  }, [dragGlassWidth, dragGlassX, heldIndex, location.pathname, navigate, performGlideToTab]);
 
   const handleNavClick = useCallback((index: number, path: string, e: React.MouseEvent) => {
-    if (path === location.pathname) return;
+    if (justDraggedRef.current || wasDraggingRef.current) {
+      e.preventDefault();
+      return;
+    }
+    if (path === location.pathname) {
+      e.preventDefault();
+      return;
+    }
     e.preventDefault();
-
-    if (isHolding) return;
-
-    triggerGlide(index);
-
-    if (!cachedLayoutRef.current) {
-      prepareLayoutCache();
-    }
-    const layout = cachedLayoutRef.current;
-    if (layout && layout.items[index]) {
-      const targetItem = layout.items[index];
-      setActiveRect({
-        x: targetItem.left,
-        y: targetItem.top,
-        width: targetItem.width,
-        height: targetItem.height,
-      });
-    }
-
-    navigate(path);
-  }, [isHolding, location.pathname, navigate, prepareLayoutCache, triggerGlide]);
+    performGlideToTab(index, path);
+  }, [location.pathname, performGlideToTab]);
 
   // Clean up glide timer on unmount
   useEffect(() => {
@@ -394,8 +438,11 @@ export function Navigation() {
       const prevIdx = NAV_LINKS.findIndex(l => l.path === prevPathnameRef.current);
       const nextIdx = NAV_LINKS.findIndex(l => l.path === location.pathname);
       prevPathnameRef.current = location.pathname;
-      if (prevIdx !== -1 && nextIdx !== -1 && prevIdx !== nextIdx && !wasDraggingRef.current && !isHolding) {
-        triggerGlide(nextIdx, prevIdx);
+      const now = Date.now();
+      if (now - lastGlideTimeRef.current > 350) {
+        if (prevIdx !== -1 && nextIdx !== -1 && prevIdx !== nextIdx && !wasDraggingRef.current && !isHolding) {
+          triggerGlide(nextIdx, prevIdx);
+        }
       }
     }
   }, [location.pathname, isHolding, triggerGlide]);
@@ -928,16 +975,6 @@ export function Navigation() {
           {activeRect && (() => {
             const isInteractive = isHolding || isPressed || isGliding;
             const isExpandedState = isInteractive;
-            
-            // Dynamic capsule dimensions controlled via Dashboard (Supports Oversized Floating Capsule beyond Nav Dock during interaction)
-            const configuredExtraW = config.capsuleExtraWidth ?? 24;
-            const configuredExtraH = config.capsuleExtraHeight ?? 3;
-
-            // Geometry & Proportion Laws:
-            // The capsule must ALWAYS be a true horizontal pill/capsule (never a square or boxy rectangle upon release).
-            // Height is streamlined so it doesn't balloon vertically, and width maintains a sleek horizontal ratio.
-            const extraW = isInteractive ? configuredExtraW : 0;
-            const extraH = isInteractive ? configuredExtraH : 0;
 
             // In static state, precisely inset 0.1mm (~0.38px - 0.4px) inside the nav bounds
             const defaultInsetMm = 0.4; // 0.1 mm in standard screen pixels (~0.38px)
@@ -947,60 +984,65 @@ export function Navigation() {
             const restingW = Math.max(32, activeRect.width - (staticPadX * 2));
             const restingH = Math.max(28, activeRect.height - (staticPadY * 2));
 
-            const targetW = isInteractive
-              ? ((isHolding && dragGlassWidth) ? (dragGlassWidth + extraW) : activeRect.width + extraW)
+
+            // While sliding/holding or gliding on click: expand capsule ("membesar saat geser / klik bergeser")
+            const extraW = config.capsuleExtraWidth ?? 24;
+            const extraH = config.capsuleExtraHeight ?? 3;
+
+            const heldItem = (isHolding && heldIndex !== null && cachedLayoutRef.current?.items[heldIndex])
+              ? cachedLayoutRef.current.items[heldIndex]
+              : null;
+
+            const baseW = heldItem
+              ? Math.max(32, heldItem.width - (staticPadX * 2))
               : restingW;
 
-            const targetH = isInteractive
-              ? ((isHolding && dragGlassHeight) ? (dragGlassHeight + extraH) : activeRect.height + extraH)
+            const baseH = heldItem
+              ? Math.max(28, heldItem.height - (staticPadY * 2))
               : restingH;
 
-            const targetX = isInteractive
-              ? (isHolding ? dragGlassX - (extraW / 2) : activeRect.x - (extraW / 2))
-              : (activeRect.x + (activeRect.width - targetW) / 2);
+            // When dragging (isHolding) or gliding on click (isGliding): capsule is enlarged by extraW and extraH
+            const isExpanded = isHolding || isGliding;
+            const currentExtraW = isExpanded ? extraW : 0;
+            const currentExtraH = isExpanded ? extraH : 0;
 
-            // In static/release state, center vertically inside the active item cell.
-            // In interactive state, float centered with the dock container.
-            const targetY = isInteractive
-              ? (navCenterY - (targetH / 2))
-              : (activeRect.y + (activeRect.height - targetH) / 2);
+            const activeW = baseW + currentExtraW;
+            const activeH = baseH + currentExtraH;
+
+            // X Position: Follow finger directly while holding, centered on target tab during glide and resting
+            const targetX = isHolding 
+              ? (dragGlassX - extraW / 2) 
+              : (activeRect.x + (activeRect.width - activeW) / 2);
+
+            // Y Position: Perfectly consistent vertical center throughout sliding, gliding, and resting
+            const targetY = activeRect.y + (activeRect.height - activeH) / 2;
+
+            // Unified critically damped fluid physics spring (Zero bounce, instant fusion, perfectly matched across click & hold)
+            const fluidPhysicsSpring = {
+              type: "spring" as const,
+              stiffness: 480,
+              damping: 42,
+              mass: 0.18,
+              bounce: 0,
+              restSpeed: 0.05,
+              restDelta: 0.05,
+            };
+
+            const directTouchTrackingSpring = {
+              type: "spring" as const,
+              stiffness: 580,
+              damping: 45,
+              mass: 0.1,
+            };
 
             // Dynamic normalized horizontal shift for moving refraction light (0 to 100%)
             const trackWidthEst = cachedLayoutRef.current?.trackWidth || 360;
-            const progressRatio = Math.min(1, Math.max(0, targetX / Math.max(1, trackWidthEst - targetW)));
+            const progressRatio = Math.min(1, Math.max(0, targetX / Math.max(1, trackWidthEst - activeW)));
             const lightShiftPercent = Math.round(18 + progressRatio * 64); // 18% to 82%
             const lightAngleDeg = Math.round(115 + (progressRatio - 0.5) * 60); // Angle shifts smoothly as you drag
 
-            // True Capsule Pill: ALWAYS pure continuous pill curvature (9999px) so release never looks like a square
+            // True Capsule Pill: ALWAYS pure continuous pill curvature (9999px)
             const fluidBorderRadius = "9999px";
-
-            // ============================================================
-            // HYDRODYNAMICS & CONTINUUM FLUID MECHANICS:
-            // Symmetrical, continuous fluid capsule
-            // ============================================================
-            let fluidScaleX = 1;
-            let fluidScaleY = 1;
-            const fluidSkewX = 0;
-
-            if (isHolding) {
-              if (isMoving) {
-                const speedFactor = Math.min(0.12, (dragSpeed + 0.1) * 0.08);
-                fluidScaleX = 1 + speedFactor;
-                fluidScaleY = 1 / fluidScaleX;
-              } else {
-                fluidScaleX = 1.0;
-                fluidScaleY = 1.0;
-              }
-            } else if (isGliding) {
-              fluidScaleX = 1.02;
-              fluidScaleY = 1 / 1.02;
-            } else if (isPressed) {
-              fluidScaleX = 1.02;
-              fluidScaleY = 1 / 1.02;
-            } else {
-              fluidScaleX = 1.0;
-              fluidScaleY = 1.0;
-            }
 
             return (
               <motion.div
@@ -1009,47 +1051,30 @@ export function Navigation() {
                 animate={{ 
                   x: targetX,
                   y: targetY,
-                  width: targetW,
-                  height: targetH,
-                  scaleX: fluidScaleX,
-                  scaleY: fluidScaleY,
-                  skewX: fluidSkewX,
+                  width: activeW,
+                  height: activeH,
+                  scaleX: 1,
+                  scaleY: 1,
+                  skewX: 0,
                   borderRadius: fluidBorderRadius,
                 }}
                 transition={isHolding ? {
-                  // Active interactive drag: Instant, tightly-coupled response to touch/pointer
-                  x: { type: "spring", stiffness: 500, damping: 35, mass: 0.15 },
-                  y: { type: "spring", stiffness: 500, damping: 35, mass: 0.15 },
-                  width: { type: "spring", stiffness: 450, damping: 32, mass: 0.15 },
-                  height: { type: "spring", stiffness: 450, damping: 32, mass: 0.15 },
-                  scaleX: { type: "spring", stiffness: 380, damping: 28, mass: 0.15 },
-                  scaleY: { type: "spring", stiffness: 380, damping: 28, mass: 0.15 },
-                  skewX: { type: "spring", stiffness: 380, damping: 28, mass: 0.15 },
-                  borderRadius: { type: "spring", stiffness: 380, damping: 28 },
-                } : isGliding ? {
-                  // Floating click glide: High-speed, fluid flight across the dock (holding shape)
-                  x: { type: "spring", stiffness: 380, damping: 36, mass: 0.35 },
-                  y: { type: "spring", stiffness: 380, damping: 36, mass: 0.35 },
-                  width: { type: "spring", stiffness: 380, damping: 36, mass: 0.35 },
-                  height: { type: "spring", stiffness: 380, damping: 36, mass: 0.35 },
-                  scaleX: { type: "spring", stiffness: 380, damping: 36, mass: 0.35 },
-                  scaleY: { type: "spring", stiffness: 380, damping: 36, mass: 0.35 },
-                  skewX: { type: "spring", stiffness: 380, damping: 36, mass: 0.35 },
-                  borderRadius: { type: "spring", stiffness: 380, damping: 36 },
+                  // Direct touch tracking while dragging
+                  x: directTouchTrackingSpring,
+                  y: directTouchTrackingSpring,
+                  width: fluidPhysicsSpring,
+                  height: fluidPhysicsSpring,
                 } : {
-                  // Direct Fusion on release: Smooth single-stroke merge directly into tab
-                  x: { type: "spring", stiffness: 380, damping: 36, mass: 0.35, bounce: 0 },
-                  y: { type: "spring", stiffness: 380, damping: 36, mass: 0.35, bounce: 0 },
-                  width: { type: "spring", stiffness: 380, damping: 36, mass: 0.35, bounce: 0 },
-                  height: { type: "spring", stiffness: 380, damping: 36, mass: 0.35, bounce: 0 },
-                  scaleX: { type: "spring", stiffness: 380, damping: 36, mass: 0.35, bounce: 0 },
-                  scaleY: { type: "spring", stiffness: 380, damping: 36, mass: 0.35, bounce: 0 },
-                  skewX: { type: "spring", stiffness: 380, damping: 36, mass: 0.35, bounce: 0 },
-                  borderRadius: { type: "spring", stiffness: 380, damping: 36, bounce: 0 },
+                  // High-speed, smooth tactile glide and instant fusion upon arrival: 100% synchronized with hold method
+                  x: fluidPhysicsSpring,
+                  y: fluidPhysicsSpring,
+                  width: fluidPhysicsSpring,
+                  height: fluidPhysicsSpring,
+                  scaleX: { duration: 0 },
+                  scaleY: { duration: 0 },
+                  borderRadius: { duration: 0 },
                 }}
-                className={`absolute pointer-events-none ${
-                  isExpandedState ? "z-30" : "z-10"
-                }`}
+                className="absolute pointer-events-none z-10"
                 style={{
                   top: 0,
                   left: 0,
@@ -1065,10 +1090,10 @@ export function Navigation() {
                 <motion.div
                   className="absolute -inset-1 pointer-events-none"
                   animate={{
-                    scale: isExpandedState ? 1.04 : 1.0,
-                    opacity: isExpandedState ? 0.85 : 0,
+                    scale: 1.0,
+                    opacity: isExpandedState ? 0.75 : 0,
                   }}
-                  transition={{ type: "spring", stiffness: 360, damping: 32 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
                   style={{
                     borderRadius: fluidBorderRadius,
                     background: `radial-gradient(ellipse at ${lightShiftPercent}% 50%, ${hexToRgba(config.activeBgColor, 0.35 * ((config.capsuleGlowIntensity ?? 60) / 100))} 0%, transparent 70%)`,
@@ -1086,16 +1111,14 @@ export function Navigation() {
                     borderRadius: fluidBorderRadius,
                     backdropFilter: "none",
                     WebkitBackdropFilter: "none",
-                    background: isExpandedState
-                      ? "transparent"
-                      : `linear-gradient(180deg, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity ?? 30) / 100 * 1.15)}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity ?? 30) / 100 * 0.80)})`,
+                    background: `linear-gradient(180deg, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity ?? 30) / 100 * (isExpandedState ? 1.2 : 1.15))}, ${hexToRgba(config.activeBgColor, (config.activeBgOpacity ?? 30) / 100 * (isExpandedState ? 0.9 : 0.80))})`,
                     border: isExpandedState 
                       ? "1px solid rgba(255, 255, 255, 0.38)"
                       : `1px solid ${hexToRgba("#ffffff", 0.25)}`,
                     boxShadow: isExpandedState
                       ? "inset 0 1.5px 2px rgba(255, 255, 255, 0.35), inset 0 -1.5px 2px rgba(255, 255, 255, 0.20), 0 2px 8px rgba(0, 0, 0, 0.12)"
                       : "inset 0 1px 1.5px rgba(255, 255, 255, 0.35), inset 0 -1px 1px rgba(0, 0, 0, 0.04)",
-                    transition: "background 0.28s ease, border 0.28s ease, box-shadow 0.28s ease",
+                    transition: "border 0.28s ease, box-shadow 0.28s ease",
                   }}
                 >
                   {/* Subtle Soft Optical Ambient Glow */}
@@ -1116,9 +1139,9 @@ export function Navigation() {
                     <motion.div 
                       animate={{
                         opacity: isExpandedState ? 0.25 : 0,
-                        scale: isExpandedState ? 1.02 : 1.0,
+                        scale: 1.0,
                       }}
-                      transition={{ type: "spring", stiffness: 360, damping: 32 }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
                       className="absolute inset-0 pointer-events-none"
                       style={{
                         padding: "1px",
@@ -1158,14 +1181,8 @@ export function Navigation() {
                   color: isCurrentFocus 
                     ? config.activeTextColor 
                     : hexToRgba(config.textColor, config.textOpacity / 100),
-                  transform: (isHolding && heldIndex === index) 
-                    ? "scale(1.08)" 
-                    : (isGliding && isActive)
-                    ? "scale(1.05)"
-                    : (isActive && !isHolding ? "scale(1.02)" : "scale(1)"),
-                  transition: (isHolding || isGliding) 
-                    ? "transform 0.12s ease-out, color 0.12s ease-out"
-                    : "transform 0.52s cubic-bezier(0.16, 1, 0.3, 1), color 0.38s ease",
+                  transform: isActive ? "scale(1.02)" : "scale(1)",
+                  transition: "transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), color 0.25s ease",
                 }}
                 className={`lg-item relative z-20 ${isActive ? "active is-active" : ""} ${isHolding && heldIndex === index ? "held-target" : ""}`}
               >
@@ -1176,12 +1193,8 @@ export function Navigation() {
                     opacity: isCurrentFocus ? 1 : config.iconOpacity / 100,
                     stroke: isCurrentFocus ? config.activeIconColor : config.iconColor,
                     color: isCurrentFocus ? config.activeIconColor : config.iconColor,
-                    transform: (isHolding && heldIndex === index) 
-                      ? "scale(1.14)" 
-                      : (isGliding && isActive)
-                      ? "scale(1.10)"
-                      : "scale(1)",
-                    transition: (isHolding || isGliding) ? "transform 0.12s ease, opacity 0.12s ease" : "transform 0.52s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.38s ease",
+                    transform: isActive ? "scale(1.04)" : "scale(1)",
+                    transition: "transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), stroke 0.25s ease, opacity 0.25s ease",
                     position: "relative",
                     zIndex: 10,
                   }
