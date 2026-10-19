@@ -92,20 +92,20 @@ export default function About() {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap items-center gap-3.5 pt-4 border-t border-white/10">
+        <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-white/10">
           <Link
             to="/projects"
-            className="ios-glass-btn ios-glass-primary px-6 py-2.5 text-xs font-semibold uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-lg"
+            className="flex-1 sm:flex-initial justify-center px-5 py-2.5 rounded-xl text-xs font-medium bg-[#205BF0] hover:bg-[#1A4ED4] text-white transition-all duration-200 flex items-center gap-1.5 shadow-sm whitespace-nowrap"
           >
             <span>Explore Projects</span>
-            <ArrowRight size={14} />
+            <ArrowRight size={13} />
           </Link>
 
           <Link
             to="/certificates"
-            className="ios-glass-btn px-6 py-2.5 text-xs font-semibold text-[#7DB3FF] border-[#7DB3FF]/30 flex items-center gap-2 cursor-pointer"
+            className="flex-1 sm:flex-initial justify-center px-5 py-2.5 rounded-xl text-xs font-medium bg-white/5 hover:bg-white/10 text-white/90 border border-white/10 transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap"
           >
-            <Award size={15} />
+            <Award size={14} className="text-[#7DB3FF]" />
             <span>View Certificates</span>
           </Link>
 
@@ -113,9 +113,9 @@ export default function About() {
             <button
               type="button"
               onClick={() => setIsCvModalOpen(true)}
-              className="ios-glass-btn px-5 py-2.5 text-xs font-medium text-white/80 hover:text-white flex items-center gap-2 cursor-pointer transition-colors"
+              className="flex-1 sm:flex-initial justify-center px-5 py-2.5 rounded-xl text-xs font-medium bg-white/5 hover:bg-white/10 text-white/90 border border-white/10 transition-all duration-200 flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
             >
-              <Download size={14} />
+              <Download size={14} className="text-emerald-400" />
               <span>Download CV</span>
             </button>
           )}

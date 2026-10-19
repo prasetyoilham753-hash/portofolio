@@ -201,12 +201,12 @@ export function CvAccessModal({
             </div>
 
             {/* Actions */}
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-white/10">
               <button
                 type="button"
                 onClick={onClose}
                 disabled={isSubmitting}
-                className="ios-glass-btn px-4 py-2.5 text-xs text-text-secondary hover:text-white cursor-pointer"
+                className="px-4 py-2 rounded-xl text-xs font-medium bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all duration-200 cursor-pointer"
               >
                 <span>Batal</span>
               </button>
@@ -214,10 +214,10 @@ export function CvAccessModal({
                 id="submit-cv-passcode-btn"
                 type="submit"
                 disabled={isSubmitting}
-                className="ios-glass-btn ios-glass-primary px-5 py-2.5 text-xs font-semibold text-white flex items-center gap-2 cursor-pointer shadow-[0_0_16px_rgba(125,179,255,0.25)] hover:shadow-[0_0_22px_rgba(125,179,255,0.4)] transition-all"
+                className="px-4 py-2 rounded-xl text-xs font-medium bg-[#205BF0] hover:bg-[#1A4ED4] text-white transition-all duration-200 flex items-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50"
               >
                 <span>Verifikasi & Unduh</span>
-                <ArrowRight size={14} />
+                <ArrowRight size={13} />
               </button>
             </div>
           </form>

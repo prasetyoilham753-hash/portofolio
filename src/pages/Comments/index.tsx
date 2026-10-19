@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { 
   Send, 
   CornerDownRight, 
@@ -9,13 +9,19 @@ import {
   X,
   Smile,
   AlertCircle,
-  MessageSquare
+  MessageSquare,
+  Lock,
+  Eye,
+  EyeOff,
+  CheckCircle2
 } from "lucide-react";
 import { 
   subscribeToComments, 
   createComment, 
   subscribeToCommentFilters 
 } from "../../features/comments/api";
+import { getProfile, getCachedProfile } from "../../features/profile/api";
+import { SiteProfile } from "../../features/profile/types";
 import styled from "styled-components";
 import { 
   CommentItem, 
@@ -32,45 +38,64 @@ const StyledSendButtonWrapper = styled.div`
     font-size: 15px;
     background: royalblue;
     color: white;
-    padding: 0.6em 1.1em;
+    padding: 0.6em 1.2em;
     padding-left: 0.9em;
     display: flex;
     align-items: center;
     border: none;
     border-radius: 16px;
     overflow: hidden;
-    transition: all 0.2s;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     cursor: pointer;
+    position: relative;
+    user-select: none;
+    box-shadow: 0 4px 14px rgba(65, 105, 225, 0.35);
+  }
+
+  button:not(:disabled):hover,
+  button:not(:disabled).is-interactive {
+    background: #2554d7;
+    box-shadow: 0 6px 20px rgba(65, 105, 225, 0.5);
   }
 
   button:disabled {
     opacity: 0.45;
     cursor: not-allowed;
     pointer-events: none;
+    box-shadow: none;
   }
 
   button span {
     display: block;
     margin-left: 0.3em;
-    transition: all 0.3s ease-in-out;
+    font-weight: 500;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    white-space: nowrap;
   }
 
   button svg {
     display: block;
     transform-origin: center center;
-    transition: transform 0.3s ease-in-out;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  button:not(:disabled):hover .svg-wrapper {
+  button:not(:disabled):hover .svg-wrapper,
+  button:not(:disabled):active .svg-wrapper,
+  button:not(:disabled).is-interactive .svg-wrapper {
     animation: fly-1 0.6s ease-in-out infinite alternate;
   }
 
-  button:not(:disabled):hover svg {
+  button:not(:disabled):hover svg,
+  button:not(:disabled):active svg,
+  button:not(:disabled).is-interactive svg {
     transform: translateX(1.2em) rotate(45deg) scale(1.1);
   }
 
-  button:not(:disabled):hover span {
-    transform: translateX(5em);
+  button:not(:disabled):hover span,
+  button:not(:disabled):active span,
+  button:not(:disabled).is-interactive span {
+    transform: translateX(5.5em);
+    opacity: 0;
   }
 
   button:not(:disabled):active {
@@ -100,6 +125,131 @@ export default function Comments() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState(false);
+
+  // Profile & Admin Identity Verification state
+  const [profile, setProfile] = useState<SiteProfile | null>(getCachedProfile);
+  const [adminVerificationCode, setAdminVerificationCode] = useState("");
+  const [showAdminCode, setShowAdminCode] = useState(false);
+  const [isAdminVerified, setIsAdminVerified] = useState(false);
+  const [adminVerificationError, setAdminVerificationError] = useState<string | null>(null);
+  const [adminAttention, setAdminAttention] = useState(false);
+
+  const adminVerificationSectionRef = useRef<HTMLDivElement>(null);
+  const adminCodeInputRef = useRef<HTMLInputElement>(null);
+  const sendButtonWrapperRef = useRef<HTMLDivElement>(null);
+
+  // Button interactive click state
+  const [isButtonInteractive, setIsButtonInteractive] = useState(false);
+  const buttonInteractiveTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    getProfile().then((data) => {
+      if (data) setProfile(data);
+    });
+  }, []);
+
+  // Close interactive send button state when clicking outside
+  useEffect(() => {
+    if (!isButtonInteractive) return;
+
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      if (sendButtonWrapperRef.current && !sendButtonWrapperRef.current.contains(e.target as Node)) {
+        setIsButtonInteractive(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, [isButtonInteractive]);
+
+  // Clear attention highlight after timeout
+  useEffect(() => {
+    if (adminAttention) {
+      const timer = setTimeout(() => setAdminAttention(false), 2600);
+      return () => clearTimeout(timer);
+    }
+  }, [adminAttention]);
+
+  const isClaimingAdmin = useMemo(() => {
+    if (isAnonymous) return false;
+    const normalized = authorName.trim().toLowerCase();
+    return (
+      normalized === "admin" ||
+      normalized === "administrator" ||
+      normalized.startsWith("admin ") ||
+      normalized.endsWith(" admin") ||
+      normalized === "bintang" ||
+      normalized === "bintang prasetyo" ||
+      normalized === "bprasety" ||
+      normalized === "prasetyo"
+    );
+  }, [authorName, isAnonymous]);
+
+  // Reset verification when name changes away from admin
+  useEffect(() => {
+    if (!isClaimingAdmin) {
+      setIsAdminVerified(false);
+      setAdminVerificationError(null);
+      setAdminVerificationCode("");
+      setShowAdminCode(false);
+      setAdminAttention(false);
+    }
+  }, [isClaimingAdmin]);
+
+  const handleVerifyAdmin = () => {
+    const expected = (profile?.cvAccessCode || "19112191").trim();
+    if (adminVerificationCode.trim() === expected) {
+      setIsAdminVerified(true);
+      setAdminVerificationError(null);
+      setAdminAttention(false);
+      setFormError(null);
+    } else {
+      setIsAdminVerified(false);
+      setAdminVerificationError("Kode verifikasi identitas tidak cocok.");
+      adminCodeInputRef.current?.select();
+    }
+  };
+
+  const handleSendButtonClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    // 1. If author name claims admin identity but is not verified:
+    if (isClaimingAdmin && !isAdminVerified) {
+      setAdminAttention(true);
+      setFormError("Nama ini dilindungi sebagai identitas Administrator. Harap verifikasi identitas Anda terlebih dahulu.");
+      adminVerificationSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(() => {
+        adminCodeInputRef.current?.focus();
+      }, 250);
+      return;
+    }
+
+    // 2. If content is empty
+    if (!content.trim()) {
+      setFormError("Silakan tulis komentar Anda terlebih dahulu.");
+      document.getElementById("comment-content-textarea")?.focus();
+      return;
+    }
+
+    // 3. Interactive flow:
+    // Click 1: activates interactive mode (exact same style as cursor hover)
+    if (!isButtonInteractive) {
+      setIsButtonInteractive(true);
+      if (buttonInteractiveTimerRef.current) clearTimeout(buttonInteractiveTimerRef.current);
+      buttonInteractiveTimerRef.current = setTimeout(() => {
+        setIsButtonInteractive(false);
+      }, 5000);
+      return;
+    }
+
+    // Click 2: executes the submission!
+    if (buttonInteractiveTimerRef.current) clearTimeout(buttonInteractiveTimerRef.current);
+    handleSubmitMain();
+  };
 
   // Active reply target
   const [replyingTo, setReplyingTo] = useState<CommentItem | null>(null);
@@ -187,9 +337,23 @@ export default function Comments() {
   }, [comments]);
 
   // Handle main comment submission
-  const handleSubmitMain = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmitMain = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!content.trim() || submitting) return;
+
+    // Check if author is claiming Admin identity
+    if (isClaimingAdmin) {
+      const expected = (profile?.cvAccessCode || "19112191").trim();
+      if (!isAdminVerified && adminVerificationCode.trim() !== expected) {
+        setAdminAttention(true);
+        setFormError("Verifikasi identitas diperlukan untuk menggunakan nama Administrator. Masukkan kode akses keamanan yang valid.");
+        setAdminVerificationError("Kode verifikasi identitas tidak cocok.");
+        adminVerificationSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        setTimeout(() => adminCodeInputRef.current?.focus(), 250);
+        return;
+      }
+      setIsAdminVerified(true);
+    }
 
     setFormError(null);
     setSubmitting(true);
@@ -203,9 +367,7 @@ export default function Comments() {
       });
 
       setContent("");
-      if (!isAnonymous) {
-        // preserve author name for convenience
-      }
+      setIsButtonInteractive(false);
       setFormSuccess(true);
       setTimeout(() => setFormSuccess(false), 4000);
     } catch (err: any) {
@@ -313,64 +475,173 @@ export default function Comments() {
               </div>
             </div>
 
-            {/* Author Name Input (if not anonymous) */}
-            {!isAnonymous && (
-              <div className="flex flex-col gap-1.5">
-                <input
-                  id="comment-author-name"
-                  type="text"
-                  value={authorName}
-                  onChange={(e) => setAuthorName(e.target.value)}
-                  placeholder="Nama Anda atau alias (maks 60 karakter)"
-                  maxLength={60}
-                  className="glass-input px-4 py-2.5 rounded-xl text-sm w-full bg-[rgba(255,255,255,0.04)] border border-white/15 focus:border-[#7DB3FF] focus:bg-[rgba(255,255,255,0.08)] outline-none text-white placeholder:text-white/40 transition-all"
-                  disabled={submitting}
-                />
-              </div>
-            )}
+            {/* Author Name Input Container */}
+            <div className="flex flex-col gap-2">
+              {!isAnonymous ? (
+                <>
+                  <input
+                    id="comment-author-name"
+                    type="text"
+                    value={authorName}
+                    onChange={(e) => setAuthorName(e.target.value)}
+                    placeholder="Nama Anda atau alias (maks 60 karakter)"
+                    maxLength={60}
+                    className="glass-input px-4 py-2.5 rounded-xl text-sm w-full bg-[rgba(255,255,255,0.04)] border border-white/15 focus:border-[#7DB3FF] focus:bg-[rgba(255,255,255,0.08)] outline-none text-white placeholder:text-white/40 transition-all"
+                    disabled={submitting}
+                  />
 
-            {/* Comment Textarea */}
-            <div className="relative">
-              <textarea
-                id="comment-content-textarea"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                rows={4}
-                maxLength={MAX_CHARS}
-                placeholder="Bagikan pemikiran, pertanyaan, ide, atau sapaan Anda..."
-                className="glass-input w-full p-4 rounded-xl text-sm leading-relaxed bg-[rgba(255,255,255,0.04)] border border-white/15 focus:border-[#7DB3FF] focus:bg-[rgba(255,255,255,0.08)] outline-none text-white placeholder:text-white/40 resize-none transition-all"
-                disabled={submitting}
-                required
-              />
-              <div className={`absolute bottom-3 right-3 text-[11px] font-mono ${
-                content.length >= MAX_CHARS ? 'text-red-400' : 'text-white/40'
-              }`}>
-                {content.length}/{MAX_CHARS}
-              </div>
+                  {/* Secret Admin Identity Verification Prompt */}
+                  {isClaimingAdmin && (
+                    <div 
+                      ref={adminVerificationSectionRef}
+                      id="admin-identity-verification"
+                      className={`p-3.5 sm:p-4 rounded-xl border transition-all duration-300 ${
+                        isAdminVerified 
+                          ? "bg-emerald-500/10 border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.1)]" 
+                          : adminAttention
+                            ? "bg-[rgba(32,91,240,0.16)] border-[#7DB3FF] ring-2 ring-[#7DB3FF]/50 shadow-[0_0_20px_rgba(32,91,240,0.35)] animate-pulse"
+                            : "bg-[rgba(32,91,240,0.08)] border-[#205BF0]/30 shadow-sm"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2 text-xs font-semibold">
+                          {isAdminVerified ? (
+                            <>
+                              <ShieldCheck size={16} className="text-emerald-400" />
+                              <span className="text-emerald-300">Identitas Administrator Terverifikasi</span>
+                            </>
+                          ) : (
+                            <>
+                              <Lock size={15} className="text-[#7DB3FF]" />
+                              <span className="text-[#7DB3FF]">Verifikasi Identitas Administrator</span>
+                            </>
+                          )}
+                        </div>
+                        {isAdminVerified && (
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            Verified Official
+                          </span>
+                        )}
+                      </div>
+
+                      {!isAdminVerified ? (
+                        <div className="flex flex-col gap-2">
+                          <p className="text-xs text-[#A8B8CC] leading-relaxed font-light">
+                            Nama ini dilindungi sebagai identitas resmi Administrator. Masukkan kode akses keamanan Anda untuk memverifikasi kepemilikan nama ini sebelum mengirim komentar.
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <div className="relative flex-1">
+                              <input
+                                ref={adminCodeInputRef}
+                                type={showAdminCode ? "text" : "password"}
+                                value={adminVerificationCode}
+                                onChange={(e) => {
+                                  setAdminVerificationCode(e.target.value);
+                                  setAdminVerificationError(null);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    handleVerifyAdmin();
+                                  }
+                                }}
+                                placeholder="Masukkan Kode Keamanan Rahasia"
+                                maxLength={32}
+                                className="glass-input pl-3.5 pr-9 py-2 rounded-lg text-xs w-full bg-[rgba(255,255,255,0.05)] border border-white/20 focus:border-[#7DB3FF] text-white placeholder:text-white/30 outline-none font-mono"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowAdminCode(!showAdminCode)}
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/80 transition-colors p-0.5 cursor-pointer"
+                                title={showAdminCode ? "Sembunyikan kode" : "Tampilkan kode"}
+                              >
+                                {showAdminCode ? <EyeOff size={13} /> : <Eye size={13} />}
+                              </button>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleVerifyAdmin}
+                              className="px-4 py-2 rounded-xl text-xs font-medium bg-[#205BF0] hover:bg-[#1A4ED4] text-white transition-all duration-200 shrink-0 cursor-pointer shadow-sm"
+                            >
+                              Verifikasi
+                            </button>
+                          </div>
+                          {adminVerificationError && (
+                            <span className="text-[11px] text-red-400 flex items-center gap-1.5 pt-0.5">
+                              <AlertCircle size={13} className="shrink-0" />
+                              {adminVerificationError}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-emerald-200/80 font-light flex items-center gap-1.5">
+                          <CheckCircle2 size={13} className="text-emerald-400" />
+                          <span>Komentar akan dikirim menggunakan hak identitas Administrator resmi.</span>
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-xs text-white/50 italic px-1">
+                  Komentar akan dipublikasikan sebagai Pengguna Anonim.
+                </div>
+              )}
             </div>
 
-            {/* Error & Success Messages */}
-            {formError && (
-              <div className="p-3 rounded-xl bg-red-500/15 border border-red-500/30 text-red-300 text-xs flex items-center gap-2">
-                <AlertCircle size={15} className="shrink-0 text-red-400" />
-                <span>{formError}</span>
+            {/* Comment Textarea & Status Alerts Container */}
+            <div className="relative flex flex-col gap-2">
+              <div className="relative">
+                <textarea
+                  id="comment-content-textarea"
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  onKeyDown={(e) => {
+                    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                      e.preventDefault();
+                      handleSubmitMain();
+                    }
+                  }}
+                  rows={4}
+                  maxLength={MAX_CHARS}
+                  placeholder="Bagikan pemikiran, pertanyaan, ide, atau sapaan Anda..."
+                  className="glass-input w-full p-4 rounded-xl text-sm leading-relaxed bg-[rgba(255,255,255,0.04)] border border-white/15 focus:border-[#7DB3FF] focus:bg-[rgba(255,255,255,0.08)] outline-none text-white placeholder:text-white/40 resize-none transition-all"
+                  disabled={submitting}
+                  required
+                />
+                <div className={`absolute bottom-3 right-3 text-[11px] font-mono ${
+                  content.length >= MAX_CHARS ? 'text-red-400' : 'text-white/40'
+                }`}>
+                  {content.length}/{MAX_CHARS}
+                </div>
               </div>
-            )}
 
-            {formSuccess && (
-              <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
-                <Sparkles size={15} className="shrink-0 text-emerald-400" />
-                <span>Komentar berhasil dipublikasikan! Terima kasih atas kontribusi Anda.</span>
-              </div>
-            )}
+              {/* Error & Success Messages */}
+              {formError && (
+                <div className="p-3 rounded-xl bg-red-500/15 border border-red-500/30 text-red-300 text-xs flex items-center gap-2">
+                  <AlertCircle size={15} className="shrink-0 text-red-400" />
+                  <span>{formError}</span>
+                </div>
+              )}
+
+              {formSuccess && (
+                <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
+                  <Sparkles size={15} className="shrink-0 text-emerald-400" />
+                  <span>Komentar berhasil dipublikasikan! Terima kasih atas kontribusi Anda.</span>
+                </div>
+              )}
+            </div>
 
             {/* Bottom Controls */}
-            <div className="flex items-center justify-end pt-1">
-              <StyledSendButtonWrapper>
+            <div className="flex items-center justify-between pt-1">
+              <StyledSendButtonWrapper ref={sendButtonWrapperRef}>
                 <button
                   id="submit-comment-button"
-                  type="submit"
+                  type="button"
+                  onClick={handleSendButtonClick}
+                  className={isButtonInteractive ? "is-interactive" : ""}
                   disabled={submitting || !content.trim()}
+                  title={isButtonInteractive ? "Klik lagi untuk mengirim" : "Kirim Komentar"}
                 >
                   <div className="svg-wrapper-1">
                     <div className="svg-wrapper">
@@ -387,6 +658,13 @@ export default function Comments() {
                   <span>{submitting ? "Sending..." : "Send"}</span>
                 </button>
               </StyledSendButtonWrapper>
+
+              {isButtonInteractive && !submitting && (
+                <div className="text-[11px] text-[#7DB3FF] font-medium flex items-center gap-1.5 animate-pulse select-none pr-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#7DB3FF]" />
+                  <span>Klik lagi untuk mengirim</span>
+                </div>
+              )}
             </div>
           </form>
         </section>
