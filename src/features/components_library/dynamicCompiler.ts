@@ -84,9 +84,10 @@ export function compileUserComponent(code: string, componentName: string): React
       .replace(/export\s+default\s+/g, "const __defaultExport = ")
       .replace(/export\s+(function|const|class)\s+/g, "$1 ");
 
-    // 2. Transpile JSX / TypeScript using Sucrase
+    // 2. Transpile JSX / TypeScript using Sucrase (production: true prevents injection of deprecated __self/__source props in React 19)
     const compiled = transform(processed, {
       transforms: ["jsx", "typescript"],
+      production: true,
     });
 
     // 3. Scan code for referenced Lucide icons to destructure only what is used

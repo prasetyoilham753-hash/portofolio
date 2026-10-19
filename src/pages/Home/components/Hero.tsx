@@ -32,7 +32,39 @@ export function Hero({ profile }: HeroProps) {
   const navigate = useNavigate();
   const [clickCount, setClickCount] = useState(0);
   const [isCvModalOpen, setIsCvModalOpen] = useState(false);
+  const [fileSize, setFileSize] = useState<string>("2.4 MB");
   const clickTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  React.useEffect(() => {
+    if (!profile?.cvUrl) return;
+    if ((profile as any).cvFileSize) {
+      setFileSize((profile as any).cvFileSize);
+      return;
+    }
+
+    let isMounted = true;
+    fetch(profile.cvUrl, { method: "HEAD" })
+      .then((res) => {
+        const bytes = res.headers.get("content-length");
+        if (bytes && isMounted) {
+          const num = parseInt(bytes, 10);
+          if (!isNaN(num) && num > 0) {
+            if (num < 1024 * 1024) {
+              setFileSize(`${(num / 1024).toFixed(0)} KB`);
+            } else {
+              setFileSize(`${(num / (1024 * 1024)).toFixed(1)} MB`);
+            }
+          }
+        }
+      })
+      .catch(() => {
+        if (isMounted) setFileSize("2.4 MB");
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [profile?.cvUrl]);
 
   const handleNameClick = () => {
     const next = clickCount + 1;
@@ -255,20 +287,49 @@ export function Hero({ profile }: HeroProps) {
               id="hero-download-cv"
               type="button"
               onClick={() => setIsCvModalOpen(true)}
-              className="w-full max-w-[175px] xs:max-w-[200px] sm:max-w-[270px] md:max-w-[340px] lg:max-w-[380px] xl:max-w-[400px] h-[42px] xs:h-[46px] sm:h-[52px] md:h-[56px] lg:h-[58px] px-3.5 xs:px-4 sm:px-6 md:px-7 text-[12px] xs:text-[13px] sm:text-[15px] md:text-[16px] lg:text-[17px] font-semibold whitespace-nowrap flex items-center justify-between rounded-full cursor-pointer transition-all duration-300 relative select-none bg-[#205BF0] hover:bg-[#1A4ED4] active:bg-[#1541B8] text-white shadow-[0_8px_24px_-4px_rgba(32,91,240,0.5),0_2px_6px_rgba(0,0,0,0.3)] hover:shadow-[0_12px_28px_-4px_rgba(32,91,240,0.65),0_4px_10px_rgba(0,0,0,0.35)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] border border-blue-400/40 group"
+              className="w-full max-w-[175px] xs:max-w-[200px] sm:max-w-[270px] md:max-w-[340px] lg:max-w-[380px] xl:max-w-[400px] h-[42px] xs:h-[46px] sm:h-[52px] md:h-[56px] lg:h-[58px] px-3.5 xs:px-4 sm:px-6 md:px-7 text-[12px] xs:text-[13px] sm:text-[15px] md:text-[16px] lg:text-[17px] font-semibold whitespace-nowrap flex items-center justify-between rounded-full cursor-pointer transition-all duration-300 relative select-none bg-[#205BF0] hover:bg-[#1A4ED4] active:bg-[#1541B8] text-white shadow-[0_8px_24px_-4px_rgba(32,91,240,0.5),0_2px_6px_rgba(0,0,0,0.3)] hover:shadow-[0_12px_28px_-4px_rgba(32,91,240,0.65),0_4px_10px_rgba(0,0,0,0.35)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] border border-blue-400/40 group overflow-hidden"
             >
-              <span className="tracking-wide text-white transition-colors">Download CV</span>
-              <div className="w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 bg-white text-[#205BF0] rounded-full flex items-center justify-center shadow-sm transition-transform duration-300 group-hover:scale-110 group-hover:bg-[#FFFFFF] group-hover:text-[#1A4ED4] shrink-0">
-                <svg
-                  className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current transition-transform duration-300 group-hover:translate-x-0.5"
-                  viewBox="0 0 1024 1024"
-                  version="1.1"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M779.180132 473.232045 322.354755 16.406668c-21.413706-21.413706-56.121182-21.413706-77.534887 0-21.413706 21.413706-21.413706 56.122205 0 77.534887l418.057421 418.057421L244.819868 930.057421c-21.413706 21.413706-21.413706 56.122205 0 77.534887 10.706853 10.706853 24.759917 16.059767 38.767955 16.059767s28.061103-5.353938 38.767955-16.059767L779.180132 550.767955C800.593837 529.35425 800.593837 494.64575 779.180132 473.232045z"
-                  ></path>
-                </svg>
+              <span className="tracking-wide text-white transition-all duration-300 group-hover:opacity-0 group-hover:-translate-x-2">
+                Download CV
+              </span>
+              <div className="absolute right-1.5 xs:right-2 sm:right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 bg-white text-[#205BF0] rounded-full flex items-center justify-center shadow-md transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:w-full group-hover:h-full group-hover:right-0 group-hover:top-0 group-hover:translate-y-0 group-hover:rounded-full group-hover:bg-white group-hover:shadow-lg overflow-hidden shrink-0">
+                {/* Expanded state on hover displaying file size information */}
+                <div className="w-full h-full flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity duration-200 delay-100 px-3 xs:px-4 sm:px-6">
+                  <div className="flex items-center gap-1.5 xs:gap-2">
+                    <span className="px-1.5 py-0.5 rounded-full text-[9px] xs:text-[10px] sm:text-[11px] font-mono font-bold bg-[#205BF0]/15 text-[#205BF0] border border-[#205BF0]/25">
+                      PDF
+                    </span>
+                    <span className="text-[11px] xs:text-[12px] sm:text-[13px] md:text-[14px] font-semibold text-[#0E1C36] font-mono">
+                      {fileSize}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1 xs:gap-1.5 sm:gap-2 text-[#205BF0] font-bold text-[11px] xs:text-[12px] sm:text-[13px] md:text-[14px]">
+                    <span className="hidden xs:inline">Download</span>
+                    <div className="w-5 h-5 xs:w-6 xs:h-6 sm:w-7 sm:h-7 rounded-full bg-[#205BF0] text-white flex items-center justify-center shadow-sm shrink-0">
+                      <svg
+                        className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-current transition-transform duration-300 group-hover:translate-y-0.5"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Default state chevron icon */}
+                <div className="absolute inset-0 flex items-center justify-center group-hover:opacity-0 group-hover:scale-75 transition-all duration-200 pointer-events-none">
+                  <svg
+                    className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current"
+                    viewBox="0 0 1024 1024"
+                    version="1.1"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M779.180132 473.232045 322.354755 16.406668c-21.413706-21.413706-56.121182-21.413706-77.534887 0-21.413706 21.413706-21.413706 56.122205 0 77.534887l418.057421 418.057421L244.819868 930.057421c-21.413706 21.413706-21.413706 56.122205 0 77.534887 10.706853 10.706853 24.759917 16.059767 38.767955 16.059767s28.061103-5.353938 38.767955-16.059767L779.180132 550.767955C800.593837 529.35425 800.593837 494.64575 779.180132 473.232045z"
+                    ></path>
+                  </svg>
+                </div>
               </div>
             </button>
           ) : (

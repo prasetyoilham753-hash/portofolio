@@ -16,12 +16,77 @@ import {
   createComment, 
   subscribeToCommentFilters 
 } from "../../features/comments/api";
+import styled from "styled-components";
 import { 
   CommentItem, 
   CommentFilterConfig, 
   DEFAULT_FILTER_CONFIG,
   DEFAULT_HEADER_DESCRIPTION
 } from "../../features/comments/types";
+
+const StyledSendButtonWrapper = styled.div`
+  margin-left: auto;
+
+  button {
+    font-family: inherit;
+    font-size: 15px;
+    background: royalblue;
+    color: white;
+    padding: 0.6em 1.1em;
+    padding-left: 0.9em;
+    display: flex;
+    align-items: center;
+    border: none;
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+
+  button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  button span {
+    display: block;
+    margin-left: 0.3em;
+    transition: all 0.3s ease-in-out;
+  }
+
+  button svg {
+    display: block;
+    transform-origin: center center;
+    transition: transform 0.3s ease-in-out;
+  }
+
+  button:not(:disabled):hover .svg-wrapper {
+    animation: fly-1 0.6s ease-in-out infinite alternate;
+  }
+
+  button:not(:disabled):hover svg {
+    transform: translateX(1.2em) rotate(45deg) scale(1.1);
+  }
+
+  button:not(:disabled):hover span {
+    transform: translateX(5em);
+  }
+
+  button:not(:disabled):active {
+    transform: scale(0.95);
+  }
+
+  @keyframes fly-1 {
+    from {
+      transform: translateY(0.1em);
+    }
+
+    to {
+      transform: translateY(-0.1em);
+    }
+  }
+`;
 
 export default function Comments() {
   const [comments, setComments] = useState<CommentItem[]>([]);
@@ -301,24 +366,27 @@ export default function Comments() {
 
             {/* Bottom Controls */}
             <div className="flex items-center justify-end pt-1">
-              <button
-                id="submit-comment-button"
-                type="submit"
-                disabled={submitting || !content.trim()}
-                className="ios-glass-btn ios-glass-primary px-6 py-2.5 text-xs font-semibold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 ml-auto"
-              >
-                {submitting ? (
-                  <>
-                    <span className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                    <span>Mengirim...</span>
-                  </>
-                ) : (
-                  <>
-                    <Send size={13} />
-                    <span>Kirim Komentar</span>
-                  </>
-                )}
-              </button>
+              <StyledSendButtonWrapper>
+                <button
+                  id="submit-comment-button"
+                  type="submit"
+                  disabled={submitting || !content.trim()}
+                >
+                  <div className="svg-wrapper-1">
+                    <div className="svg-wrapper">
+                      {submitting ? (
+                        <span className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin block" />
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={22} height={22}>
+                          <path fill="none" d="M0 0h24v24H0z" />
+                          <path fill="currentColor" d="M1.946 9.315c-.522-.174-.527-.455.01-.634l19.087-6.362c.529-.176.832.12.684.638l-5.454 19.086c-.15.529-.455.547-.679.045L12 14l6-8-8 6-8.054-2.685z" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                  <span>{submitting ? "Sending..." : "Send"}</span>
+                </button>
+              </StyledSendButtonWrapper>
             </div>
           </form>
         </section>
