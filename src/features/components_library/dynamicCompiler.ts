@@ -6,6 +6,41 @@ import confetti from "canvas-confetti";
 import gsap from "gsap";
 import styled from "styled-components";
 
+// Safe Predefined Fallback Component for HoldButton / Interactive Actions
+export function HoldButton(props: any) {
+  const [isHeld, setIsHeld] = useState(false);
+  return React.createElement(
+    "button",
+    {
+      type: "button",
+      onMouseDown: () => setIsHeld(true),
+      onMouseUp: () => setIsHeld(false),
+      onMouseLeave: () => setIsHeld(false),
+      onTouchStart: () => setIsHeld(true),
+      onTouchEnd: () => setIsHeld(false),
+      style: {
+        padding: "12px 24px",
+        borderRadius: "12px",
+        background: isHeld 
+          ? "linear-gradient(135deg, rgba(29, 78, 216, 0.95), rgba(37, 99, 235, 0.95))" 
+          : "linear-gradient(135deg, rgba(14, 28, 54, 0.9), rgba(8, 18, 36, 0.95))",
+        color: "#F7FAFF",
+        border: "1px solid #7DB3FF",
+        cursor: "pointer",
+        fontWeight: 600,
+        fontSize: "14px",
+        outline: "none",
+        boxShadow: isHeld ? "0 0 25px rgba(125, 179, 255, 0.6)" : "0 0 12px rgba(125, 179, 255, 0.25)",
+        transform: isHeld ? "scale(0.96)" : "scale(1)",
+        transition: "all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)",
+        ...props.style,
+      },
+      ...props,
+    },
+    props.children || (isHeld ? "Hold Active..." : "Hold & Drag Action")
+  );
+}
+
 /**
  * Safely compiles and evaluates user-written React / JSX / TypeScript component code
  * at runtime using Sucrase, so live previews instantly reflect exact user code.
@@ -76,7 +111,6 @@ export function compileUserComponent(code: string, componentName: string): React
         } else if (typeof __defaultExport !== "undefined") {
           __resolvedComponent = typeof __defaultExport === "function" ? __defaultExport : (() => __defaultExport);
         } else {
-          // Check declared functions in reverse order (newest first)
           const candidates = ${JSON.stringify(declaredFuncs)};
           for (let i = candidates.length - 1; i >= 0; i--) {
             const name = candidates[i];
@@ -105,6 +139,7 @@ export function compileUserComponent(code: string, componentName: string): React
       "confetti",
       "gsap",
       "styled",
+      "HoldButton",
       evalBody
     );
 
@@ -119,7 +154,8 @@ export function compileUserComponent(code: string, componentName: string): React
       LucideIcons,
       confetti,
       gsap,
-      styled
+      styled,
+      HoldButton
     );
 
     if (typeof Component === "function") {
