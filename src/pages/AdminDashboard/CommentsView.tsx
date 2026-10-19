@@ -43,6 +43,12 @@ export function CommentsView() {
   const [savingFilter, setSavingFilter] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  // Admin allowed names state
+  const [adminNames, setAdminNames] = useState<string[]>(["Admin", "Administrator", "Bintang", "Bintang Prasetyo", "Bprasety", "Prasetyo"]);
+  const [newAdminName, setNewAdminName] = useState("");
+  const [savingAdminNames, setSavingAdminNames] = useState(false);
+  const [adminNamesSuccess, setAdminNamesSuccess] = useState(false);
+
   // Search & filter in list
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<"all" | "roots" | "replies">("all");
@@ -66,11 +72,52 @@ export function CommentsView() {
       setFilterConfig(cfg);
     });
 
+    import("../../features/profile/api").then(({ getProfile }) => {
+      getProfile().then((profile) => {
+        if (profile?.adminAllowedNames && Array.isArray(profile.adminAllowedNames)) {
+          setAdminNames(profile.adminAllowedNames);
+        }
+      });
+    });
+
     return () => {
       unsubComments();
       unsubFilters();
     };
   }, []);
+
+  const handleAddAdminName = (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = newAdminName.trim();
+    if (!name) return;
+
+    if (adminNames.some(n => n.toLowerCase() === name.toLowerCase())) {
+      alert("Nama identitas tersebut sudah ada dalam daftar.");
+      return;
+    }
+
+    setAdminNames(prev => [...prev, name]);
+    setNewAdminName("");
+  };
+
+  const handleRemoveAdminName = (nameToRemove: string) => {
+    setAdminNames(prev => prev.filter(n => n !== nameToRemove));
+  };
+
+  const handleSaveAdminNames = async () => {
+    setSavingAdminNames(true);
+    try {
+      const { updateProfile } = await import("../../features/profile/api");
+      await updateProfile({ adminAllowedNames: adminNames });
+      setAdminNamesSuccess(true);
+      setTimeout(() => setAdminNamesSuccess(false), 3000);
+    } catch (err: any) {
+      console.error("Failed to save admin names:", err);
+      alert("Gagal menyimpan daftar identitas administrator: " + err.message);
+    } finally {
+      setSavingAdminNames(false);
+    }
+  };
 
   const handleDelete = (comment: CommentItem) => {
     setCommentToDelete(comment);
@@ -322,7 +369,7 @@ export function CommentsView() {
           <button
             type="submit"
             disabled={!newPhrase.trim()}
-            className="ios-glass-btn px-4 py-2 text-xs text-[#7DB3FF] hover:text-white font-medium cursor-pointer disabled:opacity-40 flex items-center gap-1"
+            className="px-4 py-2 rounded-xl text-xs font-medium bg-white/5 hover:bg-white/10 text-[#7DB3FF] border border-white/10 transition-all duration-200 cursor-pointer disabled:opacity-40 flex items-center gap-1"
           >
             <Plus size={14} />
             <span>Tambah</span>
@@ -347,6 +394,88 @@ export function CommentsView() {
                   onClick={() => handleRemovePhrase(phrase)}
                   className="text-red-400 hover:text-white transition-colors p-0.5"
                   title={`Hapus filter "${phrase}"`}
+                >
+                  <X size={12} />
+                </button>
+              </span>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Admin Allowed Identities Management Box */}
+      <div className="glass-card p-6 rounded-2xl border border-[rgba(130,180,255,0.2)] bg-[rgba(10,20,38,0.5)] backdrop-blur-xl flex flex-col gap-6">
+        <div className="flex items-center justify-between flex-wrap gap-2 border-b border-white/10 pb-3">
+          <div className="flex items-center gap-2">
+            <ShieldAlert size={18} className="text-[#7DB3FF]" />
+            <h3 className="text-base font-semibold text-white">
+              Daftar Nama Identitas Administrator Resmi
+            </h3>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {adminNamesSuccess && (
+              <span className="text-xs text-emerald-400 flex items-center gap-1">
+                <Check size={14} /> Tersimpan!
+              </span>
+            )}
+            <button
+              onClick={handleSaveAdminNames}
+              disabled={savingAdminNames}
+              className="px-4 py-2 rounded-xl text-xs font-medium bg-[#205BF0] hover:bg-[#1A4ED4] text-white transition-all duration-200 cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shadow-sm"
+            >
+              {savingAdminNames ? (
+                <RefreshCw size={12} className="animate-spin" />
+              ) : (
+                <Save size={12} />
+              )}
+              <span>Simpan Identitas Admin</span>
+            </button>
+          </div>
+        </div>
+
+        <p className="text-xs text-text-secondary leading-relaxed font-light">
+          Nama-nama dalam daftar ini akan dikenali sebagai identitas resmi Administrator saat pengunjung menulis komentar menggunakan nama tersebut, sehingga diwajibkan melewati verifikasi kode keamanan rahasia.
+        </p>
+
+        {/* Add Admin Name Form */}
+        <form onSubmit={handleAddAdminName} className="flex gap-2 max-w-md">
+          <input
+            type="text"
+            value={newAdminName}
+            onChange={(e) => setNewAdminName(e.target.value)}
+            placeholder="Tambah nama admin baru (misal: Bintang, Staff)..."
+            className="glass-input px-3.5 py-2 rounded-xl text-xs flex-1 bg-white/5 border border-white/15 text-white placeholder:text-white/40 focus:border-[#7DB3FF] outline-none"
+            maxLength={60}
+          />
+          <button
+            type="submit"
+            disabled={!newAdminName.trim()}
+            className="px-4 py-2 rounded-xl text-xs font-medium bg-white/5 hover:bg-white/10 text-[#7DB3FF] border border-white/10 transition-all duration-200 cursor-pointer disabled:opacity-40 flex items-center gap-1"
+          >
+            <Plus size={14} />
+            <span>Tambah</span>
+          </button>
+        </form>
+
+        {/* Active Admin Name Badges */}
+        <div className="flex flex-wrap gap-2 pt-1">
+          {adminNames.length === 0 ? (
+            <span className="text-xs text-text-tertiary italic">
+              Belum ada nama identitas admin yang terdaftar.
+            </span>
+          ) : (
+            adminNames.map((name) => (
+              <span
+                key={name}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs bg-[rgba(32,91,240,0.15)] border border-[#205BF0]/40 text-[#7DB3FF] backdrop-blur-md"
+              >
+                <span className="font-medium text-white">{name}</span>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveAdminName(name)}
+                  className="text-white/50 hover:text-red-400 transition-colors p-0.5"
+                  title={`Hapus "${name}"`}
                 >
                   <X size={12} />
                 </button>

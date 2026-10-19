@@ -177,17 +177,23 @@ export default function Comments() {
   const isClaimingAdmin = useMemo(() => {
     if (isAnonymous) return false;
     const normalized = authorName.trim().toLowerCase();
-    return (
-      normalized === "admin" ||
-      normalized === "administrator" ||
-      normalized.startsWith("admin ") ||
-      normalized.endsWith(" admin") ||
-      normalized === "bintang" ||
-      normalized === "bintang prasetyo" ||
-      normalized === "bprasety" ||
-      normalized === "prasetyo"
-    );
-  }, [authorName, isAnonymous]);
+    const defaultAllowed = [
+      "admin",
+      "administrator",
+      "bintang",
+      "bintang prasetyo",
+      "bprasety",
+      "prasetyo"
+    ];
+    const customAllowed = (profile?.adminAllowedNames || []).map(n => n.trim().toLowerCase()).filter(Boolean);
+    const allAllowed = Array.from(new Set([...defaultAllowed, ...customAllowed]));
+
+    return allAllowed.some(name => {
+      if (normalized === name) return true;
+      if (normalized.startsWith(name + " ") || normalized.endsWith(" " + name)) return true;
+      return false;
+    });
+  }, [authorName, isAnonymous, profile?.adminAllowedNames]);
 
   // Reset verification when name changes away from admin
   useEffect(() => {

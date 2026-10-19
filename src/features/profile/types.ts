@@ -90,5 +90,6 @@ export interface SiteProfile {
   };
   technologies?: Technology[];
   whatIDoCategories?: WhatIDoCategory[];
+  adminAllowedNames?: string[];
   updatedAt?: any;
 }
