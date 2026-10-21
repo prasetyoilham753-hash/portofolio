@@ -89,6 +89,26 @@ export default function Comments() {
     });
   }, [authorName, isAnonymous, profile?.adminAllowedNames]);
 
+  const isAdminAuthor = (name: string) => {
+    if (!name || name === "Anonymous") return false;
+    const normalized = name.trim().toLowerCase();
+    const defaultAllowed = [
+      "bintang prasetyo",
+      "bintang",
+      "admin",
+      "administrator",
+      "bprasety",
+      "bprasety_"
+    ];
+    const customAllowed = (profile?.adminAllowedNames || []).map(n => n.trim().toLowerCase()).filter(Boolean);
+    const allAllowed = [...defaultAllowed, ...customAllowed];
+    return allAllowed.some(adm => {
+      if (normalized === adm) return true;
+      if (normalized.startsWith(adm + " ") || normalized.endsWith(" " + adm)) return true;
+      return false;
+    });
+  };
+
   // Reset verification when name changes away from admin
   useEffect(() => {
     if (!isClaimingAdmin) {
@@ -658,10 +678,14 @@ export default function Comments() {
                       <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${
                         item.isAnonymous 
                           ? "bg-white/5 border-white/15 text-white/60" 
-                          : "bg-gradient-to-br from-[#7DB3FF]/30 to-[#3C8CFF]/20 border-[#7DB3FF]/40 text-[#7DB3FF]"
+                          : isAdminAuthor(item.authorName)
+                            ? "bg-gradient-to-br from-emerald-500/35 to-teal-500/25 border-emerald-500/50 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.25)]"
+                            : "bg-gradient-to-br from-[#7DB3FF]/30 to-[#3C8CFF]/20 border-[#7DB3FF]/40 text-[#7DB3FF]"
                       }`}>
                         {item.isAnonymous ? (
                           <ShieldCheck size={16} />
+                        ) : isAdminAuthor(item.authorName) ? (
+                          <ShieldCheck size={18} className="text-emerald-400" />
                         ) : (
                           <span className="text-xs font-bold uppercase">
                             {item.authorName.charAt(0) || "U"}
@@ -671,8 +695,14 @@ export default function Comments() {
 
                       <div className="flex flex-col min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-white truncate">
+                          <span className="text-sm font-semibold text-white truncate flex items-center gap-1.5">
                             {item.authorName}
+                            {isAdminAuthor(item.authorName) && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 shadow-sm">
+                                <ShieldCheck size={11} className="text-emerald-400" />
+                                Verified Admin
+                              </span>
+                            )}
                           </span>
                           {item.isAnonymous && (
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/5 border border-white/10 text-white/50">
@@ -828,12 +858,20 @@ export default function Comments() {
                               <span className={`w-6 h-6 rounded-lg text-[10px] font-bold flex items-center justify-center shrink-0 border ${
                                 reply.isAnonymous 
                                   ? "bg-white/5 border-white/10 text-white/50" 
-                                  : "bg-[#7DB3FF]/20 border-[#7DB3FF]/30 text-[#7DB3FF]"
+                                  : isAdminAuthor(reply.authorName)
+                                    ? "bg-emerald-500/25 border-emerald-500/40 text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.2)]"
+                                    : "bg-[#7DB3FF]/20 border-[#7DB3FF]/30 text-[#7DB3FF]"
                               }`}>
-                                {reply.isAnonymous ? "A" : (reply.authorName.charAt(0) || "U")}
+                                {reply.isAnonymous ? "A" : isAdminAuthor(reply.authorName) ? <ShieldCheck size={12} className="text-emerald-400" /> : (reply.authorName.charAt(0) || "U")}
                               </span>
-                              <span className="text-xs font-medium text-white truncate">
+                              <span className="text-xs font-medium text-white truncate flex items-center gap-1.5">
                                 {reply.authorName}
+                                {isAdminAuthor(reply.authorName) && (
+                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-medium bg-emerald-500/20 border border-emerald-500/30 text-emerald-300">
+                                    <ShieldCheck size={10} className="text-emerald-400" />
+                                    Admin
+                                  </span>
+                                )}
                               </span>
                               {reply.isAnonymous && (
                                 <span className="text-[9.5px] px-1.5 py-0.2 rounded bg-white/5 text-white/40">
