@@ -115,6 +115,20 @@ export async function createComment(params: {
     throw new Error("Fitur komentar saat ini sedang dinonaktifkan oleh administrator.");
   }
 
+  // Validate author name against banned phrases if not anonymous
+  if (!params.isAnonymous && params.authorName) {
+    const authorFilterResult = checkAndFilterPhrases(
+      params.authorName.trim(),
+      filter.bannedPhrases,
+      "reject"
+    );
+    if (authorFilterResult.hasForbiddenPhrase) {
+      throw new Error(
+        `Nama pengirim tidak boleh mengandung frasa terlarang: "${authorFilterResult.matchedPhrases.join(", ")}"`
+      );
+    }
+  }
+
   const filterResult = checkAndFilterPhrases(
     params.content.trim(),
     filter.bannedPhrases,

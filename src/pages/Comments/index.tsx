@@ -18,100 +18,17 @@ import {
 import { 
   subscribeToComments, 
   createComment, 
-  subscribeToCommentFilters 
+  subscribeToCommentFilters,
+  checkAndFilterPhrases
 } from "../../features/comments/api";
 import { getProfile, getCachedProfile } from "../../features/profile/api";
 import { SiteProfile } from "../../features/profile/types";
-import styled from "styled-components";
 import { 
   CommentItem, 
   CommentFilterConfig, 
   DEFAULT_FILTER_CONFIG,
   DEFAULT_HEADER_DESCRIPTION
 } from "../../features/comments/types";
-
-const StyledSendButtonWrapper = styled.div`
-  margin-left: auto;
-
-  button {
-    font-family: inherit;
-    font-size: 15px;
-    background: royalblue;
-    color: white;
-    padding: 0.6em 1.2em;
-    padding-left: 0.9em;
-    display: flex;
-    align-items: center;
-    border: none;
-    border-radius: 16px;
-    overflow: hidden;
-    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-    cursor: pointer;
-    position: relative;
-    user-select: none;
-    box-shadow: 0 4px 14px rgba(65, 105, 225, 0.35);
-  }
-
-  button:not(:disabled):hover,
-  button:not(:disabled).is-interactive {
-    background: #2554d7;
-    box-shadow: 0 6px 20px rgba(65, 105, 225, 0.5);
-  }
-
-  button:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-    pointer-events: none;
-    box-shadow: none;
-  }
-
-  button span {
-    display: block;
-    margin-left: 0.3em;
-    font-weight: 500;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    white-space: nowrap;
-  }
-
-  button svg {
-    display: block;
-    transform-origin: center center;
-    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  button:not(:disabled):hover .svg-wrapper,
-  button:not(:disabled):active .svg-wrapper,
-  button:not(:disabled).is-interactive .svg-wrapper {
-    animation: fly-1 0.6s ease-in-out infinite alternate;
-  }
-
-  button:not(:disabled):hover svg,
-  button:not(:disabled):active svg,
-  button:not(:disabled).is-interactive svg {
-    transform: translateX(1.2em) rotate(45deg) scale(1.1);
-  }
-
-  button:not(:disabled):hover span,
-  button:not(:disabled):active span,
-  button:not(:disabled).is-interactive span {
-    transform: translateX(5.5em);
-    opacity: 0;
-  }
-
-  button:not(:disabled):active {
-    transform: scale(0.95);
-  }
-
-  @keyframes fly-1 {
-    from {
-      transform: translateY(0.1em);
-    }
-
-    to {
-      transform: translateY(-0.1em);
-    }
-  }
-`;
 
 export default function Comments() {
   const [comments, setComments] = useState<CommentItem[]>([]);
@@ -136,35 +53,12 @@ export default function Comments() {
 
   const adminVerificationSectionRef = useRef<HTMLDivElement>(null);
   const adminCodeInputRef = useRef<HTMLInputElement>(null);
-  const sendButtonWrapperRef = useRef<HTMLDivElement>(null);
-
-  // Button interactive click state
-  const [isButtonInteractive, setIsButtonInteractive] = useState(false);
-  const buttonInteractiveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     getProfile().then((data) => {
       if (data) setProfile(data);
     });
   }, []);
-
-  // Close interactive send button state when clicking outside
-  useEffect(() => {
-    if (!isButtonInteractive) return;
-
-    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
-      if (sendButtonWrapperRef.current && !sendButtonWrapperRef.current.contains(e.target as Node)) {
-        setIsButtonInteractive(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("touchstart", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("touchstart", handleClickOutside);
-    };
-  }, [isButtonInteractive]);
 
   // Clear attention highlight after timeout
   useEffect(() => {
@@ -206,6 +100,22 @@ export default function Comments() {
     }
   }, [isClaimingAdmin]);
 
+  // Check if authorName contains banned phrases
+  const authorBannedCheck = useMemo(() => {
+    if (isAnonymous || !authorName.trim()) {
+      return { hasForbidden: false, matchedPhrases: [] as string[] };
+    }
+    const res = checkAndFilterPhrases(
+      authorName.trim(),
+      filterConfig.bannedPhrases,
+      "reject"
+    );
+    return {
+      hasForbidden: res.hasForbiddenPhrase,
+      matchedPhrases: res.matchedPhrases
+    };
+  }, [authorName, isAnonymous, filterConfig.bannedPhrases]);
+
   const handleVerifyAdmin = () => {
     const expected = (profile?.cvAccessCode || "19112191").trim();
     if (adminVerificationCode.trim() === expected) {
@@ -223,7 +133,14 @@ export default function Comments() {
   const handleSendButtonClick = (e: React.MouseEvent) => {
     e.stopPropagation();
 
-    // 1. If author name claims admin identity but is not verified:
+    // 1. If author name contains forbidden phrases:
+    if (!isAnonymous && authorBannedCheck.hasForbidden) {
+      setFormError(`Nama pengirim tidak boleh mengandung frasa terlarang ("${authorBannedCheck.matchedPhrases.join(", ")}"). Harap gunakan nama lain.`);
+      document.getElementById("comment-author-name")?.focus();
+      return;
+    }
+
+    // 2. If author name claims admin identity but is not verified:
     if (isClaimingAdmin && !isAdminVerified) {
       setAdminAttention(true);
       setFormError("Nama ini dilindungi sebagai identitas Administrator. Harap verifikasi identitas Anda terlebih dahulu.");
@@ -234,26 +151,14 @@ export default function Comments() {
       return;
     }
 
-    // 2. If content is empty
+    // 3. If content is empty
     if (!content.trim()) {
       setFormError("Silakan tulis komentar Anda terlebih dahulu.");
       document.getElementById("comment-content-textarea")?.focus();
       return;
     }
 
-    // 3. Interactive flow:
-    // Click 1: activates interactive mode (exact same style as cursor hover)
-    if (!isButtonInteractive) {
-      setIsButtonInteractive(true);
-      if (buttonInteractiveTimerRef.current) clearTimeout(buttonInteractiveTimerRef.current);
-      buttonInteractiveTimerRef.current = setTimeout(() => {
-        setIsButtonInteractive(false);
-      }, 5000);
-      return;
-    }
-
-    // Click 2: executes the submission!
-    if (buttonInteractiveTimerRef.current) clearTimeout(buttonInteractiveTimerRef.current);
+    // 4. Langsung kirim dalam 1 kali klik (tidak perlu klik 2 kali)
     handleSubmitMain();
   };
 
@@ -342,10 +247,33 @@ export default function Comments() {
     return { rootComments: roots, repliesByParent: repliesMap };
   }, [comments]);
 
+  // Check if replyAuthorName contains banned phrases
+  const replyAuthorBannedCheck = useMemo(() => {
+    if (replyIsAnonymous || !replyAuthorName.trim()) {
+      return { hasForbidden: false, matchedPhrases: [] as string[] };
+    }
+    const res = checkAndFilterPhrases(
+      replyAuthorName.trim(),
+      filterConfig.bannedPhrases,
+      "reject"
+    );
+    return {
+      hasForbidden: res.hasForbiddenPhrase,
+      matchedPhrases: res.matchedPhrases
+    };
+  }, [replyAuthorName, replyIsAnonymous, filterConfig.bannedPhrases]);
+
   // Handle main comment submission
   const handleSubmitMain = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!content.trim() || submitting) return;
+
+    // Check if author name contains forbidden phrases
+    if (!isAnonymous && authorBannedCheck.hasForbidden) {
+      setFormError(`Nama pengirim tidak boleh mengandung frasa terlarang ("${authorBannedCheck.matchedPhrases.join(", ")}"). Harap gunakan nama lain.`);
+      document.getElementById("comment-author-name")?.focus();
+      return;
+    }
 
     // Check if author is claiming Admin identity
     if (isClaimingAdmin) {
@@ -373,7 +301,6 @@ export default function Comments() {
       });
 
       setContent("");
-      setIsButtonInteractive(false);
       setFormSuccess(true);
       setTimeout(() => setFormSuccess(false), 4000);
     } catch (err: any) {
@@ -387,6 +314,12 @@ export default function Comments() {
   // Handle reply submission
   const handleSubmitReply = async (parentComment: CommentItem) => {
     if (!replyContent.trim() || replySubmitting) return;
+
+    // Check if reply author name contains forbidden phrases
+    if (!replyIsAnonymous && replyAuthorBannedCheck.hasForbidden) {
+      setReplyError(`Nama pengirim tidak boleh mengandung frasa terlarang ("${replyAuthorBannedCheck.matchedPhrases.join(", ")}"). Harap gunakan nama lain.`);
+      return;
+    }
 
     setReplyError(null);
     setReplySubmitting(true);
@@ -489,12 +422,28 @@ export default function Comments() {
                     id="comment-author-name"
                     type="text"
                     value={authorName}
-                    onChange={(e) => setAuthorName(e.target.value)}
+                    onChange={(e) => {
+                      setAuthorName(e.target.value);
+                      if (formError) setFormError(null);
+                    }}
                     placeholder="Nama Anda atau alias (maks 60 karakter)"
                     maxLength={60}
-                    className="glass-input px-4 py-2.5 rounded-xl text-sm w-full bg-[rgba(255,255,255,0.04)] border border-white/15 focus:border-[#7DB3FF] focus:bg-[rgba(255,255,255,0.08)] outline-none text-white placeholder:text-white/40 transition-all"
+                    className={`glass-input px-4 py-2.5 rounded-xl text-sm w-full outline-none transition-all ${
+                      authorBannedCheck.hasForbidden
+                        ? "bg-red-500/10 border-red-500/60 focus:border-red-400 text-red-100 placeholder:text-red-300/40 shadow-[0_0_15px_rgba(239,68,68,0.2)]"
+                        : "bg-[rgba(255,255,255,0.04)] border-white/15 focus:border-[#7DB3FF] focus:bg-[rgba(255,255,255,0.08)] text-white placeholder:text-white/40"
+                    }`}
                     disabled={submitting}
                   />
+
+                  {authorBannedCheck.hasForbidden && (
+                    <div className="flex items-center gap-1.5 text-xs text-red-400 px-1 pt-0.5">
+                      <AlertCircle size={13} className="shrink-0 text-red-400" />
+                      <span>
+                        Nama pengirim tidak boleh mengandung frasa terlarang: <strong className="font-semibold underline decoration-red-400/50">"{authorBannedCheck.matchedPhrases.join(", ")}"</strong>.
+                      </span>
+                    </div>
+                  )}
 
                   {/* Secret Admin Identity Verification Prompt */}
                   {isClaimingAdmin && (
@@ -639,38 +588,29 @@ export default function Comments() {
             </div>
 
             {/* Bottom Controls */}
-            <div className="flex items-center justify-between pt-1">
-              <StyledSendButtonWrapper ref={sendButtonWrapperRef}>
+            <div className="flex items-center justify-end pt-1">
+              <div className="ml-auto">
                 <button
                   id="submit-comment-button"
                   type="button"
                   onClick={handleSendButtonClick}
-                  className={isButtonInteractive ? "is-interactive" : ""}
                   disabled={submitting || !content.trim()}
-                  title={isButtonInteractive ? "Klik lagi untuk mengirim" : "Kirim Komentar"}
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-[#205BF0] hover:bg-[#1A4ED4] active:bg-[#1541B8] text-white shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer disabled:opacity-40 disabled:pointer-events-none disabled:cursor-not-allowed select-none group"
+                  title="Send"
                 >
-                  <div className="svg-wrapper-1">
-                    <div className="svg-wrapper">
-                      {submitting ? (
-                        <span className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin block" />
-                      ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={22} height={22}>
-                          <path fill="none" d="M0 0h24v24H0z" />
-                          <path fill="currentColor" d="M1.946 9.315c-.522-.174-.527-.455.01-.634l19.087-6.362c.529-.176.832.12.684.638l-5.454 19.086c-.15.529-.455.547-.679.045L12 14l6-8-8 6-8.054-2.685z" />
-                        </svg>
-                      )}
-                    </div>
-                  </div>
-                  <span>{submitting ? "Sending..." : "Send"}</span>
+                  {submitting ? (
+                    <>
+                      <span className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin block" />
+                      <span>Sending...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send size={14} className="transition-transform duration-200 group-hover:translate-x-0.5" />
+                      <span>Send</span>
+                    </>
+                  )}
                 </button>
-              </StyledSendButtonWrapper>
-
-              {isButtonInteractive && !submitting && (
-                <div className="text-[11px] text-[#7DB3FF] font-medium flex items-center gap-1.5 animate-pulse select-none pr-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#7DB3FF]" />
-                  <span>Klik lagi untuk mengirim</span>
-                </div>
-              )}
+              </div>
             </div>
           </form>
         </section>
@@ -809,14 +749,28 @@ export default function Comments() {
                         </label>
 
                         {!replyIsAnonymous && (
-                          <input
-                            type="text"
-                            value={replyAuthorName}
-                            onChange={(e) => setReplyAuthorName(e.target.value)}
-                            placeholder="Nama Anda (opsional)"
-                            maxLength={60}
-                            className="glass-input px-3 py-1.5 rounded-lg text-xs bg-white/5 border border-white/10 text-white placeholder:text-white/30"
-                          />
+                          <div className="flex flex-col gap-1">
+                            <input
+                              type="text"
+                              value={replyAuthorName}
+                              onChange={(e) => {
+                                setReplyAuthorName(e.target.value);
+                                if (replyError) setReplyError(null);
+                              }}
+                              placeholder="Nama Anda (opsional)"
+                              maxLength={60}
+                              className={`glass-input px-3 py-1.5 rounded-lg text-xs outline-none transition-all ${
+                                replyAuthorBannedCheck.hasForbidden
+                                  ? "bg-red-500/10 border-red-500/50 text-red-100 placeholder:text-red-300/40"
+                                  : "bg-white/5 border border-white/10 text-white placeholder:text-white/30"
+                              }`}
+                            />
+                            {replyAuthorBannedCheck.hasForbidden && (
+                              <span className="text-[11px] text-red-400">
+                                Mengandung frasa terlarang: "{replyAuthorBannedCheck.matchedPhrases.join(", ")}"
+                              </span>
+                            )}
+                          </div>
                         )}
                       </div>
 
