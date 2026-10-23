@@ -100,12 +100,61 @@ export function subscribeToComments(
 }
 
 /**
+ * Upload an image attachment to Cloudinary for comments (Admin only).
+ */
+export async function uploadCommentImage(file: File): Promise<{ url: string; publicId: string }> {
+  const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10 MB limit
+  if (file.size > MAX_IMAGE_SIZE) {
+    throw new Error(`Ukuran gambar terlalu besar (maksimal 10 MB). File: ${(file.size / (1024 * 1024)).toFixed(2)} MB`);
+  }
+
+  const allowedTypes = new Set([
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/gif',
+    'image/avif'
+  ]);
+
+  if (file.type && !allowedTypes.has(file.type)) {
+    throw new Error(`Tipe file tidak didukung: ${file.type}. Harap pilih file gambar (JPG, PNG, WebP, GIF, atau AVIF).`);
+  }
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', 'BINTANGPRASETYO');
+
+  try {
+    const response = await fetch('https://api.cloudinary.com/v1_1/tu1lmhsg/image/upload', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      throw new Error(errorData?.error?.message || `Gagal mengunggah gambar (${response.statusText})`);
+    }
+
+    const data = await response.json();
+    return {
+      url: data.secure_url,
+      publicId: data.public_id || data.secure_url
+    };
+  } catch (error: any) {
+    console.error("[Cloudinary] Comment image upload error:", error);
+    throw error;
+  }
+}
+
+/**
  * Add a new comment or reply.
  */
 export async function createComment(params: {
   authorName: string;
   isAnonymous: boolean;
   content: string;
+  imageUrl?: string | null;
+  imagePublicId?: string | null;
   parentId?: string | null;
   replyToAuthor?: string | null;
   filterConfig?: CommentFilterConfig;
@@ -153,6 +202,12 @@ export async function createComment(params: {
     createdAt: serverTimestamp(),
   };
 
+  if (params.imageUrl && params.imageUrl.trim()) {
+    payload.imageUrl = params.imageUrl.trim().slice(0, 500);
+  }
+  if (params.imagePublicId && params.imagePublicId.trim()) {
+    payload.imagePublicId = params.imagePublicId.trim().slice(0, 200);
+  }
   if (params.parentId && params.parentId.trim()) {
     payload.parentId = params.parentId.trim().slice(0, 128);
   }
