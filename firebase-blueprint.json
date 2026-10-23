@@ -72,16 +72,6 @@
           "maxLength": 1000,
           "description": "The text content of the comment."
         },
-        "imageUrl": {
-          "type": "string",
-          "maxLength": 500,
-          "description": "Optional Cloudinary image URL attached by an administrator."
-        },
-        "imagePublicId": {
-          "type": "string",
-          "maxLength": 200,
-          "description": "Optional Cloudinary public ID for the attached image."
-        },
         "parentId": {
           "type": "string",
           "maxLength": 128,

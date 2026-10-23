@@ -85,7 +85,7 @@ export function NavigationCustomizationView() {
   const [previewComponentMode, setPreviewComponentMode] = useState<"dock" | "dropdown">("dock");
   const [previewActiveTab, setPreviewActiveTab] = useState<string>("home");
   const [previewPressedTab, setPreviewPressedTab] = useState<string | null>(null);
-  const [previewDropdownLink, setPreviewDropdownLink] = useState<string>("certificate");
+  const [previewDropdownLink, setPreviewDropdownLink] = useState<string>("qna");
   const [previewDropdownBg, setPreviewDropdownBg] = useState<string>("molten");
   const [previewBgTheme, setPreviewBgTheme] = useState<"molten" | "dark" | "cyber" | "light">("molten");
   const [presetNameInput, setPresetNameInput] = useState("");
@@ -488,6 +488,7 @@ export function NavigationCustomizationView() {
                 
                 <div className="relative z-10 flex flex-col gap-1">
                   {[
+                    { id: "qna", label: "Tanya & Jawab (QnA)", icon: <IOSCommentsIcon size={14} /> },
                     { id: "certificate", label: "Sertifikat Keaslian", icon: <ShieldCheck size={14} /> },
                   ].map((item) => {
                     const isActive = previewDropdownLink === item.id;

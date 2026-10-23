@@ -3,8 +3,6 @@ export interface CommentItem {
   authorName: string;
   isAnonymous: boolean;
   content: string;
-  imageUrl?: string | null;
-  imagePublicId?: string | null;
   parentId?: string | null;
   replyToAuthor?: string | null;
   createdAt: any;
