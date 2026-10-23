@@ -80,11 +80,11 @@ export const logAnalyticsEvent = (eventName: string, eventParams?: Record<string
   }
 };
 
-// Initialize Firebase App Check (reCAPTCHA Enterprise) safely
-const recaptchaKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+// Initialize Firebase App Check (reCAPTCHA Enterprise)
+const recaptchaKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY || "6LdZv8otAAAAAPTPQRh6hK0osf9kbyGwj_dhIhv7";
 const debugToken = import.meta.env.VITE_APPCHECK_DEBUG_TOKEN;
 
-if (typeof window !== "undefined") {
+if (typeof window !== "undefined" && recaptchaKey) {
   try {
     const isLocalOrPreview =
       import.meta.env.DEV ||
@@ -92,18 +92,16 @@ if (typeof window !== "undefined") {
       window.location.hostname === "localhost";
 
     if (isLocalOrPreview) {
-      // Controlled empirical test: App Check is bypassed exclusively in local/preview environments
-      // to isolate the startup fetch failure observed via _aistudio-iframe.js.
-      // Production environment (bintangprasetyo.com) remains strictly protected below.
-    } else if (recaptchaKey) {
-      // Production environment (e.g. bintangprasetyo.com) with registered reCAPTCHA Enterprise key
-      initializeAppCheck(app, {
-        provider: new ReCaptchaEnterpriseProvider(recaptchaKey),
-        isTokenAutoRefreshEnabled: true,
-      });
+      // @ts-ignore
+      self.FIREBASE_APPCHECK_DEBUG_TOKEN = debugToken || true;
     }
+
+    initializeAppCheck(app, {
+      provider: new ReCaptchaEnterpriseProvider(recaptchaKey),
+      isTokenAutoRefreshEnabled: true,
+    });
   } catch (err) {
-    console.warn("Firebase App Check initialization notice:", err);
+    console.warn("Firebase App Check initialization:", err);
   }
 }
 
