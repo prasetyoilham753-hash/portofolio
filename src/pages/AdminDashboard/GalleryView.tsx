@@ -29,7 +29,7 @@ export function GalleryView() {
 
   // Gallery Page Header Settings (Stored in profile)
   const [galleryTitle, setGalleryTitle] = useState("Art Gallery");
-  const [galleryDescription, setGalleryDescription] = useState("Visual studies, digital art, and experimental compositions.");
+  const [galleryDescription, setGalleryDescription] = useState("");
   const [loadingHeader, setLoadingHeader] = useState(true);
   const [savingHeader, setSavingHeader] = useState(false);
   const [headerMsg, setHeaderMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -381,7 +381,7 @@ export function GalleryView() {
                 type="text"
                 value={galleryDescription}
                 onChange={(e) => setGalleryDescription(e.target.value)}
-                placeholder="Visual studies, digital art, and experimental compositions."
+                placeholder="Tulis deskripsi atau subjudul halaman galeri..."
                 className="glass-input px-4 py-2.5 rounded-xl text-sm flex-1 bg-white/5 border border-white/15 focus:border-[#7DB3FF] outline-none text-white"
               />
               <button

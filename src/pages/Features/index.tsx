@@ -24,7 +24,7 @@ export default function Features() {
   const [headerContent, setHeaderContent] = useState<FeaturesHeaderContent>({
     badge: "Interactive UI & Motion Library",
     title: "Feature Components",
-    description: "Koleksi komponen antarmuka, animasi mikro, dan eksperimen visual interaktif. Coba langsung di sandbox dan salin kode JSX untuk proyek Anda."
+    description: ""
   });
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState("");
@@ -75,7 +75,7 @@ export default function Features() {
         setHeaderContent({
           badge: data.badge || "Interactive UI & Motion Library",
           title: data.title || "Feature Components",
-          description: data.description || "Koleksi komponen antarmuka, animasi mikro, dan eksperimen visual interaktif. Coba langsung di sandbox dan salin kode JSX untuk proyek Anda."
+          description: data.description || ""
         });
       }
     });
@@ -175,9 +175,11 @@ export default function Features() {
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-medium text-white tracking-tight leading-[1.12]">
           {headerContent.title || "Feature Components"}
         </h1>
-        <p className="text-[#A8B8CC] text-base sm:text-lg font-light max-w-2xl leading-relaxed">
-          {headerContent.description || "Koleksi komponen antarmuka, animasi mikro, dan eksperimen visual interaktif. Coba langsung di sandbox dan salin kode JSX untuk proyek Anda."}
-        </p>
+        {headerContent.description ? (
+          <p className="text-[#A8B8CC] text-base sm:text-lg font-light max-w-2xl leading-relaxed">
+            {headerContent.description}
+          </p>
+        ) : null}
       </header>
 
       {/* 2. Category Filter Pills - Identical div & button styling, only rendered when filled in dashboard */}

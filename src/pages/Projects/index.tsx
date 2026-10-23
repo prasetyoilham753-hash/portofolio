@@ -11,9 +11,7 @@ export default function Projects() {
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
-
-  const DEFAULT_DESCRIPTION = "A curated collection of digital products, experimental tools, and scalable applications engineered with precision, performance, and modern web aesthetics.";
-  const [projectDescription, setProjectDescription] = useState<string>(DEFAULT_DESCRIPTION);
+  const [projectDescription, setProjectDescription] = useState<string>("");
 
   // Real-time project description from site_content/profile
   useEffect(() => {
@@ -25,6 +23,8 @@ export default function Projects() {
           const data = snapshot.data() as SiteProfile;
           if (data.projectDescription && data.projectDescription.trim()) {
             setProjectDescription(data.projectDescription.trim());
+          } else {
+            setProjectDescription("");
           }
         }
       },
@@ -114,9 +114,11 @@ export default function Projects() {
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-medium text-white tracking-tight leading-[1.12]">
           Project
         </h1>
-        <p className="text-[#A8B8CC] text-base sm:text-lg font-light leading-relaxed max-w-2xl">
-          {projectDescription}
-        </p>
+        {projectDescription ? (
+          <p className="text-[#A8B8CC] text-base sm:text-lg font-light leading-relaxed max-w-2xl">
+            {projectDescription}
+          </p>
+        ) : null}
       </header>
 
       {/* Category Filter Pills - Only rendered when user has filled in projects and there are multiple categories */}

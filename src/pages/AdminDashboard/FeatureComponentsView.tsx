@@ -49,7 +49,7 @@ export function FeatureComponentsView() {
   const [headerContent, setHeaderContent] = useState<FeaturesHeaderContent>({
     badge: "Interactive UI & Motion Library",
     title: "Feature Components",
-    description: "Koleksi komponen antarmuka, animasi mikro, dan eksperimen visual interaktif. Coba langsung di sandbox dan salin kode JSX untuk proyek Anda."
+    description: ""
   });
   const [isEditingHeader, setIsEditingHeader] = useState(false);
   const [isSavingHeader, setIsSavingHeader] = useState(false);
@@ -121,7 +121,7 @@ export function FeatureComponentsView() {
         setHeaderContent({
           badge: data.badge || "Interactive UI & Motion Library",
           title: data.title || "Feature Components",
-          description: data.description || "Koleksi komponen antarmuka, animasi mikro, dan eksperimen visual interaktif. Coba langsung di sandbox dan salin kode JSX untuk proyek Anda."
+          description: data.description || ""
         });
       }
     });
@@ -441,7 +441,7 @@ export default function InteractiveButton() {
                   rows={2}
                   value={headerContent.description || ""}
                   onChange={(e) => setHeaderContent(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Contoh: Koleksi komponen antarmuka, animasi mikro, dan eksperimen visual interaktif..."
+                  placeholder="Tulis deskripsi atau subjudul halaman fitur..."
                   className="px-3 py-2 text-xs rounded-xl bg-black/30 border border-white/10 focus:border-[#7DB3FF] text-white outline-none resize-none leading-relaxed"
                 />
               </div>

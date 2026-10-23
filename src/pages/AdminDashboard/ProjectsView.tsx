@@ -367,7 +367,7 @@ export function ProjectsView() {
               value={pageDescription}
               onChange={(e) => setPageDescription(e.target.value)}
               className="glass-input px-4 py-3 rounded-lg w-full min-h-[90px] resize-y leading-relaxed text-sm bg-white/5 border border-white/15 focus:border-[#7DB3FF] outline-none text-white placeholder:text-white/30"
-              placeholder="A curated collection of digital products, experimental tools, and scalable applications engineered with precision, performance, and modern web aesthetics."
+              placeholder="Tulis deskripsi atau subjudul halaman proyek..."
             />
             <p className="text-[11px] text-text-muted">
               Teks paragraf ini ditampilkan di bawah judul &quot;Project&quot; pada halaman Projects.

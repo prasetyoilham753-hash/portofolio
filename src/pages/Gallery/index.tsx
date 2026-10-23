@@ -24,9 +24,7 @@ export default function Gallery() {
 
   // Title & description synced from profile
   const [title, setTitle] = useState("Art Gallery");
-  const [description, setDescription] = useState(
-    "Visual studies, digital art, and experimental compositions engineered with fluid aesthetics."
-  );
+  const [description, setDescription] = useState("");
 
   // Lightbox Modal State
   const [activeArtwork, setActiveArtwork] = useState<GalleryItem | null>(null);
@@ -38,7 +36,11 @@ export default function Gallery() {
       .then((profile) => {
         if (profile) {
           if ((profile as any).galleryTitle) setTitle((profile as any).galleryTitle);
-          if ((profile as any).galleryDescription) setDescription((profile as any).galleryDescription);
+          if ((profile as any).galleryDescription && (profile as any).galleryDescription.trim()) {
+            setDescription((profile as any).galleryDescription.trim());
+          } else {
+            setDescription("");
+          }
         }
       })
       .catch((err) => console.error("Error loading gallery header:", err));
@@ -145,9 +147,11 @@ export default function Gallery() {
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-medium text-white tracking-tight leading-[1.12]">
           {title}
         </h1>
-        <p className="text-[#A8B8CC] text-base sm:text-lg font-light leading-relaxed max-w-2xl">
-          {description}
-        </p>
+        {description ? (
+          <p className="text-[#A8B8CC] text-base sm:text-lg font-light leading-relaxed max-w-2xl">
+            {description}
+          </p>
+        ) : null}
       </header>
 
       {/* Category Filter Pills */}

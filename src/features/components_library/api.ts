@@ -59,7 +59,7 @@ export function subscribeToFeaturesHeader(
         onData({
           badge: "Interactive UI & Motion Library",
           title: "Feature Components",
-          description: "Koleksi komponen antarmuka, animasi mikro, dan eksperimen visual interaktif. Coba langsung di sandbox dan salin kode JSX untuk proyek Anda."
+          description: ""
         });
       }
     },

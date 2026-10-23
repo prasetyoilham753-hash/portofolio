@@ -373,9 +373,11 @@ export default function Comments() {
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-medium text-white tracking-tight leading-[1.12]">
               Comments
             </h1>
-            <p className="text-[#A8B8CC] text-base sm:text-lg font-light max-w-2xl leading-relaxed">
-              {filterConfig.headerDescription || DEFAULT_HEADER_DESCRIPTION}
-            </p>
+            {filterConfig.headerDescription ? (
+              <p className="text-[#A8B8CC] text-base sm:text-lg font-light max-w-2xl leading-relaxed">
+                {filterConfig.headerDescription}
+              </p>
+            ) : null}
           </div>
 
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[rgba(10,24,42,0.6)] border border-white/10 text-xs text-[#7DB3FF] shrink-0 self-start sm:self-auto backdrop-blur-md mb-2">
