@@ -42,17 +42,40 @@ service cloud.firestore {
     // ENTITY VALIDATION HELPERS
     // ==========================================
     function isValidComment(data) {
-      let isAuthorValid = data.authorName is string && data.authorName.size() >= 1 && data.authorName.size() <= 60 && hasNoServerBannedPhrases(data.authorName);
+      let authorNameLower = data.authorName.lower();
+      let isNotAdminImpersonation = data.isAnonymous || (
+        authorNameLower != 'bintang prasetyo' &&
+        authorNameLower != 'bintang' &&
+        authorNameLower != 'admin' &&
+        authorNameLower != 'administrator' &&
+        authorNameLower != 'bprasety' &&
+        authorNameLower != 'bprasety_' &&
+        !authorNameLower.matches('^bintang.*') &&
+        !authorNameLower.matches('^admin.*')
+      ) || isAdmin();
+
+      let isAuthorValid = data.authorName is string && data.authorName.size() >= 1 && data.authorName.size() <= 60 && hasNoServerBannedPhrases(data.authorName) && isNotAdminImpersonation;
       let isAnonValid = data.isAnonymous is bool;
       let isContentValid = data.content is string && data.content.size() >= 1 && data.content.size() <= 1000 && hasNoServerBannedPhrases(data.content);
       let isCreatedAtValid = data.createdAt == request.time;
       let isParentValid = !('parentId' in data) || (data.parentId is string && data.parentId.size() <= 128);
       let isReplyAuthorValid = !('replyToAuthor' in data) || (data.replyToAuthor is string && data.replyToAuthor.size() <= 60);
+      let isImageValid = !('imageUrl' in data) || (
+        isAdmin() && 
+        data.imageUrl is string && 
+        data.imageUrl.size() <= 500 && 
+        (data.imageUrl.matches('^https://res\\.cloudinary\\.com/.*') || data.imageUrl.matches('^https://[a-zA-Z0-9_\\-\\.]+\\.cloudinary\\.com/.*'))
+      );
+      let isImageIdValid = !('imagePublicId' in data) || (
+        isAdmin() && 
+        data.imagePublicId is string && 
+        data.imagePublicId.size() <= 200
+      );
 
       let hasRequiredKeys = data.keys().hasAll(['authorName', 'isAnonymous', 'content', 'createdAt']);
-      let hasOnlyAllowedKeys = data.keys().hasOnly(['authorName', 'isAnonymous', 'content', 'createdAt', 'parentId', 'replyToAuthor']);
+      let hasOnlyAllowedKeys = data.keys().hasOnly(['authorName', 'isAnonymous', 'content', 'createdAt', 'parentId', 'replyToAuthor', 'imageUrl', 'imagePublicId']);
 
-      return hasRequiredKeys && hasOnlyAllowedKeys && isAuthorValid && isAnonValid && isContentValid && isCreatedAtValid && isParentValid && isReplyAuthorValid;
+      return hasRequiredKeys && hasOnlyAllowedKeys && isAuthorValid && isAnonValid && isContentValid && isCreatedAtValid && isParentValid && isReplyAuthorValid && isImageValid && isImageIdValid;
     }
 
     // ==========================================

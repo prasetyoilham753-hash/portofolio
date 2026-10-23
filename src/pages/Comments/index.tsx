@@ -13,14 +13,24 @@ import {
   Lock,
   Eye,
   EyeOff,
-  CheckCircle2
+  CheckCircle2,
+  Image as ImageIcon,
+  Maximize2,
+  ExternalLink,
+  Loader2,
+  UploadCloud,
+  LogIn
 } from "lucide-react";
 import { 
   subscribeToComments, 
   createComment, 
+  uploadCommentImage,
   subscribeToCommentFilters,
   checkAndFilterPhrases
 } from "../../features/comments/api";
+import { auth } from "../../services/firebase/config";
+import { onAuthStateChanged, signInWithEmailAndPassword } from "firebase/auth";
+import { verifyIsAdmin } from "../../features/auth/adminAuth";
 import { getProfile, getCachedProfile } from "../../features/profile/api";
 import { SiteProfile } from "../../features/profile/types";
 import { 
@@ -48,8 +58,35 @@ export default function Comments() {
   const [adminVerificationCode, setAdminVerificationCode] = useState("");
   const [showAdminCode, setShowAdminCode] = useState(false);
   const [isAdminVerified, setIsAdminVerified] = useState(false);
+  const [isFirebaseAdmin, setIsFirebaseAdmin] = useState(false);
   const [adminVerificationError, setAdminVerificationError] = useState<string | null>(null);
   const [adminAttention, setAdminAttention] = useState(false);
+
+  // Quick Admin Login Modal state
+  const [showAdminLoginModal, setShowAdminLoginModal] = useState(false);
+  const [adminLoginEmail, setAdminLoginEmail] = useState("");
+  const [adminLoginPassword, setAdminLoginPassword] = useState("");
+  const [adminLoginLoading, setAdminLoginLoading] = useState(false);
+  const [adminLoginError, setAdminLoginError] = useState<string | null>(null);
+
+  // Main comment image upload state (Admin only)
+  const [attachedImageUrl, setAttachedImageUrl] = useState<string | null>(null);
+  const [attachedImagePublicId, setAttachedImagePublicId] = useState<string | null>(null);
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState<string | null>(null);
+  const [attachedFileName, setAttachedFileName] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Reply comment image upload state (Admin only)
+  const [replyAttachedImageUrl, setReplyAttachedImageUrl] = useState<string | null>(null);
+  const [replyAttachedImagePublicId, setReplyAttachedImagePublicId] = useState<string | null>(null);
+  const [replyImageUploading, setReplyImageUploading] = useState(false);
+  const [replyImageUploadError, setReplyImageUploadError] = useState<string | null>(null);
+  const [replyAttachedFileName, setReplyAttachedFileName] = useState("");
+  const replyFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Lightbox Modal state
+  const [activeLightboxImage, setActiveLightboxImage] = useState<{ url: string; authorName: string } | null>(null);
 
   const adminVerificationSectionRef = useRef<HTMLDivElement>(null);
   const adminCodeInputRef = useRef<HTMLInputElement>(null);
@@ -59,6 +96,40 @@ export default function Comments() {
       if (data) setProfile(data);
     });
   }, []);
+
+  // Listen to Firebase Authentication state to automatically detect verified admin
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const isAdm = await verifyIsAdmin(user);
+          setIsFirebaseAdmin(isAdm);
+          if (isAdm) {
+            setIsAdminVerified(true);
+            setAuthorName((prev) => (prev ? prev : (profile?.name || "Bintang Prasetyo")));
+          }
+        } catch {
+          setIsFirebaseAdmin(false);
+        }
+      } else {
+        setIsFirebaseAdmin(false);
+      }
+    });
+    return () => unsubscribe();
+  }, [profile?.name]);
+
+  // Lightbox keyboard listener (Escape to close)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setActiveLightboxImage(null);
+      }
+    };
+    if (activeLightboxImage) {
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [activeLightboxImage]);
 
   // Clear attention highlight after timeout
   useEffect(() => {
@@ -109,16 +180,16 @@ export default function Comments() {
     });
   };
 
-  // Reset verification when name changes away from admin
+  // Reset verification when name changes away from admin (unless authenticated via Firebase)
   useEffect(() => {
-    if (!isClaimingAdmin) {
+    if (!isClaimingAdmin && !isFirebaseAdmin) {
       setIsAdminVerified(false);
       setAdminVerificationError(null);
       setAdminVerificationCode("");
       setShowAdminCode(false);
       setAdminAttention(false);
     }
-  }, [isClaimingAdmin]);
+  }, [isClaimingAdmin, isFirebaseAdmin]);
 
   // Check if authorName contains banned phrases
   const authorBannedCheck = useMemo(() => {
@@ -283,10 +354,111 @@ export default function Comments() {
     };
   }, [replyAuthorName, replyIsAnonymous, filterConfig.bannedPhrases]);
 
+  // Admin Quick Login (allows admin to sign in seamlessly to enable verified Firestore writes)
+  const handleAdminQuickLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminLoginEmail || !adminLoginPassword) {
+      setAdminLoginError("Harap isi email dan password admin.");
+      return;
+    }
+    setAdminLoginLoading(true);
+    setAdminLoginError(null);
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, adminLoginEmail.trim(), adminLoginPassword);
+      const isAdm = await verifyIsAdmin(userCredential.user);
+      if (!isAdm) {
+        setAdminLoginError("Akun ini bukan administrator yang terotorisasi.");
+        return;
+      }
+      setIsFirebaseAdmin(true);
+      setIsAdminVerified(true);
+      setShowAdminLoginModal(false);
+      setAdminLoginPassword("");
+      setAuthorName((prev) => (prev ? prev : (profile?.name || "Bintang Prasetyo")));
+    } catch (err: any) {
+      console.error("Admin login error:", err);
+      setAdminLoginError(err?.message || "Gagal masuk. Periksa kembali email dan password.");
+    } finally {
+      setAdminLoginLoading(false);
+    }
+  };
+
+  // Image Upload Handlers for Main Comment (Admin only)
+  const handleSelectMainImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImageUploadError(null);
+    setAttachedFileName(file.name);
+    setImageUploading(true);
+
+    try {
+      const result = await uploadCommentImage(file);
+      setAttachedImageUrl(result.url);
+      setAttachedImagePublicId(result.publicId);
+    } catch (err: any) {
+      console.error("Failed to upload comment image to Cloudinary:", err);
+      setImageUploadError(err?.message || "Gagal mengunggah gambar ke Cloudinary.");
+      setAttachedImageUrl(null);
+      setAttachedImagePublicId(null);
+      setAttachedFileName("");
+    } finally {
+      setImageUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleRemoveMainImage = () => {
+    setAttachedImageUrl(null);
+    setAttachedImagePublicId(null);
+    setAttachedFileName("");
+    setImageUploadError(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  // Image Upload Handlers for Reply Comment (Admin only)
+  const handleSelectReplyImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setReplyImageUploadError(null);
+    setReplyAttachedFileName(file.name);
+    setReplyImageUploading(true);
+
+    try {
+      const result = await uploadCommentImage(file);
+      setReplyAttachedImageUrl(result.url);
+      setReplyAttachedImagePublicId(result.publicId);
+    } catch (err: any) {
+      console.error("Failed to upload reply image to Cloudinary:", err);
+      setReplyImageUploadError(err?.message || "Gagal mengunggah gambar ke Cloudinary.");
+      setReplyAttachedImageUrl(null);
+      setReplyAttachedImagePublicId(null);
+      setReplyAttachedFileName("");
+    } finally {
+      setReplyImageUploading(false);
+      if (replyFileInputRef.current) replyFileInputRef.current.value = "";
+    }
+  };
+
+  const handleRemoveReplyImage = () => {
+    setReplyAttachedImageUrl(null);
+    setReplyAttachedImagePublicId(null);
+    setReplyAttachedFileName("");
+    setReplyImageUploadError(null);
+    if (replyFileInputRef.current) replyFileInputRef.current.value = "";
+  };
+
   // Handle main comment submission
   const handleSubmitMain = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!content.trim() || submitting) return;
+
+    // Check if image is still uploading
+    if (imageUploading) {
+      setFormError("Sedang mengunggah gambar ke Cloudinary, mohon tunggu sebentar...");
+      return;
+    }
 
     // Check if author name contains forbidden phrases
     if (!isAnonymous && authorBannedCheck.hasForbidden) {
@@ -298,7 +470,7 @@ export default function Comments() {
     // Check if author is claiming Admin identity
     if (isClaimingAdmin) {
       const expected = (profile?.cvAccessCode || "19112191").trim();
-      if (!isAdminVerified && adminVerificationCode.trim() !== expected) {
+      if (!isAdminVerified && adminVerificationCode.trim() !== expected && !isFirebaseAdmin) {
         setAdminAttention(true);
         setFormError("Verifikasi identitas diperlukan untuk menggunakan nama Administrator. Masukkan kode akses keamanan yang valid.");
         setAdminVerificationError("Kode verifikasi identitas tidak cocok.");
@@ -309,6 +481,13 @@ export default function Comments() {
       setIsAdminVerified(true);
     }
 
+    // If an image is attached, verify admin status
+    if (attachedImageUrl && !isFirebaseAdmin) {
+      setShowAdminLoginModal(true);
+      setFormError("Pengiriman komentar bergambar memerlukan autentikasi login Administrator resmi. Silakan masuk terlebih dahulu.");
+      return;
+    }
+
     setFormError(null);
     setSubmitting(true);
 
@@ -317,10 +496,13 @@ export default function Comments() {
         authorName: isAnonymous ? "Anonymous" : authorName.trim(),
         isAnonymous,
         content: content.trim(),
+        imageUrl: attachedImageUrl,
+        imagePublicId: attachedImagePublicId,
         filterConfig
       });
 
       setContent("");
+      handleRemoveMainImage();
       setFormSuccess(true);
       setTimeout(() => setFormSuccess(false), 4000);
     } catch (err: any) {
@@ -334,6 +516,18 @@ export default function Comments() {
   // Handle reply submission
   const handleSubmitReply = async (parentComment: CommentItem) => {
     if (!replyContent.trim() || replySubmitting) return;
+
+    if (replyImageUploading) {
+      setReplyError("Sedang mengunggah gambar balasan ke Cloudinary, mohon tunggu sebentar...");
+      return;
+    }
+
+    // If reply has image attached, verify admin status
+    if (replyAttachedImageUrl && !isFirebaseAdmin) {
+      setShowAdminLoginModal(true);
+      setReplyError("Pengiriman komentar bergambar memerlukan autentikasi login Administrator resmi.");
+      return;
+    }
 
     // Check if reply author name contains forbidden phrases
     if (!replyIsAnonymous && replyAuthorBannedCheck.hasForbidden) {
@@ -349,12 +543,15 @@ export default function Comments() {
         authorName: replyIsAnonymous ? "Anonymous" : replyAuthorName.trim(),
         isAnonymous: replyIsAnonymous,
         content: replyContent.trim(),
+        imageUrl: replyAttachedImageUrl,
+        imagePublicId: replyAttachedImagePublicId,
         parentId: parentComment.id,
         replyToAuthor: parentComment.authorName,
         filterConfig
       });
 
       setReplyContent("");
+      handleRemoveReplyImage();
       setReplyingTo(null);
     } catch (err: any) {
       console.error("Failed to post reply:", err);
@@ -607,16 +804,120 @@ export default function Comments() {
                   <span>Komentar berhasil dipublikasikan! Terima kasih atas kontribusi Anda.</span>
                 </div>
               )}
+
+              {/* Attached Image Preview Card (Admin only) */}
+              {(attachedImageUrl || imageUploading || imageUploadError) && (
+                <div className="p-3 rounded-xl bg-[rgba(10,24,42,0.6)] border border-[#7DB3FF]/30 flex items-center justify-between gap-3 animate-fadeIn">
+                  <div className="flex items-center gap-3 min-w-0">
+                    {attachedImageUrl ? (
+                      <div 
+                        onClick={() => setActiveLightboxImage({ url: attachedImageUrl, authorName: authorName || "Admin" })}
+                        className="w-14 h-14 rounded-lg overflow-hidden border border-white/20 shrink-0 cursor-pointer relative group bg-black/40"
+                        title="Klik untuk melihat preview penuh"
+                      >
+                        <img 
+                          src={attachedImageUrl} 
+                          alt="Preview lampiran" 
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200" 
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white">
+                          <Maximize2 size={12} />
+                        </div>
+                      </div>
+                    ) : imageUploading ? (
+                      <div className="w-14 h-14 rounded-lg border border-dashed border-[#7DB3FF]/50 bg-[#7DB3FF]/10 flex flex-col items-center justify-center shrink-0 text-[#7DB3FF]">
+                        <Loader2 size={16} className="animate-spin" />
+                      </div>
+                    ) : null}
+
+                    <div className="flex flex-col min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-white truncate max-w-[200px] sm:max-w-xs">
+                          {attachedFileName || "Gambar Terlampir"}
+                        </span>
+                        {attachedImageUrl && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                            <CheckCircle2 size={10} /> Cloudinary Siap
+                          </span>
+                        )}
+                      </div>
+                      {imageUploading && (
+                        <span className="text-[11px] text-[#7DB3FF] flex items-center gap-1 font-light">
+                          <UploadCloud size={11} className="animate-pulse" /> Mengunggah ke Cloudinary...
+                        </span>
+                      )}
+                      {imageUploadError && (
+                        <span className="text-[11px] text-red-400 flex items-center gap-1 font-light">
+                          <AlertCircle size={11} /> {imageUploadError}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleRemoveMainImage}
+                    className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-red-400 border border-white/10 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                    title="Hapus gambar"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Bottom Controls */}
-            <div className="flex items-center justify-end pt-1">
+            <div className="flex items-center justify-between flex-wrap gap-3 pt-1">
+              {/* Admin Image Attachment Trigger (Only shown for verified Admin) */}
+              {(isFirebaseAdmin || isAdminVerified) && !isAnonymous ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
+                    onChange={handleSelectMainImage}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={imageUploading || submitting}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium bg-[rgba(32,91,240,0.12)] hover:bg-[rgba(32,91,240,0.22)] border border-[#205BF0]/40 text-[#7DB3FF] transition-all cursor-pointer disabled:opacity-40"
+                    title="Unggah gambar lampiran ke Cloudinary (Fitur Khusus Admin)"
+                  >
+                    {imageUploading ? (
+                      <>
+                        <Loader2 size={13} className="animate-spin text-[#7DB3FF]" />
+                        <span>Mengunggah...</span>
+                      </>
+                    ) : (
+                      <>
+                        <ImageIcon size={14} className="text-[#7DB3FF]" />
+                        <span>{attachedImageUrl ? "Ganti Gambar" : "Lampirkan Gambar (Admin)"}</span>
+                      </>
+                    )}
+                  </button>
+
+                  {!isFirebaseAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAdminLoginModal(true)}
+                      className="text-[11px] text-[#A8B8CC] hover:text-white underline underline-offset-2 flex items-center gap-1 cursor-pointer"
+                    >
+                      <LogIn size={11} /> Login Akun Admin
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div />
+              )}
+
               <div className="ml-auto">
                 <button
                   id="submit-comment-button"
                   type="button"
                   onClick={handleSendButtonClick}
-                  disabled={submitting || !content.trim()}
+                  disabled={submitting || imageUploading || !content.trim()}
                   className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-[#205BF0] hover:bg-[#1A4ED4] active:bg-[#1541B8] text-white shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer disabled:opacity-40 disabled:pointer-events-none disabled:cursor-not-allowed select-none group"
                   title="Send"
                 >
@@ -751,6 +1052,29 @@ export default function Comments() {
                     {item.content}
                   </div>
 
+                  {/* Attached Image (Admin only) */}
+                  {item.imageUrl && (
+                    <div className="mt-2 pl-1">
+                      <div
+                        onClick={() => setActiveLightboxImage({ url: item.imageUrl!, authorName: item.authorName })}
+                        className="group relative inline-block max-w-sm sm:max-w-md w-full overflow-hidden rounded-xl border border-white/15 bg-black/40 cursor-pointer shadow-md transition-all duration-300 hover:border-[#7DB3FF]/50 hover:shadow-[0_0_20px_rgba(32,91,240,0.25)]"
+                        title="Klik untuk memperbesar gambar"
+                      >
+                        <img
+                          src={item.imageUrl}
+                          alt={`Lampiran dari ${item.authorName}`}
+                          loading="lazy"
+                          className="max-h-80 w-auto object-cover rounded-xl transition-transform duration-300 group-hover:scale-[1.02]"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2.5">
+                          <span className="text-[11px] text-white flex items-center gap-1.5 font-medium">
+                            <Maximize2 size={12} /> Perbesar Gambar
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Inline Reply Form when active */}
                   {isReplying && (
                     <div className="mt-2 p-4 rounded-xl bg-[rgba(15,30,55,0.6)] border border-[#7DB3FF]/30 flex flex-col gap-3 relative animate-fadeIn">
@@ -816,6 +1140,89 @@ export default function Comments() {
                         disabled={replySubmitting}
                       />
 
+                      {/* Admin Image Attachment Trigger in Reply */}
+                      {(isFirebaseAdmin || isAdminVerified) && !replyIsAnonymous && (
+                        <div className="flex flex-col gap-2 pt-1">
+                          <div className="flex items-center gap-2">
+                            <input
+                              ref={replyFileInputRef}
+                              type="file"
+                              accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
+                              onChange={handleSelectReplyImage}
+                              className="hidden"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => replyFileInputRef.current?.click()}
+                              disabled={replyImageUploading || replySubmitting}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-white/5 hover:bg-white/10 text-[#7DB3FF] border border-white/10 transition-colors cursor-pointer disabled:opacity-40"
+                              title="Lampirkan gambar pada balasan ini (Khusus Admin)"
+                            >
+                              {replyImageUploading ? (
+                                <>
+                                  <Loader2 size={11} className="animate-spin text-[#7DB3FF]" />
+                                  <span>Mengunggah...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <ImageIcon size={12} className="text-[#7DB3FF]" />
+                                  <span>{replyAttachedImageUrl ? "Ganti Gambar" : "Lampirkan Gambar (Admin)"}</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+
+                          {/* Reply attached image preview */}
+                          {(replyAttachedImageUrl || replyImageUploading || replyImageUploadError) && (
+                            <div className="p-2 rounded-lg bg-black/40 border border-white/10 flex items-center justify-between gap-2 animate-fadeIn">
+                              <div className="flex items-center gap-2 min-w-0">
+                                {replyAttachedImageUrl ? (
+                                  <img
+                                    src={replyAttachedImageUrl}
+                                    alt="Preview balasan"
+                                    className="w-10 h-10 object-cover rounded border border-white/15 shrink-0"
+                                  />
+                                ) : replyImageUploading ? (
+                                  <div className="w-10 h-10 rounded border border-dashed border-[#7DB3FF]/40 bg-[#7DB3FF]/10 flex items-center justify-center shrink-0 text-[#7DB3FF]">
+                                    <Loader2 size={13} className="animate-spin" />
+                                  </div>
+                                ) : null}
+
+                                <div className="flex flex-col min-w-0">
+                                  <span className="text-[11px] text-white/90 truncate max-w-[180px] sm:max-w-xs">
+                                    {replyAttachedFileName || "Gambar Terlampir"}
+                                  </span>
+                                  {replyAttachedImageUrl && (
+                                    <span className="text-[9.5px] text-emerald-400 font-light flex items-center gap-1">
+                                      <CheckCircle2 size={9} /> Cloudinary Siap
+                                    </span>
+                                  )}
+                                  {replyImageUploading && (
+                                    <span className="text-[9.5px] text-[#7DB3FF] font-light">
+                                      Mengunggah...
+                                    </span>
+                                  )}
+                                  {replyImageUploadError && (
+                                    <span className="text-[9.5px] text-red-400 font-light">
+                                      {replyImageUploadError}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={handleRemoveReplyImage}
+                                className="text-white/40 hover:text-red-400 p-1 transition-colors cursor-pointer"
+                                title="Hapus gambar"
+                              >
+                                <X size={13} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {replyError && (
                         <div className="text-[11px] text-red-300 p-2 rounded bg-red-500/10 border border-red-500/20">
                           {replyError}
@@ -832,7 +1239,7 @@ export default function Comments() {
                         </button>
                         <button
                           type="button"
-                          disabled={replySubmitting || !replyContent.trim()}
+                          disabled={replySubmitting || replyImageUploading || !replyContent.trim()}
                           onClick={() => handleSubmitReply(item)}
                           className="ios-glass-btn ios-glass-primary px-4 py-1.5 text-xs font-semibold cursor-pointer disabled:opacity-40"
                         >
@@ -894,6 +1301,27 @@ export default function Comments() {
                           <div className="text-xs sm:text-[13px] text-[#C0D3EB] leading-relaxed font-light whitespace-pre-wrap break-words pl-1">
                             {reply.content}
                           </div>
+
+                          {/* Attached Image in Reply */}
+                          {reply.imageUrl && (
+                            <div className="mt-2 pl-1">
+                              <div
+                                onClick={() => setActiveLightboxImage({ url: reply.imageUrl!, authorName: reply.authorName })}
+                                className="group relative inline-block max-w-xs sm:max-w-sm w-full overflow-hidden rounded-lg border border-white/15 bg-black/40 cursor-pointer shadow-sm transition-all duration-300 hover:border-[#7DB3FF]/50"
+                                title="Klik untuk memperbesar gambar"
+                              >
+                                <img
+                                  src={reply.imageUrl}
+                                  alt={`Lampiran balasan dari ${reply.authorName}`}
+                                  loading="lazy"
+                                  className="max-h-56 w-auto object-cover rounded-lg transition-transform duration-300 group-hover:scale-[1.02]"
+                                />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                  <Maximize2 size={14} />
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -904,6 +1332,147 @@ export default function Comments() {
           </div>
         )}
       </section>
+
+      {/* Lightbox Modal */}
+      {activeLightboxImage && (
+        <div 
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setActiveLightboxImage(null)}
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-4 sm:p-6 animate-fadeIn cursor-zoom-out"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()} 
+            className="relative max-w-4xl max-h-[90vh] flex flex-col items-center gap-3 cursor-default"
+          >
+            {/* Top Toolbar */}
+            <div className="flex items-center justify-between w-full text-white/80 px-1">
+              <span className="text-xs font-medium text-white/90">
+                Lampiran dari <strong>{activeLightboxImage.authorName}</strong>
+              </span>
+              <div className="flex items-center gap-3">
+                <a
+                  href={activeLightboxImage.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-[#7DB3FF] hover:text-white transition-colors"
+                  title="Buka ukuran asli"
+                >
+                  <ExternalLink size={13} />
+                  <span>Ukuran Penuh</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setActiveLightboxImage(null)}
+                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
+                  title="Tutup (Esc)"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
+            {/* Main Image */}
+            <div className="overflow-hidden rounded-2xl border border-white/20 shadow-2xl bg-black/60 max-h-[80vh] flex items-center justify-center">
+              <img
+                src={activeLightboxImage.url}
+                alt="Gambar ukuran besar"
+                className="max-h-[80vh] max-w-full object-contain select-none"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Quick Login Modal */}
+      {showAdminLoginModal && (
+        <div 
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setShowAdminLoginModal(false)}
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="glass-card w-full max-w-md p-6 sm:p-7 rounded-2xl border border-[#7DB3FF]/30 bg-[rgba(10,24,45,0.95)] shadow-2xl flex flex-col gap-4 relative"
+          >
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2 text-white">
+                <ShieldCheck size={18} className="text-[#7DB3FF]" />
+                <h3 className="text-sm font-semibold tracking-wide">Login Administrator</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAdminLoginModal(false)}
+                className="text-white/40 hover:text-white p-1 cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <p className="text-xs text-[#A8B8CC] leading-relaxed font-light">
+              Masuk menggunakan akun Administrator resmi Anda untuk mengaktifkan izin pengiriman gambar lampiran ke database.
+            </p>
+
+            {adminLoginError && (
+              <div className="p-3 rounded-xl bg-red-500/15 border border-red-500/30 text-red-300 text-xs flex items-center gap-2">
+                <AlertCircle size={14} className="shrink-0 text-red-400" />
+                <span>{adminLoginError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleAdminQuickLogin} className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] text-white/60 uppercase tracking-wider">Email Admin</label>
+                <input
+                  type="email"
+                  value={adminLoginEmail}
+                  onChange={(e) => setAdminLoginEmail(e.target.value)}
+                  placeholder="admin@example.com"
+                  className="glass-input px-3.5 py-2.5 rounded-xl text-xs bg-white/5 border border-white/15 text-white outline-none focus:border-[#7DB3FF]"
+                  required
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] text-white/60 uppercase tracking-wider">Password</label>
+                <input
+                  type="password"
+                  value={adminLoginPassword}
+                  onChange={(e) => setAdminLoginPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="glass-input px-3.5 py-2.5 rounded-xl text-xs bg-white/5 border border-white/15 text-white outline-none focus:border-[#7DB3FF]"
+                  required
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAdminLoginModal(false)}
+                  className="px-4 py-2 text-xs text-white/60 hover:text-white cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={adminLoginLoading || !adminLoginEmail || !adminLoginPassword}
+                  className="ios-glass-btn ios-glass-primary px-5 py-2 text-xs font-semibold cursor-pointer disabled:opacity-40 flex items-center gap-1.5"
+                >
+                  {adminLoginLoading ? (
+                    <>
+                      <Loader2 size={13} className="animate-spin" />
+                      <span>Masuk...</span>
+                    </>
+                  ) : (
+                    <span>Masuk Akun Admin</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

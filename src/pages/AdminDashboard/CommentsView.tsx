@@ -14,7 +14,9 @@ import {
   Sliders,
   AlertTriangle,
   FileText,
-  RotateCcw
+  RotateCcw,
+  ExternalLink,
+  Image as ImageIcon
 } from "lucide-react";
 import { 
   subscribeToComments, 
@@ -605,6 +607,35 @@ export function CommentsView() {
                 <div className="text-xs sm:text-sm text-[#C0D3EB] font-light leading-relaxed whitespace-pre-wrap break-words pl-1 bg-white/[0.02] p-3 rounded-lg border border-white/5">
                   {comment.content}
                 </div>
+
+                {/* Attached Image Preview (Admin View) */}
+                {comment.imageUrl && (
+                  <div className="mt-1 pl-1">
+                    <a
+                      href={comment.imageUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.03] border border-white/10 hover:border-[#7DB3FF]/40 transition-colors group"
+                      title="Buka gambar di tab baru"
+                    >
+                      <img
+                        src={comment.imageUrl}
+                        alt="Lampiran komentar"
+                        className="w-14 h-14 object-cover rounded-lg border border-white/15 shrink-0"
+                      />
+                      <div className="flex flex-col text-left pr-2">
+                        <span className="text-xs font-medium text-white group-hover:text-[#7DB3FF] transition-colors flex items-center gap-1">
+                          <ImageIcon size={12} className="text-[#7DB3FF]" />
+                          <span>Gambar Terlampir</span>
+                          <ExternalLink size={11} className="opacity-70" />
+                        </span>
+                        <span className="text-[10px] text-white/40 truncate max-w-[200px]">
+                          {comment.imageUrl}
+                        </span>
+                      </div>
+                    </a>
+                  </div>
+                )}
               </div>
             ))}
           </div>

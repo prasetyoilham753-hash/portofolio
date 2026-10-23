@@ -814,7 +814,7 @@ export function Navigation() {
                   className={`liquid-glass-item w-full text-left justify-between cursor-pointer ${
                     backgroundType === 'molten' ? 'active' : ''
                   }`}
-                  title="Aktifkan latar belakang Molten Metal"
+                  title="Aktifkan latar belakang Theme 1"
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <span 
@@ -830,7 +830,7 @@ export function Navigation() {
                       }}
                       className="leading-tight truncate"
                     >
-                      Molten Metal
+                      Theme 1
                     </span>
                   </div>
                   {backgroundType === 'molten' && (
@@ -864,7 +864,7 @@ export function Navigation() {
                   className={`liquid-glass-item w-full text-left justify-between cursor-pointer ${
                     backgroundType === 'ghost-fibers' ? 'active' : ''
                   }`}
-                  title="Aktifkan latar belakang Ghost Fibers"
+                  title="Aktifkan latar belakang Theme 2"
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <span 
@@ -880,7 +880,7 @@ export function Navigation() {
                       }}
                       className="leading-tight truncate"
                     >
-                      Ghost Fibers
+                      Theme 2
                     </span>
                   </div>
                   {backgroundType === 'ghost-fibers' && (
@@ -914,7 +914,7 @@ export function Navigation() {
                   className={`liquid-glass-item w-full text-left justify-between cursor-pointer ${
                     backgroundType === 'light-pillar' ? 'active' : ''
                   }`}
-                  title="Aktifkan latar belakang Light Pillar"
+                  title="Aktifkan latar belakang Theme 3"
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <span 
@@ -930,7 +930,7 @@ export function Navigation() {
                       }}
                       className="leading-tight truncate"
                     >
-                      Light Pillar
+                      Theme 3
                     </span>
                   </div>
                   {backgroundType === 'light-pillar' && (

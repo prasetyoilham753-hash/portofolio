@@ -74,7 +74,8 @@ export function Hero({ profile }: HeroProps) {
   };
 
   React.useEffect(() => {
-    if (!profile?.cvUrl) return;
+    if (!profile?.cvUrl || typeof profile.cvUrl !== "string") return;
+    if (!profile.cvUrl.startsWith("http://") && !profile.cvUrl.startsWith("https://")) return;
     if ((profile as any).cvFileSize) {
       setFileSize((profile as any).cvFileSize);
       return;
