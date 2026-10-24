@@ -400,7 +400,7 @@ export default function Comments() {
                 required={!replyIsAnonymous}
                 placeholder="Name"
                 maxLength={60}
-                className={`glass-input px-3 py-1.5 rounded-lg text-xs outline-none transition-all w-full sm:w-auto sm:min-w-[220px] ${
+                className={`glass-input px-3 py-1.5 rounded-lg text-base sm:text-xs outline-none transition-all w-full sm:w-auto sm:min-w-[220px] ${
                   hasReplyAuthorError
                     ? "bg-red-500/10 border-red-500/50 text-red-100 placeholder:text-red-300/40"
                     : "bg-white/5 border border-white/10 focus:border-[#7DB3FF] text-white placeholder:text-white/35"
@@ -441,7 +441,7 @@ export default function Comments() {
           rows={2}
           maxLength={MAX_CHARS}
           placeholder={`Write a reply to @${targetItem.authorName}...`}
-          className="glass-input w-full p-3 rounded-lg text-xs leading-relaxed bg-white/5 border border-white/15 focus:border-[#7DB3FF] outline-none text-white placeholder:text-white/35 resize-none"
+          className="glass-input w-full p-3 rounded-lg text-base sm:text-xs leading-relaxed bg-white/5 border border-white/15 focus:border-[#7DB3FF] outline-none text-white placeholder:text-white/35 resize-none"
           disabled={replySubmitting}
         />
 
@@ -455,7 +455,7 @@ export default function Comments() {
           <button
             type="button"
             onClick={() => setReplyingTo(null)}
-            className="px-3 py-1.5 text-xs text-white/60 hover:text-white cursor-pointer"
+            className="px-3.5 py-2.5 rounded-xl text-xs font-medium text-white/60 hover:text-white hover:bg-white/5 transition-colors cursor-pointer select-none"
           >
             Cancel
           </button>
@@ -467,10 +467,27 @@ export default function Comments() {
               isMissingReplyAuthorIdentity ||
               hasReplyAuthorError
             }
-            onClick={() => handleSubmitReply(targetItem)}
-            className="ios-glass-btn ios-glass-primary px-4 py-1.5 text-xs font-semibold cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSubmitReply(targetItem);
+            }}
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-[#205BF0] hover:bg-[#1A4ED4] active:bg-[#1541B8] text-white shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer disabled:opacity-40 disabled:pointer-events-none disabled:cursor-not-allowed select-none group"
+            title="Post Reply"
           >
-            {replySubmitting ? "Sending..." : "Post Reply"}
+            {replySubmitting ? (
+              <>
+                <span className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin block" />
+                <span>Sending...</span>
+              </>
+            ) : (
+              <>
+                <Send
+                  size={14}
+                  className="transition-transform duration-200 group-hover:translate-x-0.5"
+                />
+                <span>Post Reply</span>
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -713,7 +730,7 @@ export default function Comments() {
                     required={!isAnonymous}
                     placeholder="Name"
                     maxLength={60}
-                    className={`glass-input px-4 py-2.5 rounded-xl text-sm w-full outline-none transition-all ${
+                    className={`glass-input px-4 py-2.5 rounded-xl text-base sm:text-sm w-full outline-none transition-all ${
                       hasAuthorInputError
                         ? "bg-red-500/10 border-red-500/60 focus:border-red-400 text-red-100 placeholder:text-red-300/40 shadow-[0_0_15px_rgba(239,68,68,0.2)]"
                         : "bg-[rgba(255,255,255,0.04)] border-white/15 focus:border-[#7DB3FF] focus:bg-[rgba(255,255,255,0.08)] text-white placeholder:text-white/40"
@@ -767,7 +784,7 @@ export default function Comments() {
                   rows={4}
                   maxLength={MAX_CHARS}
                   placeholder="Share ur thought, questions, ideas, or vent your frustation"
-                  className="glass-input w-full p-4 rounded-xl text-sm leading-relaxed bg-[rgba(255,255,255,0.04)] border border-white/15 focus:border-[#7DB3FF] focus:bg-[rgba(255,255,255,0.08)] outline-none text-white placeholder:text-white/40 resize-none transition-all"
+                  className="glass-input w-full p-4 rounded-xl text-base sm:text-sm leading-relaxed bg-[rgba(255,255,255,0.04)] border border-white/15 focus:border-[#7DB3FF] focus:bg-[rgba(255,255,255,0.08)] outline-none text-white placeholder:text-white/40 resize-none transition-all"
                   disabled={submitting}
                   required
                 />
