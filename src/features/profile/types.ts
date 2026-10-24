@@ -78,6 +78,7 @@ export interface SiteProfile {
   photoPath2?: string;
   cvUrl?: string;
   cvPath?: string;
+  cvFileSize?: string;
   cvAccessCode?: string;
   socialLinks: {
     github?: string;

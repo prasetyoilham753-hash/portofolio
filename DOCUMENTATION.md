@@ -77,26 +77,22 @@ Visitor → write → validate → spam protection → Firestore → success/err
 *Note: Must be explicitly verified before Phase 6.*
 
 ## 11. FIREBASE INITIALIZATION
-*   **Location:** `src/services/firebase/config.ts` (Planned)
-*   **Behavior:** Singleton instance. No duplicate initialization.
+*   **Location:** `src/services/firebase/config.ts`
+*   **Behavior:** Singleton instance. Firebase App Check (`ReCaptchaEnterpriseProvider` with debug token support in local/preview) initializes immediately after `initializeApp` and before `initializeFirestore` and `getAuth` so initial requests carry valid attestation tokens.
 
 ## 12. ENVIRONMENT CONFIGURATION
 **Development / Preview / Production**
 *   **Variables:** `VITE_ADMIN_EMAIL`, `VITE_RECAPTCHA_SITE_KEY`, `VITE_APPCHECK_DEBUG_TOKEN`, `VITE_GA_MEASUREMENT_ID` (Frontend tracking only).
+*   **CSP Alignment:** `connect-src` across `server.ts`, `public/_headers`, and `firebase.json` explicitly permits `firebaseinstallations.googleapis.com`, `firebaseappcheck.googleapis.com`, `content-firebaseappcheck.googleapis.com`, `firestore.googleapis.com`, `identitytoolkit.googleapis.com`, `securetoken.googleapis.com`, `www.googleapis.com`, and Cloudinary endpoints.
 *   **Commands:** `npm run dev`, `npm run build`.
 
 ## 12.1 GOOGLE ANALYTICS 4 (GA4) ARCHITECTURE
 *   **Frontend Tracking (bintangprasetyo.com):**
     *   Measurement ID is provided via `VITE_GA_MEASUREMENT_ID` (format `G-XXXXXXXXXX`).
-    *   Dual collection via official Google tag (`gtag.js`) and Firebase Analytics SDK.
+    *   Scoped strictly to production domains (disabled on `localhost` and `*.run.app` preview environments to avoid preview metric pollution and cross-origin iframe tracking-blocker fetch errors).
     *   Accurate SPA route changes tracked via `page_view` in `AppLayout.tsx`.
     *   Custom interaction events (`click_instagram`, `click_linkedin`, `click_download_cv`).
     *   Zero credentials or private keys in the client bundle.
-*   **Backend Reporting (Admin Analytics Data API):**
-    *   Runs on `server.ts` endpoint `/api/analytics/report`.
-    *   Accesses `@google-analytics/data` (BetaAnalyticsDataClient).
-    *   Server-side environment variables: `GA_PROPERTY_ID`, `GA_CLIENT_EMAIL`, `GA_PRIVATE_KEY` (or `GA_SERVICE_ACCOUNT_KEY`).
-    *   Never exposed to Vite or client builds.
 
 ## 13. AUTHENTICATION
 *   **Mechanism:** EMAIL + PASSWORD via Firebase Auth (`signInWithEmailAndPassword`).
@@ -117,16 +113,18 @@ Visitor → write → validate → spam protection → Firestore → success/err
 *   Read/Write/Delete: Full access to all collections.
 *(Never use `allow read, write: if true;`)*
 
-## 17. QNA SECURITY
-*   Anonymous submission, input validation, honeypot spam protection.
-*   Public cannot read other submissions.
+## 17. PUBLIC COMMENTS & IDENTITY PROTECTION SECURITY
+*   **Public Visitor Input:** Supports alias or anonymous submission with phrase filtering and server-side validation.
+*   **Automatic Admin Identity Rejection:** Any visitor entering a reserved/protected admin identity (`Admin`, `Administrator`, `Bintang`, `Bintang Prasetyo`, `Bprasety`, `Bprasety_`, `Prasetyo`, or custom entries in `site_content/profile.adminAllowedNames`) on `/comments` is automatically rejected both in the UI and via Firestore Security Rules (`isPublicAuthorNameAllowed`).
+*   **Dashboard-Only Official Comments, Stickers & Threaded Replies:** Comments and replies bearing an official admin identity (`isAdmin: true`) or image/sticker attachments (including sticker-only submissions without text) can exclusively be submitted from inside the authenticated Admin Dashboard (`CommentsView`), which provides threaded reply moderation backed by Firebase Auth + `admins/{uid}` authorization in Firestore Rules. Attached images render as compact WhatsApp-style stickers (`w-fit` container strictly matching image dimensions).
+*   **Zero UI Information Leakage:** The public `/comments` page contains no secret verification codes, no admin login modals, and no references or hints regarding the existence of the Admin Dashboard.
 
 ## 18. COMMISSION SECURITY
 *   States: New, Reviewing, Contacted, In Progress, Completed, Archived.
 *   Admin-only read access.
 
 ## 19. ADMIN DASHBOARD
-Modules: Overview, Projects, Gallery, Certificates, QnA, Commission, Settings.
+Modules: Overview, Profile, Projects, Gallery, Certificates, Comments (Moderation + Official Admin Composer/Replies + Identity Protection), Settings.
 
 ## 20. ERROR ARCHITECTURE
 Classes: NETWORK, CONFIGURATION, AUTHENTICATION, AUTHORIZATION, FIRESTORE, APPLICATION, PERFORMANCE, DEPLOYMENT.

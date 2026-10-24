@@ -112,7 +112,7 @@ export default function Projects() {
       {/* Header Section */}
       <header className="max-w-3xl flex flex-col gap-4">
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-medium text-white tracking-tight leading-[1.12]">
-          Project
+          Projects
         </h1>
         {projectDescription ? (
           <p className="text-[#A8B8CC] text-base sm:text-lg font-light leading-relaxed max-w-2xl">
@@ -213,8 +213,8 @@ export default function Projects() {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="ios-glass-icon w-9 h-9 cursor-pointer shrink-0"
-                          aria-label={`Buka detail ${project.title}`}
-                          title="Buka tautan project"
+                          aria-label={`Open ${project.title} details`}
+                          title="Open project link"
                         >
                           <ArrowUpRight size={17} className="text-[#A8B8CC] group-hover:text-white transition-colors" />
                         </a>
@@ -250,7 +250,7 @@ export default function Projects() {
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-[12px] font-mono text-[#7DB3FF]/80 hover:text-[#7DB3FF] transition-colors inline-flex items-center gap-1"
-                        title="Buka repository GitHub"
+                        title="Open GitHub repository"
                       >
                         <span>GitHub</span>
                         <ArrowUpRight size={12} />

@@ -698,9 +698,9 @@ export function Navigation() {
               ? "border-[rgba(120,170,255,0.30)] bg-[rgba(6,15,35,0.22)] text-[#7DB3FF]"
               : "bg-[rgba(6,15,35,0.18)] text-text-secondary hover:text-white hover:border-[rgba(140,190,255,0.35)] hover:bg-[rgba(255,255,255,0.08)]"
           }`}
-          aria-label="Menu navigasi tambahan"
+          aria-label="Additional navigation menu"
           aria-expanded={isOpen}
-          title={isOpen ? "Tutup menu" : "Buka menu"}
+          title={isOpen ? "Close menu" : "Open menu"}
         >
           {/* Animated Icon: Rotates & Morphs between MoreHorizontal and X */}
           <motion.div
@@ -814,7 +814,7 @@ export function Navigation() {
                   className={`liquid-glass-item w-full text-left justify-between cursor-pointer ${
                     backgroundType === 'molten' ? 'active' : ''
                   }`}
-                  title="Aktifkan latar belakang Molten Metal"
+                  title="Activate Theme 1 background"
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <span 
@@ -830,7 +830,7 @@ export function Navigation() {
                       }}
                       className="leading-tight truncate"
                     >
-                      Molten Metal
+                      Theme 1
                     </span>
                   </div>
                   {backgroundType === 'molten' && (
@@ -864,7 +864,7 @@ export function Navigation() {
                   className={`liquid-glass-item w-full text-left justify-between cursor-pointer ${
                     backgroundType === 'ghost-fibers' ? 'active' : ''
                   }`}
-                  title="Aktifkan latar belakang Ghost Fibers"
+                  title="Activate Theme 2 background"
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <span 
@@ -880,7 +880,7 @@ export function Navigation() {
                       }}
                       className="leading-tight truncate"
                     >
-                      Ghost Fibers
+                      Theme 2
                     </span>
                   </div>
                   {backgroundType === 'ghost-fibers' && (
@@ -914,7 +914,7 @@ export function Navigation() {
                   className={`liquid-glass-item w-full text-left justify-between cursor-pointer ${
                     backgroundType === 'light-pillar' ? 'active' : ''
                   }`}
-                  title="Aktifkan latar belakang Light Pillar"
+                  title="Activate Theme 3 background"
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <span 
@@ -930,7 +930,7 @@ export function Navigation() {
                       }}
                       className="leading-tight truncate"
                     >
-                      Light Pillar
+                      Theme 3
                     </span>
                   </div>
                   {backgroundType === 'light-pillar' && (
@@ -955,7 +955,7 @@ export function Navigation() {
       {/* Liquid Glass Navigation Dock: Stable and responsive */}
       <nav 
         id="main-navigation-dock"
-        aria-label="Navigasi utama"
+        aria-label="Primary navigation"
         className="liquid-glass-nav select-none touch-none !overflow-visible"
         style={dockStyle}
         onPointerMove={handlePointerMove}

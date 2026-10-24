@@ -74,35 +74,61 @@ export function Hero({ profile }: HeroProps) {
   };
 
   React.useEffect(() => {
-    if (!profile?.cvUrl) return;
-    if ((profile as any).cvFileSize) {
-      setFileSize((profile as any).cvFileSize);
+    const cvUrl = profile?.cvUrl;
+    if (!cvUrl) return;
+    if (profile?.cvFileSize) {
+      setFileSize(profile.cvFileSize);
       return;
     }
 
+    const cacheKey = `bp_cv_size_${cvUrl}`;
+    try {
+      const cachedSize = sessionStorage.getItem(cacheKey);
+      if (cachedSize) {
+        setFileSize(cachedSize);
+        return;
+      }
+    } catch {
+      // Ignore storage access errors
+    }
+
+    const isAllowedOrigin =
+      cvUrl.startsWith("/") ||
+      cvUrl.startsWith("https://res.cloudinary.com/");
+    if (!isAllowedOrigin) return;
+
     let isMounted = true;
-    fetch(profile.cvUrl, { method: "HEAD" })
-      .then((res) => {
-        const bytes = res.headers.get("content-length");
-        if (bytes && isMounted) {
-          const num = parseInt(bytes, 10);
-          if (!isNaN(num) && num > 0) {
-            if (num < 1024 * 1024) {
-              setFileSize(`${(num / 1024).toFixed(0)} KB`);
-            } else {
-              setFileSize(`${(num / (1024 * 1024)).toFixed(1)} MB`);
-            }
+    const xhr = new XMLHttpRequest();
+    xhr.open("HEAD", cvUrl, true);
+    xhr.onload = () => {
+      if (!isMounted || xhr.status < 200 || xhr.status >= 400) return;
+      const bytes = xhr.getResponseHeader("content-length");
+      if (bytes) {
+        const num = parseInt(bytes, 10);
+        if (!isNaN(num) && num > 0) {
+          const formatted =
+            num < 1024 * 1024
+              ? `${Math.max(1, Math.round(num / 1024))} KB`
+              : `${(num / (1024 * 1024)).toFixed(1)} MB`;
+          setFileSize(formatted);
+          try {
+            sessionStorage.setItem(cacheKey, formatted);
+          } catch {
+            // Ignore storage errors
           }
         }
-      })
-      .catch(() => {
-        if (isMounted) setFileSize("2.4 MB");
-      });
+      }
+    };
+    xhr.onerror = () => {
+      if (isMounted) setFileSize("2.4 MB");
+    };
+    xhr.send();
 
     return () => {
       isMounted = false;
+      xhr.abort();
     };
-  }, [profile?.cvUrl]);
+  }, [profile?.cvUrl, profile?.cvFileSize]);
 
   const handleNameClick = () => {
     const next = clickCount + 1;

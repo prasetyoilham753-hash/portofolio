@@ -101,7 +101,7 @@ export default function AdminDashboard() {
             Dashboard & Content Manager
           </h1>
           <p className="text-text-secondary text-sm sm:text-base font-light">
-            Kelola karya, sertifikat, biografi profil, kueri pengunjung, dan konten situs secara langsung.
+            Manage projects, artworks, certificates, biography, visitor discussions, and live site content.
           </p>
         </div>
         

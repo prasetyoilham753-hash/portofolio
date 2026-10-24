@@ -80,7 +80,7 @@ export function PrecompiledCyberpunkButton() {
         </span>
       </button>
       <span style={{ fontSize: '11px', color: '#A8B8CC', opacity: 0.6 }}>
-        {isActive ? 'Klik kedua untuk bergerak mundur kembali' : 'Klik pertama untuk interaksi maju'}
+        {isActive ? 'Click again to reset position' : 'Click to trigger forward motion'}
       </span>
     </div>
   );
@@ -247,7 +247,7 @@ export function PrecompiledShimmerGlassCard() {
         </h3>
 
         <p className="text-xs text-[#A8B8CC] leading-relaxed mb-5 font-light">
-          Komponen UI modular dengan pantulan cahaya material, kontras tinggi, dan animasi mikro responsif.
+          Modular UI surface with specular light reflections, crisp contrast, and responsive micro-interactions.
         </p>
 
         <div className="flex items-center justify-between pt-4 border-t border-white/10">

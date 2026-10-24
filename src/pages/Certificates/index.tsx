@@ -102,7 +102,7 @@ function CertificateCard({
         {/* Full Edge-to-Edge Certificate Image */}
         <img
           src={getOptimizedImageUrl(currentImageUrl, { width: 800, quality: "auto" })}
-          alt={`${item.title} - Foto ${currentIdx + 1}`}
+          alt={`${item.title} - Photo ${currentIdx + 1}`}
           loading="lazy"
           decoding="async"
           key={currentImageUrl}
@@ -147,7 +147,7 @@ function CertificateCard({
               type="button"
               onClick={handlePrevSlide}
               className="pointer-events-auto w-8 h-8 rounded-full bg-[rgba(6,15,35,0.75)] hover:bg-[#7DB3FF] text-white hover:text-black border border-white/20 hover:border-[#7DB3FF] flex items-center justify-center backdrop-blur-md transition-all duration-200 opacity-80 sm:opacity-0 group-hover:opacity-100 shadow-lg cursor-pointer transform active:scale-90"
-              aria-label="Foto sebelumnya"
+              aria-label="Previous photo"
             >
               <ChevronLeft size={16} />
             </button>
@@ -156,7 +156,7 @@ function CertificateCard({
               type="button"
               onClick={handleNextSlide}
               className="pointer-events-auto w-8 h-8 rounded-full bg-[rgba(6,15,35,0.75)] hover:bg-[#7DB3FF] text-white hover:text-black border border-white/20 hover:border-[#7DB3FF] flex items-center justify-center backdrop-blur-md transition-all duration-200 opacity-80 sm:opacity-0 group-hover:opacity-100 shadow-lg cursor-pointer transform active:scale-90"
-              aria-label="Foto berikutnya"
+              aria-label="Next photo"
             >
               <ChevronRight size={16} />
             </button>
@@ -179,7 +179,7 @@ function CertificateCard({
                     ? "w-5 bg-[#7DB3FF] shadow-[0_0_8px_#7DB3FF]"
                     : "w-1.5 bg-white/40 hover:bg-white/70"
                 }`}
-                aria-label={`Slide ke ${dotIdx + 1}`}
+                aria-label={`Go to slide ${dotIdx + 1}`}
               />
             ))}
           </div>
@@ -240,9 +240,9 @@ function CertificateCard({
                     ? "bg-[#7DB3FF]/25 border border-[#7DB3FF]/50 text-[#7DB3FF] hover:bg-[#7DB3FF]/35" 
                     : "bg-white/[0.08] border border-white/15 text-white/70 hover:text-white hover:bg-white/[0.15] hover:border-[#7DB3FF]/40"
                 }`}
-                title={isSkillsExpanded ? "Sembunyikan tag lainnya" : "Tampilkan semua tag"}
+                title={isSkillsExpanded ? "Collapse tags" : "Show all tags"}
               >
-                {isSkillsExpanded ? "− Ringkas" : `+${item.skills.length - 3}`}
+                {isSkillsExpanded ? "− Less" : `+${item.skills.length - 3}`}
               </span>
             )}
           </div>
@@ -434,7 +434,7 @@ export default function Certificates() {
         <div className="flex items-center justify-center min-h-[350px] w-full">
           <div className="flex flex-col items-center gap-3 text-text-secondary text-sm">
             <div className="w-8 h-8 rounded-full border-2 border-[#7DB3FF]/30 border-t-[#7DB3FF] animate-spin" />
-            <span>Memuat Sertifikat...</span>
+            <span>Loading Certificates...</span>
           </div>
         </div>
       ) : certificates.length === 0 ? (
@@ -445,10 +445,10 @@ export default function Certificates() {
           </div>
           <div className="flex flex-col gap-2 max-w-md">
             <h3 className="text-xl font-display font-medium text-white">
-              Belum Ada Sertifikat
+              No Certificates Yet
             </h3>
             <p className="text-sm font-light leading-relaxed text-text-secondary">
-              Sertifikasi profesional dan kredensial terverifikasi akan ditampilkan di sini setelah dipublikasikan oleh admin.
+              Professional certifications and verified credentials will appear here once published.
             </p>
           </div>
         </div>
@@ -460,10 +460,10 @@ export default function Certificates() {
           </div>
           <div className="flex flex-col gap-2 max-w-md">
             <h3 className="text-lg font-display font-medium text-white">
-              Tidak ada sertifikat untuk kategori "{selectedCategory}"
+              No certificates found in "{selectedCategory}"
             </h3>
             <p className="text-xs font-light leading-relaxed text-text-secondary">
-              Pilih kategori lain atau kembali ke 'All' untuk melihat seluruh kredensial.
+              Select another category or switch back to 'All' to view all credentials.
             </p>
           </div>
         </div>
@@ -497,7 +497,7 @@ export default function Certificates() {
           <button
             onClick={() => setActiveCert(null)}
             className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 p-2.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white cursor-pointer transition-all duration-200"
-            aria-label="Tutup pratinjau"
+            aria-label="Close preview"
           >
             <X size={20} />
           </button>
@@ -510,7 +510,7 @@ export default function Certificates() {
                 handlePrevCert();
               }}
               className="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 z-50 p-3 rounded-full bg-[rgba(6,15,35,0.75)] hover:bg-[#7DB3FF] border border-white/20 text-white hover:text-black cursor-pointer transition-all duration-200 shadow-2xl backdrop-blur-md"
-              title="Sertifikat sebelumnya"
+              title="Previous certificate"
             >
               <ChevronLeft size={22} />
             </button>
@@ -524,7 +524,7 @@ export default function Certificates() {
                 handleNextCert();
               }}
               className="absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 z-50 p-3 rounded-full bg-[rgba(6,15,35,0.75)] hover:bg-[#7DB3FF] border border-white/20 text-white hover:text-black cursor-pointer transition-all duration-200 shadow-2xl backdrop-blur-md"
-              title="Sertifikat selanjutnya"
+              title="Next certificate"
             >
               <ChevronRight size={22} />
             </button>
@@ -558,7 +558,7 @@ export default function Certificates() {
               {activeImages.length > 1 && (
                 <div className="absolute top-4 left-4 z-20 flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-medium bg-[rgba(6,15,35,0.85)] border border-[#7DB3FF]/40 text-[#7DB3FF] backdrop-blur-md shadow-md">
                   <ImageIcon size={13} />
-                  <span>Foto {activePhotoIdx + 1} dari {activeImages.length}</span>
+                  <span>Photo {activePhotoIdx + 1} of {activeImages.length}</span>
                 </div>
               )}
 
@@ -579,7 +579,7 @@ export default function Certificates() {
                       type="button"
                       onClick={() => setActivePhotoIdx((prev) => (prev - 1 + activeImages.length) % activeImages.length)}
                       className="absolute left-2 p-2.5 rounded-full bg-[rgba(6,15,35,0.8)] hover:bg-[#7DB3FF] text-white hover:text-black border border-white/20 hover:border-[#7DB3FF] transition-all shadow-lg backdrop-blur-md cursor-pointer"
-                      title="Foto sebelumnya"
+                      title="Previous photo"
                     >
                       <ChevronLeft size={18} />
                     </button>
@@ -588,7 +588,7 @@ export default function Certificates() {
                       type="button"
                       onClick={() => setActivePhotoIdx((prev) => (prev + 1) % activeImages.length)}
                       className="absolute right-2 p-2.5 rounded-full bg-[rgba(6,15,35,0.8)] hover:bg-[#7DB3FF] text-white hover:text-black border border-white/20 hover:border-[#7DB3FF] transition-all shadow-lg backdrop-blur-md cursor-pointer"
-                      title="Foto selanjutnya"
+                      title="Next photo"
                     >
                       <ChevronRight size={18} />
                     </button>
@@ -665,7 +665,7 @@ export default function Certificates() {
                     <button
                       onClick={() => handleCopyId(activeCert.credentialId)}
                       className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs flex items-center gap-1 cursor-pointer transition-all"
-                      title="Salin ID Kredensial"
+                      title="Copy Credential ID"
                     >
                       {copiedId ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
                       <span className="text-[11px]">{copiedId ? "Copied" : "Copy"}</span>

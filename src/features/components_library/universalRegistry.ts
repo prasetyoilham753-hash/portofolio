@@ -25,8 +25,8 @@ export const UNIVERSAL_COMPONENT_REGISTRY: ComponentMetadata[] = [
     type: "button-primary",
     name: "Primary & Loading Button",
     category: "Buttons",
-    description: "Tombol interaktif utama dengan status loading dan animasi dua arah.",
-    defaultProps: { label: "Kirim Data", variant: "primary", loading: false, disabled: false },
+    description: "Primary interactive button with loading state and bidirectional motion.",
+    defaultProps: { label: "Submit Data", variant: "primary", loading: false, disabled: false },
     supportedProps: ["label", "variant", "loading", "disabled"],
     editableProperties: [
       { key: "label", label: "Button Label", type: "string" },
@@ -42,8 +42,8 @@ export const UNIVERSAL_COMPONENT_REGISTRY: ComponentMetadata[] = [
     type: "button-fab",
     name: "Floating Action Button (FAB)",
     category: "Buttons",
-    description: "Tombol aksi mengambang dengan efek glow dan rotasi ikon.",
-    defaultProps: { label: "Tambah", icon: "Plus" },
+    description: "Floating action button with luminous glow and icon rotation.",
+    defaultProps: { label: "Add", icon: "Plus" },
     supportedProps: ["label", "icon"],
     editableProperties: [
       { key: "label", label: "Tooltip / Label", type: "string" },
@@ -58,7 +58,7 @@ export const UNIVERSAL_COMPONENT_REGISTRY: ComponentMetadata[] = [
     type: "card-profile",
     name: "Profile & Glassmorphism Card",
     category: "Cards",
-    description: "Kartu profil dengan efek glassmorphism, avatar, badge status, dan tombol aksi.",
+    description: "Profile card with glassmorphism surface, avatar, status badge, and action button.",
     defaultProps: { title: "Bintang Prasetyo", subtitle: "Creative Technologist", verified: true },
     supportedProps: ["title", "subtitle", "verified"],
     editableProperties: [
@@ -74,7 +74,7 @@ export const UNIVERSAL_COMPONENT_REGISTRY: ComponentMetadata[] = [
     type: "card-pricing",
     name: "Pricing & Feature Card",
     category: "Cards",
-    description: "Kartu harga untuk layanan atau produk digital dengan daftar fitur.",
+    description: "Pricing card for digital services or products with feature checklist.",
     defaultProps: { planName: "Pro Tier", price: "$49", period: "month" },
     supportedProps: ["planName", "price", "period"],
     editableProperties: [
@@ -92,8 +92,8 @@ export const UNIVERSAL_COMPONENT_REGISTRY: ComponentMetadata[] = [
     type: "feedback-spinner",
     name: "Spinner & Progress Loader",
     category: "Feedback",
-    description: "Indikator pemuatan orbital modern dan bilah progres animasi.",
-    defaultProps: { size: "md", text: "Memproses data..." },
+    description: "Modern orbital loading spinner and animated progress bar.",
+    defaultProps: { size: "md", text: "Processing data..." },
     supportedProps: ["size", "text"],
     editableProperties: [
       { key: "text", label: "Loading Text", type: "string" },
@@ -107,8 +107,8 @@ export const UNIVERSAL_COMPONENT_REGISTRY: ComponentMetadata[] = [
     type: "feedback-toast",
     name: "Toast & Alert Notification",
     category: "Feedback",
-    description: "Notifikasi status mengambang dengan tombol tutup dan indikator sukses/error.",
-    defaultProps: { message: "Perubahan berhasil disimpan ke database.", type: "success" },
+    description: "Floating status toast notification with dismiss button and status indicator.",
+    defaultProps: { message: "Changes saved to database successfully.", type: "success" },
     supportedProps: ["message", "type"],
     editableProperties: [
       { key: "message", label: "Message", type: "string" },
@@ -124,8 +124,8 @@ export const UNIVERSAL_COMPONENT_REGISTRY: ComponentMetadata[] = [
     type: "form-input",
     name: "Interactive Form & Input",
     category: "Forms",
-    description: "Input teks, select dropdown, switch toggle, dan validasi submit.",
-    defaultProps: { placeholder: "Masukkan alamat email...", label: "Email Address", required: true },
+    description: "Text input, select dropdown, toggle switch, and submission validation.",
+    defaultProps: { placeholder: "Enter email address...", label: "Email Address", required: true },
     supportedProps: ["placeholder", "label", "required", "errorState"],
     editableProperties: [
       { key: "label", label: "Field Label", type: "string" },
@@ -142,7 +142,7 @@ export const UNIVERSAL_COMPONENT_REGISTRY: ComponentMetadata[] = [
     type: "nav-tabs",
     name: "Animated Tabs & Stepper",
     category: "Navigation",
-    description: "Navigasi tab interaktif dengan animasi geser cair (fluid sliding pill).",
+    description: "Interactive tab navigation with a fluid sliding pill indicator.",
     defaultProps: { activeTab: "Overview", items: "Overview, Analytics, Settings" },
     supportedProps: ["activeTab", "items"],
     editableProperties: [
@@ -158,8 +158,8 @@ export const UNIVERSAL_COMPONENT_REGISTRY: ComponentMetadata[] = [
     type: "data-accordion",
     name: "Accordion & Expandable List",
     category: "Data Display",
-    description: "Komponen akordeon responsif untuk FAQ atau tampilan data terstruktur.",
-    defaultProps: { title: "Bagaimana cara kerja sistem ini?", isOpen: false },
+    description: "Responsive accordion component for FAQs or structured expandable content.",
+    defaultProps: { title: "How does this system work?", isOpen: false },
     supportedProps: ["title", "isOpen"],
     editableProperties: [
       { key: "title", label: "Accordion Title", type: "string" },
@@ -175,8 +175,8 @@ export const UNIVERSAL_COMPONENT_REGISTRY: ComponentMetadata[] = [
     type: "overlay-modal",
     name: "Modal Dialog & Drawer",
     category: "Overlays",
-    description: "Dialog modal dengan latar belakang blur, tombol tutup, dan animasi masuk.",
-    defaultProps: { title: "Konfirmasi Tindakan", isOpen: true },
+    description: "Modal dialog with backdrop blur, close button, and smooth entrance animation.",
+    defaultProps: { title: "Confirm Action", isOpen: true },
     supportedProps: ["title", "isOpen"],
     editableProperties: [
       { key: "title", label: "Modal Title", type: "string" },
@@ -192,7 +192,7 @@ export const UNIVERSAL_COMPONENT_REGISTRY: ComponentMetadata[] = [
     type: "advanced-gallery",
     name: "Image Gallery & Carousel",
     category: "Advanced",
-    description: "Galeri gambar interaktif dengan indikator titik dan navigasi geser.",
+    description: "Interactive image gallery with dot pagination and swipe navigation.",
     defaultProps: { title: "Featured Creative Works" },
     supportedProps: ["title"],
     editableProperties: [

@@ -72,7 +72,7 @@ export function GalleryView() {
       },
       (err) => {
         console.error("Error fetching gallery items:", err);
-        setErrorMsg("Gagal memuat karya seni Art Gallery.");
+        setErrorMsg("Failed to load Art Gallery artworks.");
         setLoading(false);
       }
     );
@@ -108,11 +108,11 @@ export function GalleryView() {
         galleryTitle: galleryTitle.trim() || "Art Gallery",
         galleryDescription: galleryDescription.trim(),
       } as any);
-      setHeaderMsg({ type: "success", text: "Header Art Gallery berhasil disimpan!" });
+      setHeaderMsg({ type: "success", text: "Art Gallery header saved!" });
       setTimeout(() => setHeaderMsg(null), 4000);
     } catch (err: any) {
       console.error("Failed to save gallery header:", err);
-      setHeaderMsg({ type: "error", text: err?.message || "Gagal menyimpan header." });
+      setHeaderMsg({ type: "error", text: err?.message || "Failed to save header." });
     } finally {
       setSavingHeader(false);
     }
@@ -163,7 +163,7 @@ export function GalleryView() {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      setUploadError("Silakan pilih file gambar (JPG, PNG, WebP, GIF, SVG, AVIF).");
+      setUploadError("Please select a valid image file (JPG, PNG, WebP, GIF, SVG, AVIF).");
       return;
     }
 
@@ -194,7 +194,7 @@ export function GalleryView() {
       setUploadingImage(false);
     } catch (err: any) {
       console.error("Cloudinary art upload failed:", err);
-      setUploadError(err?.message || "Gagal mengunggah foto ke Cloudinary.");
+      setUploadError(err?.message || "Failed to upload image to Cloudinary.");
       setUploadingImage(false);
     }
   };
@@ -221,16 +221,17 @@ export function GalleryView() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (uploadingImage) {
-      alert("Sedang mengunggah foto ke Cloudinary. Mohon tunggu sebelum menyimpan.");
+      setUploadError("Image is still uploading to Cloudinary. Please wait before saving.");
       return;
     }
 
     if (!imageUrl.trim()) {
-      alert("Mohon upload foto karya seni terlebih dahulu melalui area Cloudinary.");
+      setUploadError("Please upload an artwork image via Cloudinary first.");
       return;
     }
 
     setSubmitting(true);
+    setUploadError(null);
     try {
       if (editingId) {
         await updateGalleryItem(editingId, {
@@ -262,7 +263,7 @@ export function GalleryView() {
       resetForm();
     } catch (err: any) {
       console.error("Failed to save artwork:", err);
-      alert("Gagal menyimpan karya seni: " + (err?.message || "Terjadi kesalahan"));
+      setUploadError("Failed to save artwork: " + (err?.message || "An unexpected error occurred."));
     } finally {
       setSubmitting(false);
     }
@@ -280,7 +281,8 @@ export function GalleryView() {
       setItemToDelete(null);
     } catch (err: any) {
       console.error("Failed to delete artwork:", err);
-      alert("Gagal menghapus karya seni: " + (err?.message || "Periksa koneksi dan izin."));
+      setErrorMsg("Failed to delete artwork: " + (err?.message || "Check connection and permissions."));
+      setItemToDelete(null);
     } finally {
       setIsDeletingItem(false);
     }
@@ -316,10 +318,10 @@ export function GalleryView() {
         <div>
           <h2 className="text-2xl font-display font-medium text-white flex items-center gap-2.5">
             <ImageIcon className="text-[#7DB3FF]" size={22} />
-            <span>Manajemen Art Gallery</span>
+            <span>Art Gallery Management</span>
           </h2>
           <p className="text-text-secondary text-sm font-light mt-1">
-            Kelola karya seni, foto ilustrasi, dan komposisi visual dengan upload langsung ke Cloudinary.
+            Manage artworks, illustrations, and visual compositions with direct uploads to Cloudinary.
           </p>
         </div>
 
@@ -328,7 +330,7 @@ export function GalleryView() {
           className="ios-glass-btn ios-glass-primary px-5 py-2.5 text-xs font-semibold cursor-pointer flex items-center gap-2 self-start sm:self-auto"
         >
           <Plus size={15} />
-          <span>Tambah Foto / Karya Seni</span>
+          <span>Add Photo / Artwork</span>
         </button>
       </div>
 
@@ -340,7 +342,7 @@ export function GalleryView() {
             <div>
               <h3 className="text-lg font-display text-white">Art Gallery Page Header</h3>
               <p className="text-xs text-text-secondary font-light">
-                Kelola judul dan deskripsi yang tampil di bagian atas halaman publik Art Gallery (/gallery).
+                Configure the title and subtitle displayed at the top of the public Art Gallery (/gallery).
               </p>
             </div>
           </div>
@@ -361,7 +363,7 @@ export function GalleryView() {
         <form onSubmit={handleSaveHeader} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-              Judul Halaman
+              Page Title
             </label>
             <input
               type="text"
@@ -374,14 +376,14 @@ export function GalleryView() {
 
           <div className="sm:col-span-2 flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-              Deskripsi Halaman (Sub-judul)
+              Page Description (Subtitle)
             </label>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={galleryDescription}
                 onChange={(e) => setGalleryDescription(e.target.value)}
-                placeholder="Tulis deskripsi atau subjudul halaman galeri..."
+                placeholder="Write a subtitle or description for the gallery page..."
                 className="glass-input px-4 py-2.5 rounded-xl text-sm flex-1 bg-white/5 border border-white/15 focus:border-[#7DB3FF] outline-none text-white"
               />
               <button
@@ -394,7 +396,7 @@ export function GalleryView() {
                 ) : (
                   <Check size={13} />
                 )}
-                <span>Simpan</span>
+                <span>Save</span>
               </button>
             </div>
           </div>
@@ -408,7 +410,7 @@ export function GalleryView() {
         </div>
       ) : loading ? (
         <div className="glass-card p-12 rounded-2xl text-center text-text-secondary text-sm">
-          Memuat daftar karya seni...
+          Loading artworks...
         </div>
       ) : artworks.length === 0 ? (
         <div className="glass-card p-12 rounded-2xl text-center flex flex-col items-center justify-center gap-4 text-[#A8B8CC]">
@@ -416,9 +418,9 @@ export function GalleryView() {
             <ImageIcon size={26} />
           </div>
           <div className="flex flex-col gap-1 max-w-md">
-            <h3 className="text-lg font-medium text-white">Belum Ada Karya di Art Gallery</h3>
+            <h3 className="text-lg font-medium text-white">No Artworks in Art Gallery Yet</h3>
             <p className="text-sm font-light leading-relaxed">
-              Tambahkan foto, ilustrasi, atau karya visual Anda dengan upload langsung ke Cloudinary tanpa perlu mengisi URL. Setiap foto akan otomatis menyesuaikan ukuran kartu dalam layout menyamping yang abstrak!
+              Upload photos, illustrations, or visual studies directly to Cloudinary without manual URLs. Each image automatically adapts to its natural aspect ratio in the gallery layout.
             </p>
           </div>
           <button
@@ -426,7 +428,7 @@ export function GalleryView() {
             className="ios-glass-btn ios-glass-primary px-6 py-2.5 text-xs font-semibold cursor-pointer flex items-center gap-2 mt-2"
           >
             <Plus size={14} />
-            <span>Tambah Foto Sekarang</span>
+            <span>Add Photo Now</span>
           </button>
         </div>
       ) : (
@@ -453,7 +455,7 @@ export function GalleryView() {
 
                 {/* Cloudinary indicator */}
                 {item.imageUrl?.includes("cloudinary") && (
-                  <span className="absolute bottom-2 right-2 p-1.5 rounded-lg bg-black/75 text-emerald-400 border border-emerald-500/30" title="Tersimpan di Cloudinary">
+                  <span className="absolute bottom-2 right-2 p-1.5 rounded-lg bg-black/75 text-emerald-400 border border-emerald-500/30" title="Hosted on Cloudinary">
                     <Cloud size={12} />
                   </span>
                 )}
@@ -475,7 +477,7 @@ export function GalleryView() {
               <div className="flex flex-col gap-1">
                 <div className="flex items-center justify-between gap-2">
                   <h4 className="text-base font-bold text-white truncate">
-                    {item.title || <span className="italic text-white/50 font-normal">Tanpa Judul</span>}
+                    {item.title || <span className="italic text-white/50 font-normal">Untitled</span>}
                   </h4>
                   {item.year && (
                     <span className="text-xs text-text-muted font-mono shrink-0">
@@ -497,7 +499,7 @@ export function GalleryView() {
                     onClick={() => handleMoveOrder(idx, "up")}
                     disabled={idx === 0}
                     className="p-1.5 rounded bg-white/5 border border-white/10 text-white/60 hover:text-white disabled:opacity-20 cursor-pointer"
-                    title="Geser ke Kiri/Atas"
+                    title="Move Up / Left"
                   >
                     <MoveUp size={12} />
                   </button>
@@ -505,7 +507,7 @@ export function GalleryView() {
                     onClick={() => handleMoveOrder(idx, "down")}
                     disabled={idx === artworks.length - 1}
                     className="p-1.5 rounded bg-white/5 border border-white/10 text-white/60 hover:text-white disabled:opacity-20 cursor-pointer"
-                    title="Geser ke Kanan/Bawah"
+                    title="Move Down / Right"
                   >
                     <MoveDown size={12} />
                   </button>
@@ -525,7 +527,7 @@ export function GalleryView() {
                     className="ios-glass-btn px-3 py-1 text-xs text-red-400 hover:text-red-300 cursor-pointer flex items-center gap-1"
                   >
                     <Trash2 size={12} />
-                    <span>Hapus</span>
+                    <span>Delete</span>
                   </button>
                 </div>
               </div>
@@ -542,7 +544,7 @@ export function GalleryView() {
               <div className="flex items-center gap-2.5">
                 <Sparkles size={18} className="text-[#7DB3FF]" />
                 <h3 className="text-xl font-bold text-white">
-                  {editingId ? "Edit Karya Seni" : "Tambah Karya Seni Baru"}
+                  {editingId ? "Edit Artwork" : "Add New Artwork"}
                 </h3>
               </div>
               <button
@@ -559,12 +561,12 @@ export function GalleryView() {
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-1.5">
                     <Cloud size={14} className="text-[#7DB3FF]" />
-                    <span>Upload Foto (Cloudinary) *</span>
+                    <span>Upload Photo (Cloudinary) *</span>
                   </label>
                   {imageUrl && (
                     <span className="text-[11px] font-medium text-emerald-400 flex items-center gap-1">
                       <Check size={12} />
-                      <span>Terkoneksi ke Cloudinary</span>
+                      <span>Connected to Cloudinary</span>
                     </span>
                   )}
                 </div>
@@ -596,10 +598,10 @@ export function GalleryView() {
                     <Loader2 size={32} className="text-[#7DB3FF] animate-spin" />
                     <div className="flex flex-col gap-1">
                       <p className="text-sm font-medium text-white">
-                        Mengunggah foto ke Cloudinary...
+                        Uploading photo to Cloudinary...
                       </p>
                       <p className="text-xs text-[#A8B8CC]">
-                        {uploadedFileName || "Menyimpan resolusi asli gambar"}
+                        {uploadedFileName || "Preserving original image resolution"}
                       </p>
                     </div>
                   </div>
@@ -627,7 +629,7 @@ export function GalleryView() {
                     {/* Action Bar */}
                     <div className="p-3 bg-[rgba(10,24,42,0.85)] border-t border-white/10 flex items-center justify-between gap-3">
                       <span className="text-xs text-text-secondary truncate">
-                        Rasio asli terdeteksi otomatis
+                        Natural aspect ratio auto-detected
                       </span>
 
                       <div className="flex items-center gap-2">
@@ -637,7 +639,7 @@ export function GalleryView() {
                           className="ios-glass-btn px-3 py-1.5 text-xs text-[#7DB3FF] hover:text-white cursor-pointer flex items-center gap-1.5"
                         >
                           <RefreshCw size={12} />
-                          <span>Ganti Foto</span>
+                          <span>Replace Photo</span>
                         </button>
                         <button
                           type="button"
@@ -650,7 +652,7 @@ export function GalleryView() {
                           className="ios-glass-btn px-3 py-1.5 text-xs text-red-400 hover:text-red-300 cursor-pointer flex items-center gap-1.5"
                         >
                           <Trash2 size={12} />
-                          <span>Hapus</span>
+                          <span>Remove</span>
                         </button>
                       </div>
                     </div>
@@ -673,13 +675,13 @@ export function GalleryView() {
                     </div>
                     <div className="flex flex-col gap-1">
                       <p className="text-sm font-medium text-white">
-                        Klik untuk upload atau seret foto ke sini
+                        Click to upload or drag a photo here
                       </p>
                       <p className="text-xs text-[#A8B8CC]">
-                        Foto akan terhubung langsung ke Cloudinary tanpa perlu mengisi URL
+                        Photos upload directly to Cloudinary without requiring manual URLs
                       </p>
                       <p className="text-[11px] text-text-muted mt-0.5">
-                        Mendukung JPG, PNG, WebP, GIF, SVG, AVIF (Resolusi & ukuran asli dipertahankan)
+                        Supports JPG, PNG, WebP, GIF, SVG, AVIF (Original dimensions preserved)
                       </p>
                     </div>
                   </div>
@@ -692,7 +694,7 @@ export function GalleryView() {
                     onClick={() => setShowManualUrl(!showManualUrl)}
                     className="text-[11px] text-[#7DB3FF] hover:underline cursor-pointer"
                   >
-                    {showManualUrl ? "— Sembunyikan URL manual" : "+ Atau gunakan URL gambar manual"}
+                    {showManualUrl ? "— Hide manual URL" : "+ Or enter a manual image URL"}
                   </button>
                   {showManualUrl && (
                     <div className="mt-2">
@@ -700,7 +702,7 @@ export function GalleryView() {
                         type="url"
                         value={imageUrl}
                         onChange={(e) => setImageUrl(e.target.value)}
-                        placeholder="https://res.cloudinary.com/... atau URL gambar lainnya"
+                        placeholder="https://res.cloudinary.com/... or external image URL"
                         className="glass-input px-3.5 py-2 rounded-xl text-xs bg-white/5 border border-white/15 focus:border-[#7DB3FF] outline-none text-white placeholder:text-white/30 w-full"
                       />
                     </div>
@@ -712,13 +714,13 @@ export function GalleryView() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                    Judul Karya (Opsional)
+                    Artwork Title (Optional)
                   </label>
                   <input
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Contoh: Digital Genesis, Neon Horizon"
+                    placeholder="e.g., Digital Genesis, Neon Horizon"
                     maxLength={100}
                     className="glass-input px-4 py-2.5 rounded-xl text-sm bg-white/5 border border-white/15 focus:border-[#7DB3FF] outline-none text-white placeholder:text-white/30"
                   />
@@ -726,13 +728,13 @@ export function GalleryView() {
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                    Kategori / Medium
+                    Category / Medium
                   </label>
                   <input
                     type="text"
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    placeholder="Contoh: Digital Art, Illustration, 3D Render"
+                    placeholder="e.g., Digital Art, Illustration, 3D Render"
                     maxLength={50}
                     className="glass-input px-4 py-2.5 rounded-xl text-sm bg-white/5 border border-white/15 focus:border-[#7DB3FF] outline-none text-white placeholder:text-white/30"
                   />
@@ -743,7 +745,7 @@ export function GalleryView() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                    Tahun / Periode
+                    Year / Period
                   </label>
                   <input
                     type="text"
@@ -757,12 +759,12 @@ export function GalleryView() {
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                    Orientasi & Layout Kartu
+                    Card Orientation &amp; Layout
                   </label>
                   <div className="glass-input px-4 py-2.5 rounded-xl text-xs bg-white/5 border border-white/10 text-white/70 flex items-center justify-between">
                     <span>{getOrientationLabel(aspectRatio)}</span>
                     <span className="text-[11px] text-text-muted">
-                      {width ? `${width}×${height}px` : "Auto-deteksi"}
+                      {width ? `${width}×${height}px` : "Auto-detected"}
                     </span>
                   </div>
                 </div>
@@ -771,14 +773,14 @@ export function GalleryView() {
               {/* Caption / Description */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                  Catatan / Cerita di Balik Karya (Opsional)
+                  Caption / Story Behind the Work (Optional)
                 </label>
                 <textarea
                   value={caption}
                   onChange={(e) => setCaption(e.target.value)}
                   rows={3}
                   maxLength={500}
-                  placeholder="Ceritakan eksplorasi visual, tools yang digunakan, atau konsep artistik..."
+                  placeholder="Share visual exploration notes, tools used, or artistic concept..."
                   className="glass-input p-4 rounded-xl text-sm leading-relaxed bg-white/5 border border-white/15 focus:border-[#7DB3FF] outline-none text-white placeholder:text-white/30 resize-none"
                 />
               </div>
@@ -790,7 +792,7 @@ export function GalleryView() {
                   onClick={() => setIsModalOpen(false)}
                   className="px-4 py-2 text-xs text-white/60 hover:text-white cursor-pointer"
                 >
-                  Batal
+                  Cancel
                 </button>
                 <button
                   type="submit"
@@ -798,16 +800,16 @@ export function GalleryView() {
                   className="ios-glass-btn ios-glass-primary px-6 py-2.5 text-xs font-semibold cursor-pointer disabled:opacity-40 flex items-center gap-2"
                 >
                   {submitting ? (
-                    <span>Menyimpan...</span>
+                    <span>Saving...</span>
                   ) : uploadingImage ? (
                     <>
                       <Loader2 size={14} className="animate-spin" />
-                      <span>Mengunggah Foto...</span>
+                      <span>Uploading Photo...</span>
                     </>
                   ) : (
                     <>
                       <Check size={14} />
-                      <span>{editingId ? "Perbarui Karya" : "Simpan Karya Seni"}</span>
+                      <span>{editingId ? "Update Artwork" : "Save Artwork"}</span>
                     </>
                   )}
                 </button>
@@ -820,9 +822,9 @@ export function GalleryView() {
       {/* Delete Confirmation Modal */}
       <DeleteConfirmModal
         isOpen={Boolean(itemToDelete)}
-        title="Hapus Karya Seni"
-        itemName={itemToDelete?.title || "Karya Tanpa Judul"}
-        description="Foto karya seni ini akan dihapus secara permanen dari Art Gallery dan database Firestore."
+        title="Delete Artwork"
+        itemName={itemToDelete?.title || "Untitled Artwork"}
+        description="This artwork will be permanently deleted from the Art Gallery and Firestore database."
         isDeleting={isDeletingItem}
         onConfirm={handleConfirmDelete}
         onCancel={() => {

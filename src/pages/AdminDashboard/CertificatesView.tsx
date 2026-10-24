@@ -155,7 +155,7 @@ export function CertificatesView() {
   const handleImageFilesSelect = async (files: FileList | File[]) => {
     const fileArray = Array.from(files).filter(f => f.type.startsWith("image/"));
     if (fileArray.length === 0) {
-      setUploadError("Silakan pilih minimal satu file gambar yang valid (JPG, PNG, WebP, SVG, AVIF).");
+      setUploadError("Please select at least one valid image file (JPG, PNG, WebP, SVG, AVIF).");
       return;
     }
 
@@ -203,7 +203,7 @@ export function CertificatesView() {
       setUploadingImage(false);
     } catch (err: any) {
       console.error("Cloudinary certificate upload failed:", err);
-      setUploadError(err?.message || "Gagal mengunggah gambar sertifikat ke Cloudinary.");
+      setUploadError(err?.message || "Failed to upload certificate image to Cloudinary.");
       setUploadingImage(false);
     }
   };
@@ -273,7 +273,7 @@ export function CertificatesView() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !issuer.trim()) {
-      setFeedback({ type: "error", message: "Judul dan Lembaga Penerbit sertifikat wajib diisi." });
+      setFeedback({ type: "error", message: "Certificate title and issuing organization are required." });
       return;
     }
 
@@ -281,7 +281,7 @@ export function CertificatesView() {
     const finalImageUrl = finalImages[0] || imageUrl.trim();
 
     if (!finalImageUrl) {
-      setFeedback({ type: "error", message: "Silakan unggah minimal 1 gambar sertifikat." });
+      setFeedback({ type: "error", message: "Please upload at least 1 certificate image." });
       return;
     }
 
@@ -313,7 +313,7 @@ export function CertificatesView() {
           order: Number(order) || 1,
           featured
         });
-        setFeedback({ type: "success", message: "Sertifikat berhasil diperbarui!" });
+        setFeedback({ type: "success", message: "Certificate updated!" });
       } else {
         await createCertificate({
           title,
@@ -333,14 +333,14 @@ export function CertificatesView() {
           order: Number(order) || certificates.length + 1,
           featured
         });
-        setFeedback({ type: "success", message: "Sertifikat baru berhasil diposting!" });
+        setFeedback({ type: "success", message: "New certificate published!" });
       }
 
       setIsModalOpen(false);
       resetForm();
     } catch (err: any) {
       console.error("Save certificate error:", err);
-      setFeedback({ type: "error", message: err.message || "Gagal menyimpan data sertifikat." });
+      setFeedback({ type: "error", message: err.message || "Failed to save certificate data." });
     } finally {
       setIsSubmitting(false);
     }
@@ -350,11 +350,11 @@ export function CertificatesView() {
     setIsSubmitting(true);
     try {
       await deleteCertificate(id);
-      setFeedback({ type: "success", message: "Sertifikat berhasil dihapus!" });
+      setFeedback({ type: "success", message: "Certificate deleted!" });
       setDeleteId(null);
     } catch (err: any) {
       console.error("Delete error:", err);
-      setFeedback({ type: "error", message: "Gagal menghapus sertifikat." });
+      setFeedback({ type: "error", message: "Failed to delete certificate." });
     } finally {
       setIsSubmitting(false);
     }
@@ -378,10 +378,10 @@ export function CertificatesView() {
         <div>
           <h2 className="text-2xl font-display font-medium text-white flex items-center gap-2.5">
             <Award className="text-[#7DB3FF]" size={24} />
-            <span>Manajemen Certificate</span>
+            <span>Certificates Management</span>
           </h2>
           <p className="text-text-secondary text-sm font-light">
-            Kelola sertifikasi profesional dan unggah gambar langsung terintegrasi Cloudinary.
+            Manage professional certifications and upload images directly to Cloudinary.
           </p>
         </div>
 
@@ -390,7 +390,7 @@ export function CertificatesView() {
           className="ios-glass-btn ios-glass-primary px-5 py-2.5 text-xs font-semibold uppercase tracking-wider cursor-pointer flex items-center gap-2 shadow-lg self-start sm:self-auto"
         >
           <Plus size={16} />
-          <span>Tambah Sertifikat</span>
+          <span>Add Certificate</span>
         </button>
       </div>
 
@@ -411,7 +411,7 @@ export function CertificatesView() {
             onClick={() => setFeedback(null)} 
             className="text-white/60 hover:text-white text-xs cursor-pointer"
           >
-            Tutup
+            Dismiss
           </button>
         </div>
       )}
@@ -423,7 +423,7 @@ export function CertificatesView() {
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
             <input
               type="text"
-              placeholder="Cari berdasarkan judul, penerbit, atau skill..."
+              placeholder="Search by title, issuer, or skill..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-[rgba(6,15,35,0.4)] border border-white/10 rounded-xl pl-10 pr-4 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#7DB3FF]/50"
@@ -457,9 +457,9 @@ export function CertificatesView() {
         <div className="glass-card p-12 rounded-3xl text-center flex flex-col items-center gap-4 text-text-secondary border border-white/10 bg-[rgba(6,15,35,0.3)]">
           <Award size={40} className="text-[#7DB3FF]/60" />
           <div className="flex flex-col gap-1 max-w-md">
-            <h3 className="text-lg font-medium text-white">Belum Ada Sertifikat yang Diposting</h3>
+            <h3 className="text-lg font-medium text-white">No Certificates Published Yet</h3>
             <p className="text-sm font-light">
-              Klik tombol "Tambah Sertifikat" untuk mengunggah gambar sertifikat dari perangkat Anda.
+              Click &quot;Add Certificate&quot; to upload certificate images from your device.
             </p>
           </div>
           <button
@@ -467,12 +467,12 @@ export function CertificatesView() {
             className="ios-glass-btn ios-glass-primary px-5 py-2 text-xs font-semibold uppercase tracking-wider cursor-pointer flex items-center gap-1.5 mt-2"
           >
             <Plus size={14} />
-            <span>Posting Sertifikat Pertama</span>
+            <span>Publish First Certificate</span>
           </button>
         </div>
       ) : filteredCertificates.length === 0 ? (
         <div className="glass-card p-8 rounded-2xl text-center text-text-secondary">
-          <p className="text-sm">Tidak ada sertifikat yang cocok dengan pencarian.</p>
+          <p className="text-sm">No certificates match your search.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -500,7 +500,7 @@ export function CertificatesView() {
                   {cert.images && cert.images.length > 1 && (
                     <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#7DB3FF]/20 border border-[#7DB3FF]/40 text-[#7DB3FF] backdrop-blur-md">
                       <ImageIcon size={10} />
-                      <span>{cert.images.length} Foto</span>
+                      <span>{cert.images.length} Photos</span>
                     </span>
                   )}
                   {cert.featured && (
@@ -521,7 +521,7 @@ export function CertificatesView() {
                   <button
                     onClick={() => setDeleteId(cert.id)}
                     className="p-1.5 rounded-lg bg-[rgba(6,15,35,0.85)] border border-rose-500/30 text-rose-300 hover:bg-rose-500/20 cursor-pointer"
-                    title="Hapus"
+                    title="Delete"
                   >
                     <Trash2 size={14} />
                   </button>
@@ -596,7 +596,7 @@ export function CertificatesView() {
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <h3 className="text-xl font-display font-medium text-white flex items-center gap-2">
                 <Award className="text-[#7DB3FF]" size={20} />
-                <span>{editingCert ? "Edit Sertifikat" : "Tambah Sertifikat Baru"}</span>
+                <span>{editingCert ? "Edit Certificate" : "Add New Certificate"}</span>
               </h3>
               <button
                 onClick={() => {
@@ -616,7 +616,7 @@ export function CertificatesView() {
                   <label className="text-xs font-medium text-white/90 flex items-center gap-1.5">
                     <ImageIcon size={14} className="text-[#7DB3FF]" />
                     <span>
-                      Foto Sertifikat ({images.length} Foto) <span className="text-rose-400">*</span>
+                      Certificate Photos ({images.length} {images.length === 1 ? "Photo" : "Photos"}) <span className="text-rose-400">*</span>
                     </span>
                   </label>
                   <button
@@ -625,7 +625,7 @@ export function CertificatesView() {
                     className="text-[11px] text-[#7DB3FF] hover:underline cursor-pointer flex items-center gap-1 font-normal"
                   >
                     <Link2 size={12} />
-                    <span>{showManualUrl ? "Gunakan Upload File" : "Input URL Manual"}</span>
+                    <span>{showManualUrl ? "Use File Upload" : "Enter Manual URL"}</span>
                   </button>
                 </div>
 
@@ -647,7 +647,7 @@ export function CertificatesView() {
                 {images.length > 0 && (
                   <div className="flex flex-col gap-2 p-3.5 rounded-2xl bg-[rgba(6,15,35,0.7)] border border-white/15">
                     <div className="flex items-center justify-between text-xs text-text-secondary pb-2 border-b border-white/10">
-                      <span>Daftar Foto Sertifikat (Foto pertama adalah Cover Utama)</span>
+                      <span>Certificate Photos (First photo is the Primary Cover)</span>
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
@@ -655,7 +655,7 @@ export function CertificatesView() {
                         className="text-[11px] text-[#7DB3FF] hover:text-white flex items-center gap-1 font-medium cursor-pointer"
                       >
                         <Plus size={13} />
-                        <span>Tambah Foto Lagi</span>
+                        <span>Add More Photos</span>
                       </button>
                     </div>
 
@@ -671,7 +671,7 @@ export function CertificatesView() {
                         >
                           <img
                             src={imgUrl}
-                            alt={`Foto ${idx + 1}`}
+                            alt={`Photo ${idx + 1}`}
                             className="w-full h-full object-cover"
                           />
 
@@ -679,7 +679,7 @@ export function CertificatesView() {
                           <div className="absolute top-1.5 left-1.5 right-1.5 flex items-center justify-between z-10">
                             {idx === 0 ? (
                               <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-[#7DB3FF] text-black shadow-md">
-                                Cover Utama
+                                Primary Cover
                               </span>
                             ) : (
                               <span className="px-1.5 py-0.5 rounded-md text-[9px] font-mono bg-black/70 text-white/80 border border-white/20 backdrop-blur-sm">
@@ -691,7 +691,7 @@ export function CertificatesView() {
                               type="button"
                               onClick={() => handleRemoveImage(idx)}
                               className="p-1 rounded-md bg-black/70 hover:bg-rose-500/80 text-white/80 hover:text-white transition-colors cursor-pointer backdrop-blur-sm"
-                              title="Hapus foto ini"
+                              title="Remove this photo"
                             >
                               <Trash2 size={12} />
                             </button>
@@ -705,7 +705,7 @@ export function CertificatesView() {
                               className="absolute bottom-1.5 left-1.5 right-1.5 py-1 text-[10px] font-medium bg-[rgba(6,15,35,0.85)] hover:bg-[#7DB3FF] text-white hover:text-black rounded-lg border border-white/20 transition-all opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1 backdrop-blur-sm cursor-pointer"
                             >
                               <Check size={10} />
-                              <span>Jadikan Cover</span>
+                              <span>Set as Cover</span>
                             </button>
                           )}
                         </div>
@@ -731,7 +731,7 @@ export function CertificatesView() {
                     {uploadingImage ? (
                       <div className="flex flex-col items-center gap-2 py-3 text-[#7DB3FF]">
                         <Loader2 size={28} className="animate-spin" />
-                        <span className="text-xs font-medium">Mengunggah ke Cloudinary...</span>
+                        <span className="text-xs font-medium">Uploading to Cloudinary...</span>
                       </div>
                     ) : (
                       <>
@@ -740,10 +740,10 @@ export function CertificatesView() {
                         </div>
                         <div className="flex flex-col gap-0.5">
                           <p className="text-xs sm:text-sm font-medium text-white">
-                            {images.length > 0 ? "Klik untuk menambah foto sertifikat lainnya" : "Klik untuk upload foto sertifikat (Bisa pilih 2 foto atau lebih)"}
+                            {images.length > 0 ? "Click to add more certificate photos" : "Click to upload certificate photos (multi-select supported)"}
                           </p>
                           <p className="text-[11px] text-text-secondary">
-                            Mendukung JPG, PNG, WebP, SVG, AVIF. Otomatis terunggah & dioptimasi ke Cloudinary.
+                            Supports JPG, PNG, WebP, SVG, AVIF. Automatically uploaded and optimized on Cloudinary.
                           </p>
                         </div>
                       </>
@@ -754,7 +754,7 @@ export function CertificatesView() {
                   <div className="flex gap-2">
                     <input
                       type="url"
-                      placeholder="https://res.cloudinary.com/... atau URL gambar"
+                      placeholder="https://res.cloudinary.com/... or image URL"
                       value={manualUrlInput}
                       onChange={(e) => setManualUrlInput(e.target.value)}
                       onKeyDown={(e) => {
@@ -770,7 +770,7 @@ export function CertificatesView() {
                       onClick={handleAddManualUrl}
                       className="ios-glass-btn px-4 py-2.5 text-xs text-white font-medium cursor-pointer shrink-0"
                     >
-                      + Tambah
+                      + Add
                     </button>
                   </div>
                 )}
@@ -786,12 +786,12 @@ export function CertificatesView() {
               {/* Title */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-text-secondary">
-                  Judul Sertifikasi <span className="text-rose-400">*</span>
+                  Certificate Title <span className="text-rose-400">*</span>
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="Contoh: Google Cloud Professional Cloud Architect"
+                  placeholder="e.g., Google Cloud Professional Cloud Architect"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   className="w-full bg-[rgba(6,15,35,0.6)] border border-white/15 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#7DB3FF]"
@@ -802,12 +802,12 @@ export function CertificatesView() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-medium text-text-secondary">
-                    Lembaga Penerbit (Issuer) <span className="text-rose-400">*</span>
+                    Issuing Organization (Issuer) <span className="text-rose-400">*</span>
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: Google Cloud / Meta / AWS"
+                    placeholder="e.g., Google Cloud / Meta / AWS"
                     value={issuer}
                     onChange={(e) => setIssuer(e.target.value)}
                     className="w-full bg-[rgba(6,15,35,0.6)] border border-white/15 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#7DB3FF]"
@@ -816,11 +816,11 @@ export function CertificatesView() {
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-medium text-text-secondary">
-                    Tahun / Tanggal Terbit
+                    Issue Year / Date
                   </label>
                   <input
                     type="text"
-                    placeholder="Contoh: 2024 atau Okt 2024"
+                    placeholder="e.g., 2024 or Oct 2024"
                     value={issueDate}
                     onChange={(e) => setIssueDate(e.target.value)}
                     className="w-full bg-[rgba(6,15,35,0.6)] border border-white/15 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#7DB3FF]"
@@ -832,12 +832,12 @@ export function CertificatesView() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-medium text-text-secondary">
-                    Kategori Sertifikat
+                    Certificate Category
                   </label>
                   <input
                     type="text"
                     list="cert-categories-list-2"
-                    placeholder="Pilih atau ketik kategori baru"
+                    placeholder="Select or type a new category"
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
                     className="w-full bg-[rgba(6,15,35,0.6)] border border-white/15 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#7DB3FF]"
@@ -851,7 +851,7 @@ export function CertificatesView() {
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-medium text-text-secondary">
-                    Urutan Tampil (Order)
+                    Display Order
                   </label>
                   <input
                     type="number"
@@ -866,11 +866,11 @@ export function CertificatesView() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-medium text-text-secondary">
-                    ID Kredensial / No. Sertifikat
+                    Credential ID / Certificate No.
                   </label>
                   <input
                     type="text"
-                    placeholder="Contoh: GCP-882941"
+                    placeholder="e.g., GCP-882941"
                     value={credentialId}
                     onChange={(e) => setCredentialId(e.target.value)}
                     className="w-full bg-[rgba(6,15,35,0.6)] border border-white/15 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#7DB3FF]"
@@ -879,7 +879,7 @@ export function CertificatesView() {
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-medium text-text-secondary">
-                    Tautan Verifikasi (Credential URL)
+                    Verification Link (Credential URL)
                   </label>
                   <input
                     type="url"
@@ -894,11 +894,11 @@ export function CertificatesView() {
               {/* Skills Tags */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-text-secondary">
-                  Keahlian Terkait (Skills / Tags) - pisahkan dengan koma
+                  Related Skills / Tags (comma-separated)
                 </label>
                 <input
                   type="text"
-                  placeholder="Contoh: React, TypeScript, Cloud Architecture, Docker"
+                  placeholder="e.g., React, TypeScript, Cloud Architecture, Docker"
                   value={skillsInput}
                   onChange={(e) => setSkillsInput(e.target.value)}
                   className="w-full bg-[rgba(6,15,35,0.6)] border border-white/15 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#7DB3FF]"
@@ -908,11 +908,11 @@ export function CertificatesView() {
               {/* Description */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-text-secondary">
-                  Deskripsi / Cakupan Materi
+                  Description / Scope
                 </label>
                 <textarea
                   rows={3}
-                  placeholder="Penjelasan ringkas mengenai kompetensi yang diverifikasi dalam sertifikat ini..."
+                  placeholder="Brief summary of the competencies verified by this certification..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   className="w-full bg-[rgba(6,15,35,0.6)] border border-white/15 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#7DB3FF] resize-none"
@@ -928,7 +928,7 @@ export function CertificatesView() {
                   className="rounded border-white/20 text-[#7DB3FF] focus:ring-0"
                 />
                 <span className="text-xs text-white font-medium">
-                  Tandai sebagai Sertifikat Utama (Featured)
+                  Mark as Featured Certificate
                 </span>
               </label>
 
@@ -942,14 +942,14 @@ export function CertificatesView() {
                   }}
                   className="ios-glass-btn px-5 py-2.5 text-xs text-white/70 hover:text-white cursor-pointer"
                 >
-                  Batal
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting || uploadingImage}
                   className="ios-glass-btn ios-glass-primary px-6 py-2.5 text-xs font-semibold uppercase tracking-wider cursor-pointer"
                 >
-                  {isSubmitting ? "Menyimpan..." : editingCert ? "Simpan Perubahan" : "Posting Sertifikat"}
+                  {isSubmitting ? "Saving..." : editingCert ? "Save Changes" : "Publish Certificate"}
                 </button>
               </div>
             </form>
@@ -963,24 +963,24 @@ export function CertificatesView() {
           <div className="glass-card w-full max-w-md bg-[rgba(10,24,45,0.95)] border border-rose-500/30 rounded-2xl p-6 flex flex-col gap-4">
             <h3 className="text-lg font-medium text-white flex items-center gap-2 text-rose-400">
               <AlertCircle size={20} />
-              <span>Konfirmasi Hapus</span>
+              <span>Confirm Deletion</span>
             </h3>
             <p className="text-sm text-text-secondary leading-relaxed">
-              Apakah Anda yakin ingin menghapus sertifikat ini? Tindakan ini tidak dapat dibatalkan.
+              Are you sure you want to delete this certificate? This action cannot be undone.
             </p>
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
                 onClick={() => setDeleteId(null)}
                 className="ios-glass-btn px-4 py-2 text-xs text-white/70 hover:text-white cursor-pointer"
               >
-                Batal
+                Cancel
               </button>
               <button
                 onClick={() => handleDelete(deleteId)}
                 disabled={isSubmitting}
                 className="ios-glass-btn px-5 py-2 text-xs font-semibold bg-rose-500/20 border-rose-500/50 text-rose-300 hover:bg-rose-500/40 cursor-pointer"
               >
-                {isSubmitting ? "Menghapus..." : "Hapus Sertifikat"}
+                {isSubmitting ? "Deleting..." : "Delete Certificate"}
               </button>
             </div>
           </div>

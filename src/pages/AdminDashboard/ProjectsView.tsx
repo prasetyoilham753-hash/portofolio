@@ -74,7 +74,7 @@ export function ProjectsView() {
       },
       (err) => {
         console.error("Error fetching projects:", err);
-        setErrorMsg("Gagal memuat daftar project.");
+        setErrorMsg("Failed to load projects.");
         setLoading(false);
       }
     );
@@ -106,11 +106,11 @@ export function ProjectsView() {
     setPageDescMsg(null);
     try {
       await updateProfile({ projectDescription: pageDescription });
-      setPageDescMsg({ type: "success", text: "Deskripsi header halaman project berhasil disimpan!" });
+      setPageDescMsg({ type: "success", text: "Projects page header description saved!" });
       setTimeout(() => setPageDescMsg(null), 4000);
     } catch (err: any) {
       console.error("Failed to save project page description:", err);
-      setPageDescMsg({ type: "error", text: err?.message || "Gagal menyimpan deskripsi halaman." });
+      setPageDescMsg({ type: "error", text: err?.message || "Failed to save page description." });
     } finally {
       setSavingPageDesc(false);
     }
@@ -166,7 +166,7 @@ export function ProjectsView() {
     const isImage = file.type.startsWith("image") || /\.(jpg|jpeg|png|webp|gif|svg|avif)$/i.test(file.name);
 
     if (!isVideo && !isImage) {
-      setUploadError("Format file tidak didukung. Silakan pilih file gambar (JPG, PNG, WebP) atau video (MP4, WebM).");
+      setUploadError("Unsupported file format. Please choose an image (JPG, PNG, WebP) or video (MP4, WebM).");
       return;
     }
 
@@ -183,7 +183,7 @@ export function ProjectsView() {
       setUploadingMedia(false);
     } catch (err: any) {
       console.error("Cloudinary media upload failed:", err);
-      setUploadError(err?.message || "Gagal mengunggah media ke Cloudinary. Silakan periksa koneksi internet Anda.");
+      setUploadError(err?.message || "Failed to upload media to Cloudinary. Please check your internet connection.");
       setUploadingMedia(false);
     }
   };
@@ -224,18 +224,19 @@ export function ProjectsView() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (uploadingMedia) {
-      alert("Sedang mengunggah media ke Cloudinary. Mohon tunggu proses selesai sebelum menyimpan.");
+      setUploadError("Media is still uploading to Cloudinary. Please wait until it finishes before saving.");
       return;
     }
 
     if (!title.trim() || !description.trim() || submitting) return;
 
     if (!mediaUrl.trim()) {
-      alert("Mohon upload gambar atau video project terlebih dahulu melalui area Cloudinary.");
+      setUploadError("Please upload a project image or video via Cloudinary first.");
       return;
     }
 
     setSubmitting(true);
+    setUploadError(null);
     try {
       if (editingId) {
         await updateProject(editingId, {
@@ -267,7 +268,7 @@ export function ProjectsView() {
       resetForm();
     } catch (err: any) {
       console.error("Failed to save project:", err);
-      alert("Gagal menyimpan project: " + (err?.message || "Terjadi kesalahan"));
+      setUploadError("Failed to save project: " + (err?.message || "An unexpected error occurred."));
     } finally {
       setSubmitting(false);
     }
@@ -285,7 +286,8 @@ export function ProjectsView() {
       setProjectToDelete(null);
     } catch (err: any) {
       console.error("Failed to delete project:", err);
-      alert("Gagal menghapus project: " + (err?.message || "Periksa koneksi dan izin."));
+      setErrorMsg("Failed to delete project: " + (err?.message || "Check connection and permissions."));
+      setProjectToDelete(null);
     } finally {
       setIsDeletingProject(false);
     }
@@ -313,10 +315,10 @@ export function ProjectsView() {
         <div>
           <h2 className="text-2xl font-display font-medium text-white flex items-center gap-2.5">
             <Layers className="text-[#7DB3FF]" size={22} />
-            <span>Manajemen Project Portfolio</span>
+            <span>Portfolio Projects Management</span>
           </h2>
           <p className="text-text-secondary text-sm font-light mt-1">
-            Tambah, edit, dan kelola semua project dengan upload media langsung ke Cloudinary.
+            Add, edit, and organize portfolio projects with direct media uploads to Cloudinary.
           </p>
         </div>
 
@@ -325,7 +327,7 @@ export function ProjectsView() {
           className="ios-glass-btn ios-glass-primary px-5 py-2.5 text-xs font-semibold cursor-pointer flex items-center gap-2 self-start sm:self-auto"
         >
           <Plus size={15} />
-          <span>Tambah Project Baru</span>
+          <span>Add New Project</span>
         </button>
       </div>
 
@@ -337,7 +339,7 @@ export function ProjectsView() {
             <div>
               <h3 className="text-lg font-display text-white">Projects Page</h3>
               <p className="text-xs text-text-secondary font-light">
-                Kelola deskripsi header yang ditampilkan pada halaman publik Project (/projects).
+                Manage the header description displayed on the public Projects page (/projects).
               </p>
             </div>
           </div>
@@ -358,19 +360,19 @@ export function ProjectsView() {
         <form onSubmit={handleSavePageDescription} className="flex flex-col gap-3">
           <div className="flex flex-col gap-2">
             <div className="flex justify-between items-center">
-              <label className="text-sm text-text-secondary">Project Header Description (Paragraf)</label>
+              <label className="text-sm text-text-secondary">Project Header Description (Paragraph)</label>
               <span className="text-xs text-text-muted font-mono">
-                {pageDescription.length} karakter
+                {pageDescription.length} characters
               </span>
             </div>
             <textarea
               value={pageDescription}
               onChange={(e) => setPageDescription(e.target.value)}
               className="glass-input px-4 py-3 rounded-lg w-full min-h-[90px] resize-y leading-relaxed text-sm bg-white/5 border border-white/15 focus:border-[#7DB3FF] outline-none text-white placeholder:text-white/30"
-              placeholder="Tulis deskripsi atau subjudul halaman proyek..."
+              placeholder="Write a subtitle or description for the Projects page..."
             />
             <p className="text-[11px] text-text-muted">
-              Teks paragraf ini ditampilkan di bawah judul &quot;Project&quot; pada halaman Projects.
+              Displayed directly beneath the &quot;Projects&quot; heading on the public Projects page.
             </p>
           </div>
 
@@ -383,12 +385,12 @@ export function ProjectsView() {
               {savingPageDesc ? (
                 <>
                   <Loader2 size={13} className="animate-spin" />
-                  <span>Menyimpan...</span>
+                  <span>Saving...</span>
                 </>
               ) : (
                 <>
                   <Check size={13} />
-                  <span>Simpan Deskripsi Halaman</span>
+                  <span>Save Page Description</span>
                 </>
               )}
             </button>
@@ -403,7 +405,7 @@ export function ProjectsView() {
         </div>
       ) : loading ? (
         <div className="glass-card p-12 rounded-2xl text-center text-text-secondary text-sm">
-          Memuat daftar project...
+          Loading projects...
         </div>
       ) : projects.length === 0 ? (
         <div className="glass-card p-12 rounded-2xl text-center flex flex-col items-center justify-center gap-4 text-[#A8B8CC]">
@@ -411,9 +413,9 @@ export function ProjectsView() {
             <Layers size={26} />
           </div>
           <div className="flex flex-col gap-1 max-w-md">
-            <h3 className="text-lg font-medium text-white">Belum Ada Project</h3>
+            <h3 className="text-lg font-medium text-white">No Projects Yet</h3>
             <p className="text-sm font-light leading-relaxed">
-              Halaman <strong>Project</strong> saat ini belum menampilkan project karena Anda belum menambahkannya. Klik tombol di bawah untuk membuat project pertama Anda dengan media yang langsung terunggah ke Cloudinary!
+              The <strong>Projects</strong> page currently has no entries. Click the button below to create your first project with direct Cloudinary media hosting.
             </p>
           </div>
           <button
@@ -421,7 +423,7 @@ export function ProjectsView() {
             className="ios-glass-btn ios-glass-primary px-6 py-2.5 text-xs font-semibold cursor-pointer flex items-center gap-2 mt-2"
           >
             <Plus size={14} />
-            <span>Tambah Project Sekarang</span>
+            <span>Add Project Now</span>
           </button>
         </div>
       ) : (
@@ -455,7 +457,7 @@ export function ProjectsView() {
                   </span>
                 )}
                 {project.mediaUrl?.includes("cloudinary") && (
-                  <span className="absolute bottom-1.5 right-1.5 p-1 rounded-md bg-black/75 text-emerald-400 border border-emerald-500/30" title="Tersimpan di Cloudinary">
+                  <span className="absolute bottom-1.5 right-1.5 p-1 rounded-md bg-black/75 text-emerald-400 border border-emerald-500/30" title="Hosted on Cloudinary">
                     <Cloud size={11} />
                   </span>
                 )}
@@ -474,7 +476,7 @@ export function ProjectsView() {
                       rel="noopener noreferrer"
                       className="text-xs text-[#7DB3FF] hover:underline flex items-center gap-1"
                     >
-                      <span>Lihat Link</span>
+                      <span>Visit Link</span>
                       <ExternalLink size={12} />
                     </a>
                   )}
@@ -505,7 +507,7 @@ export function ProjectsView() {
                     onClick={() => handleMoveOrder(idx, "up")}
                     disabled={idx === 0}
                     className="p-1 rounded bg-white/5 border border-white/10 text-white/60 hover:text-white disabled:opacity-20 cursor-pointer"
-                    title="Pindah ke Atas"
+                    title="Move Up"
                   >
                     <MoveUp size={12} />
                   </button>
@@ -513,7 +515,7 @@ export function ProjectsView() {
                     onClick={() => handleMoveOrder(idx, "down")}
                     disabled={idx === projects.length - 1}
                     className="p-1 rounded bg-white/5 border border-white/10 text-white/60 hover:text-white disabled:opacity-20 cursor-pointer"
-                    title="Pindah ke Bawah"
+                    title="Move Down"
                   >
                     <MoveDown size={12} />
                   </button>
@@ -532,7 +534,7 @@ export function ProjectsView() {
                   className="ios-glass-btn px-3 py-1.5 text-xs text-red-400 hover:text-red-300 cursor-pointer flex items-center gap-1.5"
                 >
                   <Trash2 size={13} />
-                  <span>Hapus</span>
+                  <span>Delete</span>
                 </button>
               </div>
             </div>
@@ -548,7 +550,7 @@ export function ProjectsView() {
               <div className="flex items-center gap-2.5">
                 <Sparkles size={18} className="text-[#7DB3FF]" />
                 <h3 className="text-xl font-bold text-white">
-                  {editingId ? "Edit Project" : "Tambah Project Baru"}
+                  {editingId ? "Edit Project" : "Add New Project"}
                 </h3>
               </div>
               <button
@@ -563,13 +565,13 @@ export function ProjectsView() {
               {/* Title (h2) */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                  Title Projek (h2) *
+                  Project Title (h2) *
                 </label>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Contoh: Artha — Financial AI OS"
+                  placeholder="e.g., Artha — Financial AI OS"
                   maxLength={120}
                   className="glass-input px-4 py-2.5 rounded-xl text-sm bg-white/5 border border-white/15 focus:border-[#7DB3FF] outline-none text-white placeholder:text-white/30"
                   required
@@ -581,12 +583,12 @@ export function ProjectsView() {
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-1.5">
                     <Cloud size={14} className="text-[#7DB3FF]" />
-                    <span>Gambar / Media Projek (Cloudinary) *</span>
+                    <span>Project Image / Media (Cloudinary) *</span>
                   </label>
                   {mediaUrl && (
                     <span className="text-[11px] font-medium text-emerald-400 flex items-center gap-1">
                       <Check size={12} />
-                      <span>Tersambung ke Cloudinary</span>
+                      <span>Connected to Cloudinary</span>
                     </span>
                   )}
                 </div>
@@ -618,10 +620,10 @@ export function ProjectsView() {
                     <Loader2 size={32} className="text-[#7DB3FF] animate-spin" />
                     <div className="flex flex-col gap-1">
                       <p className="text-sm font-medium text-white">
-                        Mengunggah media ke Cloudinary...
+                        Uploading media to Cloudinary...
                       </p>
                       <p className="text-xs text-[#A8B8CC]">
-                        {uploadedFileName || "Menyimpan file langsung ke cloud storage"}
+                        {uploadedFileName || "Saving file directly to cloud storage"}
                       </p>
                     </div>
                   </div>
@@ -654,7 +656,7 @@ export function ProjectsView() {
                       <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-black/80 border border-white/15 backdrop-blur-md flex items-center gap-1.5 text-xs text-[#7DB3FF]">
                         {mediaType === "video" ? <Film size={12} /> : <ImageIcon size={12} />}
                         <span className="font-medium text-[11px] uppercase tracking-wide">
-                          {mediaType === "video" ? "Video" : "Gambar"}
+                          {mediaType === "video" ? "Video" : "Image"}
                         </span>
                       </div>
                     </div>
@@ -662,13 +664,13 @@ export function ProjectsView() {
                     {/* Action Bar beneath preview */}
                     <div className="p-3 bg-[rgba(10,24,42,0.85)] border-t border-white/10 flex flex-wrap items-center justify-between gap-3">
                       <div className="flex items-center gap-2 text-xs text-text-secondary">
-                        <span>Tipe Media:</span>
+                        <span>Media Type:</span>
                         <select
                           value={mediaType}
                           onChange={(e) => setMediaType(e.target.value as "image" | "video")}
                           className="glass-input px-2.5 py-1 rounded-lg text-xs bg-white/5 border border-white/15 text-white"
                         >
-                          <option value="image" className="bg-[#0A182A]">Gambar (Image)</option>
+                          <option value="image" className="bg-[#0A182A]">Image</option>
                           <option value="video" className="bg-[#0A182A]">Video</option>
                         </select>
                       </div>
@@ -680,7 +682,7 @@ export function ProjectsView() {
                           className="ios-glass-btn px-3 py-1.5 text-xs text-[#7DB3FF] hover:text-white cursor-pointer flex items-center gap-1.5"
                         >
                           <RefreshCw size={12} />
-                          <span>Ganti File Cloudinary</span>
+                          <span>Replace Cloudinary File</span>
                         </button>
                         <button
                           type="button"
@@ -691,7 +693,7 @@ export function ProjectsView() {
                           className="ios-glass-btn px-3 py-1.5 text-xs text-red-400 hover:text-red-300 cursor-pointer flex items-center gap-1.5"
                         >
                           <Trash2 size={12} />
-                          <span>Hapus</span>
+                          <span>Remove</span>
                         </button>
                       </div>
                     </div>
@@ -715,13 +717,13 @@ export function ProjectsView() {
                     </div>
                     <div className="flex flex-col gap-1">
                       <p className="text-sm font-medium text-white">
-                        Klik untuk upload atau seret gambar / video ke sini
+                        Click to upload or drag an image / video here
                       </p>
                       <p className="text-xs text-[#A8B8CC]">
-                        File akan langsung diunggah ke Cloudinary tanpa perlu mengisi URL secara manual
+                        Files upload directly to Cloudinary without requiring manual URLs
                       </p>
                       <p className="text-[11px] text-text-muted mt-1">
-                        Mendukung JPG, PNG, WebP, GIF, MP4, WebM (Auto-deteksi)
+                        Supports JPG, PNG, WebP, GIF, MP4, WebM (Auto-detected)
                       </p>
                     </div>
                   </div>
@@ -734,7 +736,7 @@ export function ProjectsView() {
                     onClick={() => setShowManualUrl(!showManualUrl)}
                     className="text-[11px] text-[#7DB3FF] hover:underline cursor-pointer"
                   >
-                    {showManualUrl ? "— Sembunyikan URL manual" : "+ Atau gunakan URL manual jika diperlukan"}
+                    {showManualUrl ? "— Hide manual URL" : "+ Or enter a manual URL if needed"}
                   </button>
                   {showManualUrl && (
                     <div className="mt-2 flex flex-col gap-1">
@@ -742,7 +744,7 @@ export function ProjectsView() {
                         type="url"
                         value={mediaUrl}
                         onChange={(e) => setMediaUrl(e.target.value)}
-                        placeholder="https://res.cloudinary.com/... atau URL lainnya"
+                        placeholder="https://res.cloudinary.com/... or external URL"
                         className="glass-input px-3.5 py-2 rounded-xl text-xs bg-white/5 border border-white/15 focus:border-[#7DB3FF] outline-none text-white placeholder:text-white/30"
                       />
                     </div>
@@ -750,17 +752,17 @@ export function ProjectsView() {
                 </div>
               </div>
 
-              {/* Lencana (span) & Hyperlink (a) */}
+              {/* Badge (span) & Hyperlink (a) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                    Lencana / Badge (span)
+                    Badge (span)
                   </label>
                   <input
                     type="text"
                     value={badge}
                     onChange={(e) => setBadge(e.target.value)}
-                    placeholder="Contoh: Featured, Web App, Active"
+                    placeholder="e.g., Featured, Web App, Active"
                     maxLength={50}
                     className="glass-input px-4 py-2.5 rounded-xl text-sm bg-white/5 border border-white/15 focus:border-[#7DB3FF] outline-none text-white placeholder:text-white/30"
                   />
@@ -768,7 +770,7 @@ export function ProjectsView() {
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                    Hyperlink Tautan (a)
+                    Project URL / Link (a)
                   </label>
                   <input
                     type="url"
@@ -780,10 +782,10 @@ export function ProjectsView() {
                 </div>
               </div>
 
-              {/* Beberapa Kategori (div) */}
+              {/* Categories / Tags (div) */}
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                  Beberapa Kategori / Tags (div)
+                  Categories / Tags (div)
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -796,7 +798,7 @@ export function ProjectsView() {
                         handleAddCategory();
                       }
                     }}
-                    placeholder="Ketik kategori lalu tekan Enter atau Tambah (contoh: React, AI, Full Stack)"
+                    placeholder="Type a category and press Enter or Add (e.g., React, AI, Full Stack)"
                     className="glass-input px-4 py-2 rounded-xl text-xs flex-1 bg-white/5 border border-white/15 focus:border-[#7DB3FF] outline-none text-white placeholder:text-white/30"
                   />
                   <button
@@ -804,7 +806,7 @@ export function ProjectsView() {
                     onClick={() => handleAddCategory()}
                     className="ios-glass-btn px-4 py-2 text-xs text-[#7DB3FF] hover:text-white font-medium cursor-pointer"
                   >
-                    Tambah
+                    Add
                   </button>
                 </div>
 
@@ -828,11 +830,11 @@ export function ProjectsView() {
                 </div>
               </div>
 
-              {/* Deskripsi Project (p) */}
+              {/* Project Description (p) */}
               <div className="flex flex-col gap-1.5">
                 <div className="flex justify-between items-center">
                   <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                    Deskripsi Project (p) *
+                    Project Description (p) *
                   </label>
                   <span className="text-[11px] text-white/40 font-mono">
                     {description.length}/1000
@@ -843,7 +845,7 @@ export function ProjectsView() {
                   onChange={(e) => setDescription(e.target.value)}
                   rows={4}
                   maxLength={1000}
-                  placeholder="Jelaskan tujuan, fitur, dan teknologi yang digunakan dalam project ini..."
+                  placeholder="Describe the goals, key features, and technologies behind this project..."
                   className="glass-input p-4 rounded-xl text-sm leading-relaxed bg-white/5 border border-white/15 focus:border-[#7DB3FF] outline-none text-white placeholder:text-white/30 resize-none"
                   required
                 />
@@ -856,7 +858,7 @@ export function ProjectsView() {
                   onClick={() => setIsModalOpen(false)}
                   className="px-4 py-2 text-xs text-white/60 hover:text-white cursor-pointer"
                 >
-                  Batal
+                  Cancel
                 </button>
                 <button
                   type="submit"
@@ -864,16 +866,16 @@ export function ProjectsView() {
                   className="ios-glass-btn ios-glass-primary px-6 py-2.5 text-xs font-semibold cursor-pointer disabled:opacity-40 flex items-center gap-2"
                 >
                   {submitting ? (
-                    <span>Menyimpan...</span>
+                    <span>Saving...</span>
                   ) : uploadingMedia ? (
                     <>
                       <Loader2 size={14} className="animate-spin" />
-                      <span>Mengunggah Media...</span>
+                      <span>Uploading Media...</span>
                     </>
                   ) : (
                     <>
                       <Check size={14} />
-                      <span>{editingId ? "Perbarui Project" : "Simpan Project"}</span>
+                      <span>{editingId ? "Update Project" : "Save Project"}</span>
                     </>
                   )}
                 </button>
@@ -886,9 +888,9 @@ export function ProjectsView() {
       {/* Delete Confirmation Modal */}
       <DeleteConfirmModal
         isOpen={Boolean(projectToDelete)}
-        title="Hapus Project"
+        title="Delete Project"
         itemName={projectToDelete?.title}
-        description="Project ini akan dihapus secara permanen dari portofolio Anda dan database Firestore."
+        description="This project will be permanently deleted from your portfolio and Firestore database."
         isDeleting={isDeletingProject}
         onConfirm={handleConfirmDelete}
         onCancel={() => {

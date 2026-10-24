@@ -56,11 +56,11 @@ class ComponentErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBo
               {this.props.fallbackTitle || "Component Runtime Error"}
             </p>
             <p className="text-xs text-rose-300/90 font-mono bg-rose-900/40 p-2.5 rounded-lg border border-rose-500/20 text-left overflow-x-auto break-words whitespace-pre-wrap">
-              {this.state.error?.message || "Terjadi error saat me-render komponen."}
+              {this.state.error?.message || "An error occurred while rendering this component."}
             </p>
           </div>
           <p className="text-[11px] text-rose-300/60">
-            Periksa kembali sintaks JSX, hooks, atau dependency yang digunakan.
+            Please verify the JSX syntax, hooks, or dependencies used.
           </p>
         </div>
       );
@@ -187,7 +187,7 @@ export function DynamicComponentRunner({
               type="button"
               onClick={() => setIsFullscreen(!isFullscreen)}
               className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-              title={isFullscreen ? "Keluar Fullscreen" : "Fullscreen Preview"}
+              title={isFullscreen ? "Exit Fullscreen" : "Fullscreen Preview"}
             >
               {isFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
             </button>
@@ -211,7 +211,7 @@ export function DynamicComponentRunner({
               </p>
             </div>
             <p className="text-[11px] text-blue-200/70 bg-blue-900/30 px-3 py-1.5 rounded-lg border border-blue-400/20">
-              Komponen kustom ini valid dan seluruh kode JSX siap disalin menggunakan tombol <strong>Copy Code</strong> di atas.
+              This custom component is valid and its full JSX source is ready to copy using the <strong>Copy Code</strong> button above.
             </p>
           </div>
         ) : RenderedComponent ? (
@@ -223,7 +223,7 @@ export function DynamicComponentRunner({
         ) : (
           <div className="flex items-center gap-2 text-xs text-[#A8B8CC]/60 font-light">
             <Sparkles size={14} className="text-[#7DB3FF] animate-pulse" />
-            <span>Memuat komponen...</span>
+            <span>Loading component...</span>
           </div>
         )}
       </div>

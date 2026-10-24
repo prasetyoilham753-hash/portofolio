@@ -8,23 +8,54 @@ import firebaseConfig from '../../../firebase-applet-config.json';
 // Initialize Firebase only once
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
+const isLocalOrPreview =
+  typeof window !== "undefined" &&
+  (import.meta.env.DEV ||
+    window.location.hostname.includes("run.app") ||
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1");
+
+// Initialize Firebase App Check (reCAPTCHA Enterprise) BEFORE Firestore & Auth
+// so initial database/auth requests always attach a valid App Check token
+const recaptchaKey = (
+  import.meta.env.VITE_RECAPTCHA_SITE_KEY ||
+  firebaseConfig.recaptchaSiteKey ||
+  "6LdZv8otAAAAAPTPQRh6hK0osf9kbyGwj_dhIhv7"
+).trim();
+const debugToken = import.meta.env.VITE_APPCHECK_DEBUG_TOKEN?.trim();
+
+if (typeof window !== "undefined" && recaptchaKey) {
+  try {
+    if (isLocalOrPreview) {
+      // @ts-ignore
+      self.FIREBASE_APPCHECK_DEBUG_TOKEN = debugToken || true;
+    }
+
+    initializeAppCheck(app, {
+      provider: new ReCaptchaEnterpriseProvider(recaptchaKey),
+      isTokenAutoRefreshEnabled: true,
+    });
+  } catch (err) {
+    console.warn("Firebase App Check initialization:", err);
+  }
+}
+
 export const db = initializeFirestore(app, {
   experimentalAutoDetectLongPolling: true,
 }, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
 
-// Initialize Google Analytics (GA4) / Firebase Analytics safely
+// Initialize Google Analytics (GA4) / Firebase Analytics safely on production domains only
+// (Prevents polluting production analytics and avoids tracking-blocker fetch errors in preview iframes)
 export let analyticsInstance: any = null;
-if (typeof window !== "undefined") {
+if (typeof window !== "undefined" && !isLocalOrPreview) {
   const measurementId = (import.meta.env.VITE_GA_MEASUREMENT_ID || firebaseConfig.measurementId || "G-RM6XBW359Y").trim();
 
   if (measurementId) {
-    // 1. Ensure measurementId is configured on Firebase App options for SDK compatibility
     if (!app.options.measurementId) {
       (app.options as any).measurementId = measurementId;
     }
 
-    // 2. Pre-configure dataLayer and gtag function safely without redundant manual script injection
     const win = window as any;
     win.dataLayer = win.dataLayer || [];
     function gtag(...args: any[]) {
@@ -34,9 +65,6 @@ if (typeof window !== "undefined") {
       win.gtag = gtag;
     }
 
-    // 3. Initialize Firebase Analytics instance with single-source configuration
-    // Disabling automatic send_page_view prevents duplicate page_view triggers on initial mount
-    // since AppLayout router listener manages canonical SPA page_view dispatch.
     isSupported().then((supported) => {
       if (supported) {
         try {
@@ -60,11 +88,13 @@ if (typeof window !== "undefined") {
 }
 
 export const logAnalyticsEvent = (eventName: string, eventParams?: Record<string, any>) => {
+  if (isLocalOrPreview) return;
+
   // 1. Dispatch through Firebase Analytics if initialized (it internally forwards to gtag)
   if (analyticsInstance) {
     try {
       logEvent(analyticsInstance, eventName, eventParams);
-      return; // Event successfully logged via Firebase Analytics; avoid duplicate dispatch
+      return;
     } catch {
       // Fallback to window.gtag if logEvent encounters an error
     }
@@ -80,31 +110,6 @@ export const logAnalyticsEvent = (eventName: string, eventParams?: Record<string
   }
 };
 
-// Initialize Firebase App Check (reCAPTCHA Enterprise)
-const recaptchaKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY || "6LdZv8otAAAAAPTPQRh6hK0osf9kbyGwj_dhIhv7";
-const debugToken = import.meta.env.VITE_APPCHECK_DEBUG_TOKEN;
-
-if (typeof window !== "undefined" && recaptchaKey) {
-  try {
-    const isLocalOrPreview =
-      import.meta.env.DEV ||
-      window.location.hostname.includes("run.app") ||
-      window.location.hostname === "localhost";
-
-    if (isLocalOrPreview) {
-      // @ts-ignore
-      self.FIREBASE_APPCHECK_DEBUG_TOKEN = debugToken || true;
-    }
-
-    initializeAppCheck(app, {
-      provider: new ReCaptchaEnterpriseProvider(recaptchaKey),
-      isTokenAutoRefreshEnabled: true,
-    });
-  } catch (err) {
-    console.warn("Firebase App Check initialization:", err);
-  }
-}
-
 // Deferred connection check to avoid blocking the initial critical rendering path
 async function testConnection() {
   try {
@@ -119,11 +124,11 @@ async function testConnection() {
 if (typeof window !== "undefined") {
   if (typeof window.requestIdleCallback === "function") {
     window.requestIdleCallback(() => {
-      testConnection();
+      void testConnection();
     });
   } else {
     setTimeout(() => {
-      testConnection();
+      void testConnection();
     }, 3500);
   }
 }

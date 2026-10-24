@@ -41,18 +41,101 @@ service cloud.firestore {
     // ==========================================
     // ENTITY VALIDATION HELPERS
     // ==========================================
-    function isValidComment(data) {
-      let isAuthorValid = data.authorName is string && data.authorName.size() >= 1 && data.authorName.size() <= 60 && hasNoServerBannedPhrases(data.authorName);
-      let isAnonValid = data.isAnonymous is bool;
-      let isContentValid = data.content is string && data.content.size() >= 1 && data.content.size() <= 1000 && hasNoServerBannedPhrases(data.content);
-      let isCreatedAtValid = data.createdAt == request.time;
-      let isParentValid = !('parentId' in data) || (data.parentId is string && data.parentId.size() <= 128);
-      let isReplyAuthorValid = !('replyToAuthor' in data) || (data.replyToAuthor is string && data.replyToAuthor.size() <= 60);
-
+    function isValidCommentBase(data) {
       let hasRequiredKeys = data.keys().hasAll(['authorName', 'isAnonymous', 'content', 'createdAt']);
-      let hasOnlyAllowedKeys = data.keys().hasOnly(['authorName', 'isAnonymous', 'content', 'createdAt', 'parentId', 'replyToAuthor']);
+      let hasOnlyAllowedKeys = data.keys().hasOnly([
+        'authorName',
+        'isAnonymous',
+        'content',
+        'createdAt',
+        'isAdmin',
+        'parentId',
+        'replyToAuthor',
+        'imageUrl',
+        'imagePublicId'
+      ]);
 
-      return hasRequiredKeys && hasOnlyAllowedKeys && isAuthorValid && isAnonValid && isContentValid && isCreatedAtValid && isParentValid && isReplyAuthorValid;
+      let isAuthorShapeValid = data.authorName is string && data.authorName.size() >= 1 && data.authorName.size() <= 60;
+      let isAnonValid = data.isAnonymous is bool && (!data.isAnonymous || data.authorName == 'Anonymous');
+      let isAdminFlagShapeValid = !('isAdmin' in data) || data.isAdmin is bool;
+      let isContentShapeValid = data.content is string &&
+        data.content.size() <= 1000 &&
+        (data.content.size() >= 1 || ('imageUrl' in data && data.imageUrl is string && data.imageUrl.size() >= 1));
+      let isParentValid = !('parentId' in data) || (
+        data.parentId is string &&
+        data.parentId.size() >= 1 &&
+        data.parentId.size() <= 128 &&
+        data.parentId.matches('^[a-zA-Z0-9_\\-]+$')
+      );
+      let isReplyAuthorValid = !('replyToAuthor' in data) || (
+        data.replyToAuthor is string &&
+        data.replyToAuthor.size() >= 1 &&
+        data.replyToAuthor.size() <= 60
+      );
+      let isImageShapeValid = !('imageUrl' in data) || (
+        data.imageUrl is string &&
+        data.imageUrl.size() >= 1 &&
+        data.imageUrl.size() <= 500 &&
+        (data.imageUrl.matches('^https://res\\.cloudinary\\.com/.*') || data.imageUrl.matches('^https://[a-zA-Z0-9_\\-\\.]+\\.cloudinary\\.com/.*'))
+      );
+      let isImageIdShapeValid = !('imagePublicId' in data) || (
+        data.imagePublicId is string &&
+        data.imagePublicId.size() >= 1 &&
+        data.imagePublicId.size() <= 200
+      );
+
+      return hasRequiredKeys &&
+        hasOnlyAllowedKeys &&
+        isAuthorShapeValid &&
+        isAnonValid &&
+        isAdminFlagShapeValid &&
+        isContentShapeValid &&
+        isParentValid &&
+        isReplyAuthorValid &&
+        isImageShapeValid &&
+        isImageIdShapeValid;
+    }
+
+    function isPublicAuthorNameAllowed(name) {
+      let notCoreReserved = !name.matches('(?i)(^|.*[^a-zA-Z0-9])(admin|administrator|moderator|owner|bintang|prasetyo|bprasety|bprasety_)([^a-zA-Z0-9].*|$)');
+      let notObfuscatedReserved = !name.matches('(?i)^[^a-zA-Z0-9]*(bintang[^a-zA-Z0-9]*prasetyo|b[^a-zA-Z0-9]*p[^a-zA-Z0-9]*r[^a-zA-Z0-9]*a[^a-zA-Z0-9]*s[^a-zA-Z0-9]*e[^a-zA-Z0-9]*t[^a-zA-Z0-9]*y[^a-zA-Z0-9]*o?|a[^a-zA-Z0-9]*d[^a-zA-Z0-9]*m[^a-zA-Z0-9]*i[^a-zA-Z0-9]*n|b[^a-zA-Z0-9]*i[^a-zA-Z0-9]*n[^a-zA-Z0-9]*t[^a-zA-Z0-9]*a[^a-zA-Z0-9]*n[^a-zA-Z0-9]*g)[^a-zA-Z0-9]*$');
+      let notCustomReserved = !exists(/databases/$(database)/documents/site_content/profile) ||
+        !('adminAllowedNames' in get(/databases/$(database)/documents/site_content/profile).data) ||
+        !(get(/databases/$(database)/documents/site_content/profile).data.adminAllowedNames is list) ||
+        !(name in get(/databases/$(database)/documents/site_content/profile).data.adminAllowedNames);
+
+      return notCoreReserved && notObfuscatedReserved && notCustomReserved;
+    }
+
+    function arePublicCommentsOpen() {
+      return !exists(/databases/$(database)/documents/site_content/comment_filters) ||
+        !('enabled' in get(/databases/$(database)/documents/site_content/comment_filters).data) ||
+        get(/databases/$(database)/documents/site_content/comment_filters).data.enabled != false;
+    }
+
+    function isParentCommentConsistent(data) {
+      return !('parentId' in data) || exists(/databases/$(database)/documents/comments/$(data.parentId));
+    }
+
+    function isValidPublicCommentCreate(data) {
+      return !('isAdmin' in data && data.isAdmin == true) &&
+        !('imageUrl' in data) &&
+        !('imagePublicId' in data) &&
+        data.content.size() >= 1 &&
+        hasNoServerBannedPhrases(data.authorName) &&
+        hasNoServerBannedPhrases(data.content) &&
+        (data.isAnonymous || isPublicAuthorNameAllowed(data.authorName)) &&
+        arePublicCommentsOpen() &&
+        isParentCommentConsistent(data);
+    }
+
+    function isValidAdminDashboardCommentCreate(data) {
+      return 'isAdmin' in data &&
+        data.isAdmin == true &&
+        data.isAnonymous == false &&
+        (data.content.size() >= 1 || ('imageUrl' in data && data.imageUrl.size() >= 1)) &&
+        isAdmin() &&
+        isParentCommentConsistent(data);
     }
 
     // ==========================================
@@ -62,9 +145,15 @@ service cloud.firestore {
     // 1. Public Comments & Replies
     match /comments/{commentId} {
       allow read: if true;
-      allow create: if isValidId(commentId) && isValidComment(incoming());
+      allow create: if isValidId(commentId) &&
+        isValidCommentBase(incoming()) &&
+        incoming().createdAt == request.time &&
+        (isValidPublicCommentCreate(incoming()) || isValidAdminDashboardCommentCreate(incoming()));
       allow delete: if isValidId(commentId) && isAdmin();
-      allow update: if isValidId(commentId) && isAdmin();
+      allow update: if isValidId(commentId) &&
+        isValidCommentBase(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        isAdmin();
     }
 
     // 2. Admins

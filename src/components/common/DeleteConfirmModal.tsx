@@ -16,8 +16,8 @@ export function DeleteConfirmModal({
   isOpen,
   title,
   itemName,
-  description = "Tindakan ini permanen dan data yang dihapus tidak dapat dipulihkan.",
-  confirmLabel = "Ya, Hapus Permanen",
+  description = "This action is permanent and deleted records cannot be recovered.",
+  confirmLabel = "Delete Permanently",
   isDeleting = false,
   onConfirm,
   onCancel,
@@ -43,7 +43,7 @@ export function DeleteConfirmModal({
               <h3 className="text-lg font-bold text-white tracking-tight">
                 {title}
               </h3>
-              <p className="text-xs text-text-muted">Konfirmasi Tindakan Hapus</p>
+              <p className="text-xs text-text-muted">Confirm Deletion</p>
             </div>
           </div>
           <button
@@ -76,7 +76,7 @@ export function DeleteConfirmModal({
             disabled={isDeleting}
             className="ios-glass-btn px-4 py-2 text-xs text-text-secondary hover:text-white cursor-pointer disabled:opacity-40"
           >
-            <span>Batal</span>
+            <span>Cancel</span>
           </button>
           <button
             type="button"
@@ -85,7 +85,7 @@ export function DeleteConfirmModal({
             className="ios-glass-btn px-5 py-2 text-xs font-semibold text-white bg-gradient-to-b from-red-500 to-red-600 hover:from-red-400 hover:to-red-500 border border-red-400/50 shadow-[0_4px_16px_rgba(239,68,68,0.4)] cursor-pointer disabled:opacity-50 flex items-center gap-2"
           >
             <Trash2 size={13} />
-            <span>{isDeleting ? "Menghapus..." : confirmLabel}</span>
+            <span>{isDeleting ? "Deleting..." : confirmLabel}</span>
           </button>
         </div>
       </div>

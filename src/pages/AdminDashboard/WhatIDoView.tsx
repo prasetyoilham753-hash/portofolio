@@ -29,9 +29,9 @@ export function WhatIDoView() {
                 : (cat.subtitles || []);
               return {
                 id: cat.id || `action-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-                buttonText: cat.title || "Tombol Aksi",
+                buttonText: cat.title || "Action Button",
                 buttonUrl: "/about",
-                columns: cols.length > 0 ? cols : ["Kolom 1", "Kolom 2", "Kolom 3"],
+                columns: cols.length > 0 ? cols : ["Column 1", "Column 2", "Column 3"],
                 visible: cat.visible !== false
               };
             });
@@ -71,9 +71,9 @@ export function WhatIDoView() {
   const handleAddAction = (presetText?: string, presetCols?: string[]) => {
     const newAction: WhatIDoActionItem = {
       id: `action-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-      buttonText: presetText || "Tombol Aksi Baru",
+      buttonText: presetText || "New Action Button",
       buttonUrl: "/about",
-      columns: presetCols || ["Kolom 1", "Kolom 2", "Kolom 3"],
+      columns: presetCols || ["Column 1", "Column 2", "Column 3"],
       visible: true
     };
     setActions(prev => [...prev, newAction]);
@@ -112,7 +112,7 @@ export function WhatIDoView() {
       const currentCols = item.columns ? [...item.columns] : [];
       return {
         ...item,
-        columns: [...currentCols, `Kolom ${currentCols.length + 1}`]
+        columns: [...currentCols, `Column ${currentCols.length + 1}`]
       };
     }));
   };
@@ -152,7 +152,7 @@ export function WhatIDoView() {
     try {
       const sanitizedActions: WhatIDoActionItem[] = actions.map((item, idx) => ({
         id: item.id || `action-${Date.now()}-${idx}`,
-        buttonText: item.buttonText.trim() || `Tombol Aksi ${idx + 1}`,
+        buttonText: item.buttonText.trim() || `Action Button ${idx + 1}`,
         buttonUrl: item.buttonUrl?.trim() || "/about",
         columns: (item.columns || []).map(c => c.trim()).filter(Boolean),
         visible: item.visible !== false
@@ -178,10 +178,10 @@ export function WhatIDoView() {
 
       await updateProfile(payloadToSave);
       setActions(sanitizedActions);
-      setMessage({ type: 'success', text: 'Perubahan What I Do berhasil disimpan ke database!' });
+      setMessage({ type: 'success', text: 'What I Do changes saved successfully!' });
     } catch (err: any) {
       console.error("Failed to save What I Do:", err);
-      setMessage({ type: 'error', text: `Gagal menyimpan: ${err.code || err.message}` });
+      setMessage({ type: 'error', text: `Failed to save: ${err.code || err.message}` });
     } finally {
       setSaving(false);
     }
@@ -195,7 +195,7 @@ export function WhatIDoView() {
         <div>
           <h2 className="text-2xl font-display font-medium text-white">What I Do Dashboard</h2>
           <p className="text-sm text-text-secondary mt-1">
-            Kelola judul utama, tombol-tombol aksi, dan kolom teks di bawah setiap tombol aksi.
+            Manage the section heading, action buttons, and skill columns displayed beneath each button.
           </p>
         </div>
       </div>
@@ -212,15 +212,15 @@ export function WhatIDoView() {
 
       <form onSubmit={handleSave} className="flex flex-col gap-8">
         
-        {/* 1. Sederhana: Section Label & Heading */}
+        {/* 1. Section Label & Heading */}
         <div className="bg-white/[0.02] p-5 sm:p-6 rounded-2xl border border-white/5 flex flex-col gap-4">
           <h3 className="text-base font-display font-medium text-[#7DB3FF] border-b border-white/5 pb-2">
-            1. Label & Heading Utama
+            1. Section Label & Main Heading
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="flex flex-col gap-2">
               <label className="text-xs text-text-secondary uppercase font-semibold tracking-wider">
-                Label Atas
+                Top Label
               </label>
               <input 
                 type="text" 
@@ -232,7 +232,7 @@ export function WhatIDoView() {
             </div>
             <div className="flex flex-col gap-2">
               <label className="text-xs text-text-secondary uppercase font-semibold tracking-wider">
-                Judul Besar (Heading)
+                Main Heading
               </label>
               <textarea 
                 value={aboutHeading} 
@@ -244,15 +244,15 @@ export function WhatIDoView() {
           </div>
         </div>
 
-        {/* 2. Tombol Aksi & Kolom Teks di Bawahnya */}
+        {/* 2. Action Buttons & Text Columns */}
         <div className="flex flex-col gap-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-3">
             <div>
               <h3 className="text-lg font-display font-medium text-[#F7FAFF]">
-                2. Tombol Aksi & Kolom Teks di Bawahnya
+                2. Action Buttons & Text Columns
               </h3>
               <p className="text-xs text-text-secondary mt-0.5">
-                Tambahkan tombol aksi baru, lalu tambahkan kolom teks di bawah tombol tersebut.
+                Add action buttons and configure the skill or topic columns shown below each button.
               </p>
             </div>
             <button 
@@ -260,7 +260,7 @@ export function WhatIDoView() {
               onClick={() => handleAddAction()} 
               className="ios-glass-btn px-4 py-2 text-xs font-semibold cursor-pointer w-fit"
             >
-              <span>+ Tambah Tombol Aksi Baru</span>
+              <span>+ Add Action Button</span>
             </button>
           </div>
 
@@ -274,7 +274,7 @@ export function WhatIDoView() {
                   key={item.id} 
                   className="bg-[rgba(8,18,34,0.85)] border border-[rgba(130,180,255,0.22)] p-5 sm:p-6 rounded-2xl flex flex-col gap-5 shadow-lg relative"
                 >
-                  {/* Header: Tombol Aksi */}
+                  {/* Header: Action Button */}
                   <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between border-b border-white/10 pb-4">
                     <div className="flex items-center gap-2.5 shrink-0">
                       <div className="flex flex-col gap-1">
@@ -283,7 +283,7 @@ export function WhatIDoView() {
                           onClick={() => handleMoveAction(index, 'up')} 
                           disabled={index === 0} 
                           className="text-text-tertiary hover:text-white disabled:opacity-25 px-1 text-xs cursor-pointer font-bold"
-                          title="Pindah ke Atas"
+                          title="Move Up"
                         >
                           ↑
                         </button>
@@ -292,39 +292,39 @@ export function WhatIDoView() {
                           onClick={() => handleMoveAction(index, 'down')} 
                           disabled={index === actions.length - 1} 
                           className="text-text-tertiary hover:text-white disabled:opacity-25 px-1 text-xs cursor-pointer font-bold"
-                          title="Pindah ke Bawah"
+                          title="Move Down"
                         >
                           ↓
                         </button>
                       </div>
                       <span className="text-xs font-mono text-[#7DB3FF] px-2.5 py-1 bg-[#7DB3FF]/15 border border-[#7DB3FF]/30 rounded-md font-bold">
-                        Tombol #{index + 1}
+                        Button #{index + 1}
                       </span>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1 w-full">
                       <div>
                         <label className="text-[11px] text-text-secondary uppercase font-semibold">
-                          Teks Tombol Aksi
+                          Action Button Label
                         </label>
                         <input 
                           type="text" 
                           value={item.buttonText} 
                           onChange={e => handleUpdateAction(item.id, 'buttonText', e.target.value)} 
                           className="glass-input px-3.5 py-2 text-sm rounded-lg w-full font-semibold mt-1" 
-                          placeholder="Contoh: Web & Development, Art Commission"
+                          placeholder="e.g., Web & Development, Art Commission"
                         />
                       </div>
                       <div>
                         <label className="text-[11px] text-text-secondary uppercase font-semibold">
-                          Link Tujuan (Opsional)
+                          Destination URL (Optional)
                         </label>
                         <input 
                           type="text" 
                           value={item.buttonUrl || ''} 
                           onChange={e => handleUpdateAction(item.id, 'buttonUrl', e.target.value)} 
                           className="glass-input px-3.5 py-2 text-sm rounded-lg w-full mt-1 text-text-secondary" 
-                          placeholder="Contoh: /about, /projects, /gallery"
+                          placeholder="e.g., /about, /projects, /gallery"
                         />
                       </div>
                     </div>
@@ -347,27 +347,27 @@ export function WhatIDoView() {
                         onClick={() => handleDeleteAction(item.id)} 
                         className="text-red-400 hover:text-red-300 text-xs px-2.5 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 transition-colors cursor-pointer"
                       >
-                        Hapus Tombol
+                        Delete Button
                       </button>
                     </div>
                   </div>
 
-                  {/* Kolom Teks di Bawah Tombol Aksi */}
+                  {/* Text Columns Below Button */}
                   <div className="flex flex-col gap-3 bg-black/30 p-4 rounded-xl border border-white/5">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-semibold text-text-primary uppercase tracking-wider">
-                        Kolom Teks di Bawah Tombol Ini ({cols.length} Kolom):
+                        Text Columns Below Button ({cols.length}):
                       </span>
                       <button
                         type="button"
                         onClick={() => handleAddColumn(item.id)}
                         className="text-xs text-[#7DB3FF] hover:text-white font-medium flex items-center gap-1 hover:underline cursor-pointer"
                       >
-                        <span>+ Tambah Kolom Teks</span>
+                        <span>+ Add Column</span>
                       </button>
                     </div>
 
-                    {/* Grid Kolom Teks */}
+                    {/* Columns Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5">
                       {cols.map((colText, cIdx) => (
                         <div 
@@ -376,13 +376,13 @@ export function WhatIDoView() {
                         >
                           <div className="flex items-center justify-between">
                             <span className="text-[10px] font-mono text-[#7DB3FF] font-semibold">
-                              Kolom #{cIdx + 1}
+                              Col #{cIdx + 1}
                             </span>
                             <button
                               type="button"
                               onClick={() => handleDeleteColumn(item.id, cIdx)}
                               className="text-text-muted hover:text-red-400 text-xs px-1 hover:scale-110 transition-transform cursor-pointer"
-                              title="Hapus kolom ini"
+                              title="Remove column"
                             >
                               ✕
                             </button>
@@ -393,14 +393,14 @@ export function WhatIDoView() {
                             value={colText}
                             onChange={e => handleUpdateColumn(item.id, cIdx, e.target.value)}
                             className="glass-input px-2.5 py-1.5 text-xs rounded font-medium text-white w-full"
-                            placeholder={`Teks kolom`}
+                            placeholder="Column label"
                           />
                         </div>
                       ))}
 
                       {cols.length === 0 && (
                         <div className="col-span-full py-3 text-center text-xs text-text-muted">
-                          Belum ada kolom teks di bawah tombol ini. Klik <button type="button" onClick={() => handleAddColumn(item.id)} className="text-[#7DB3FF] underline cursor-pointer font-medium">+ Tambah Kolom Teks</button> untuk mengisi.
+                          No columns added yet. Click <button type="button" onClick={() => handleAddColumn(item.id)} className="text-[#7DB3FF] underline cursor-pointer font-medium">+ Add Column</button> to add one.
                         </div>
                       )}
                     </div>
@@ -411,7 +411,7 @@ export function WhatIDoView() {
 
             {actions.length === 0 && (
               <div className="py-8 text-center text-sm text-text-muted border border-dashed border-white/10 rounded-2xl">
-                Belum ada tombol aksi. Klik <button type="button" onClick={() => handleAddAction()} className="text-[#7DB3FF] underline cursor-pointer font-medium">+ Tambah Tombol Aksi Baru</button>.
+                No action buttons yet. Click <button type="button" onClick={() => handleAddAction()} className="text-[#7DB3FF] underline cursor-pointer font-medium">+ Add Action Button</button>.
               </div>
             )}
 
@@ -420,7 +420,7 @@ export function WhatIDoView() {
               onClick={() => handleAddAction()}
               className="py-3.5 px-5 rounded-xl border border-dashed border-white/20 text-xs text-text-secondary hover:text-white hover:border-[#7DB3FF]/50 hover:bg-white/[0.03] flex items-center justify-center gap-2 transition-all cursor-pointer font-medium"
             >
-              <span>+ Tambah Tombol Aksi Baru</span>
+              <span>+ Add Action Button</span>
             </button>
           </div>
         </div>
@@ -431,7 +431,7 @@ export function WhatIDoView() {
             disabled={saving} 
             className="ios-glass-btn ios-glass-primary px-8 py-3 text-sm font-semibold cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
           >
-            <span>{saving ? 'Menyimpan...' : 'Simpan Perubahan What I Do'}</span>
+            <span>{saving ? 'Saving...' : 'Save What I Do Changes'}</span>
           </button>
         </div>
       </form>

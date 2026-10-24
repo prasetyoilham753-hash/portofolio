@@ -17,10 +17,10 @@ function RootErrorBoundary() {
           </svg>
         </div>
         <h2 className="text-xl font-semibold tracking-tight text-white mb-2">
-          Terjadi Gangguan Navigasi
+          Navigation Interrupted
         </h2>
         <p className="text-sm text-text-secondary leading-relaxed mb-6 font-light">
-          Halaman tidak dapat dimuat sementara. Silakan segarkan halaman untuk kembali melanjutkan.
+          This page could not be loaded temporarily. Please refresh the page to continue.
         </p>
         <button
           onClick={() => {
@@ -28,7 +28,7 @@ function RootErrorBoundary() {
           }}
           className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-white text-sm font-medium transition-all active:scale-[0.98]"
         >
-          Kembali ke Beranda
+          Back to Home
         </button>
       </div>
     </div>

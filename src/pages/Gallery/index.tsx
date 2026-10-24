@@ -178,7 +178,7 @@ export default function Gallery() {
         <div className="flex items-center justify-center min-h-[350px] w-full">
           <div className="flex flex-col items-center gap-3 text-text-secondary text-sm">
             <div className="w-8 h-8 rounded-full border-2 border-[#7DB3FF]/30 border-t-[#7DB3FF] animate-spin" />
-            <span>Memuat Art Gallery...</span>
+            <span>Loading Art Gallery...</span>
           </div>
         </div>
       ) : filteredArtworks.length === 0 ? (
@@ -189,12 +189,12 @@ export default function Gallery() {
           </div>
           <div className="flex flex-col gap-2 max-w-md">
             <h3 className="text-xl font-display font-medium text-white">
-              {artworks.length === 0 ? "Belum Ada Karya di Art Gallery" : `Tidak ada karya untuk kategori "${selectedCategory}"`}
+              {artworks.length === 0 ? "No Artworks in Gallery Yet" : `No artworks found in "${selectedCategory}"`}
             </h3>
             <p className="text-sm font-light leading-relaxed text-text-secondary">
               {artworks.length === 0
-                ? "Koleksi foto dan karya seni sedang dikurasi dan akan segera diperbarui."
-                : "Pilih kategori lain atau kembali ke 'All' untuk melihat seluruh karya seni."}
+                ? "The photography and visual artwork collection is currently being curated and will be updated soon."
+                : "Select another category or switch back to 'All' to view the full collection."}
             </p>
           </div>
         </div>
@@ -338,7 +338,7 @@ export default function Gallery() {
             <button
               onClick={() => setActiveArtwork(null)}
               className="absolute -top-12 right-0 sm:right-2 p-2 rounded-full text-white/70 hover:text-white bg-white/10 hover:bg-white/20 transition-colors cursor-pointer z-50"
-              title="Tutup (Esc)"
+              title="Close (Esc)"
             >
               <X size={20} />
             </button>
@@ -349,14 +349,14 @@ export default function Gallery() {
                 <button
                   onClick={handlePrev}
                   className="absolute left-2 sm:-left-12 top-1/2 -translate-y-1/2 p-3 rounded-full text-white/80 hover:text-white bg-black/60 sm:bg-white/10 hover:bg-white/25 border border-white/15 transition-all cursor-pointer z-50"
-                  title="Sebelumnya (Arrow Left)"
+                  title="Previous (Arrow Left)"
                 >
                   <ChevronLeft size={22} />
                 </button>
                 <button
                   onClick={handleNext}
                   className="absolute right-2 sm:-right-12 top-1/2 -translate-y-1/2 p-3 rounded-full text-white/80 hover:text-white bg-black/60 sm:bg-white/10 hover:bg-white/25 border border-white/15 transition-all cursor-pointer z-50"
-                  title="Selanjutnya (Arrow Right)"
+                  title="Next (Arrow Right)"
                 >
                   <ChevronRight size={22} />
                 </button>

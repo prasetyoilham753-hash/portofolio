@@ -85,13 +85,14 @@ export function NavigationCustomizationView() {
   const [previewComponentMode, setPreviewComponentMode] = useState<"dock" | "dropdown">("dock");
   const [previewActiveTab, setPreviewActiveTab] = useState<string>("home");
   const [previewPressedTab, setPreviewPressedTab] = useState<string | null>(null);
-  const [previewDropdownLink, setPreviewDropdownLink] = useState<string>("qna");
+  const [previewDropdownLink, setPreviewDropdownLink] = useState<string>("certificate");
   const [previewDropdownBg, setPreviewDropdownBg] = useState<string>("molten");
   const [previewBgTheme, setPreviewBgTheme] = useState<"molten" | "dark" | "cyber" | "light">("molten");
   const [presetNameInput, setPresetNameInput] = useState("");
   const [showSavePresetModal, setShowSavePresetModal] = useState(false);
   const [showResetConfirmModal, setShowResetConfirmModal] = useState(false);
   const [savedSuccessMsg, setSavedSuccessMsg] = useState<string | null>(null);
+  const [saveErrorMsg, setSaveErrorMsg] = useState<string | null>(null);
 
   const toggleSection = (section: string) => {
     setCollapsedSections((prev) => ({
@@ -106,24 +107,27 @@ export function NavigationCustomizationView() {
     await saveCustomPreset(presetNameInput.trim());
     setPresetNameInput("");
     setShowSavePresetModal(false);
-    setSavedSuccessMsg("Preset berhasil disimpan ke database!");
+    setSaveErrorMsg(null);
+    setSavedSuccessMsg("Preset saved to database successfully!");
     setTimeout(() => setSavedSuccessMsg(null), 3000);
   };
 
   const handleReset = async () => {
     await resetConfig();
     setShowResetConfirmModal(false);
-    setSavedSuccessMsg("Pengaturan navigasi telah direset ke default secara global.");
+    setSaveErrorMsg(null);
+    setSavedSuccessMsg("Navigation settings have been globally reset to default.");
     setTimeout(() => setSavedSuccessMsg(null), 3000);
   };
 
   const handleSaveGlobal = async () => {
+    setSaveErrorMsg(null);
     try {
       await saveGlobalConfig();
-      setSavedSuccessMsg("Konfigurasi Navigasi Berhasil Diterapkan Global ke Seluruh Perangkat & Pengunjung Website!");
+      setSavedSuccessMsg("Navigation configuration successfully applied globally to all devices & visitors!");
       setTimeout(() => setSavedSuccessMsg(null), 4000);
     } catch (err) {
-      alert("Gagal menyimpan ke server/database Firebase. Pastikan koneksi internet stabil dan Anda terautentikasi sebagai Admin.");
+      setSaveErrorMsg("Failed to save to Firebase server/database. Please verify your internet connection and admin authentication.");
     }
   };
 
@@ -230,7 +234,7 @@ export function NavigationCustomizationView() {
               </span>
             </h2>
             <p className="text-xs sm:text-sm text-text-secondary mt-0.5 max-w-2xl">
-              Ubah tampilan, warna, transparansi, blur, bayangan, tipografi, dan animasi bilah navigasi secara langsung. Perubahan langsung aktif di seluruh website tanpa perlu reload halaman.
+              Customize navigation bar appearance, colors, transparency, blur, shadows, typography, and motion in real time. Changes apply immediately across the site without reloading.
             </p>
           </div>
         </div>
@@ -240,7 +244,7 @@ export function NavigationCustomizationView() {
             type="button"
             onClick={() => setShowResetConfirmModal(true)}
             className="ios-glass-btn px-3.5 py-2 text-xs font-semibold rounded-xl text-rose-300 hover:text-rose-200 border-rose-500/20 hover:border-rose-500/40 flex items-center gap-1.5 cursor-pointer transition-all"
-            title="Kembalikan semua pengaturan navigasi ke default"
+            title="Restore all navigation settings to factory defaults"
           >
             <RotateCcw size={14} />
             <span>Reset Default</span>
@@ -250,10 +254,10 @@ export function NavigationCustomizationView() {
             type="button"
             onClick={() => setShowSavePresetModal(true)}
             className="ios-glass-btn px-3.5 py-2 text-xs font-semibold rounded-xl text-blue-200 hover:text-white border-blue-500/20 hover:border-blue-500/40 flex items-center gap-1.5 cursor-pointer transition-all"
-            title="Simpan konfigurasi saat ini sebagai preset kustom"
+            title="Save current configuration as a custom preset"
           >
             <Save size={14} />
-            <span>Simpan Preset</span>
+            <span>Save Preset</span>
           </button>
 
           <button
@@ -261,10 +265,10 @@ export function NavigationCustomizationView() {
             onClick={handleSaveGlobal}
             disabled={isSavingGlobal}
             className="px-4 py-2 text-xs font-semibold rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white flex items-center gap-1.5 cursor-pointer shadow-lg transition-all border border-emerald-400/40 disabled:opacity-50"
-            title="Simpan dan terapkan konfigurasi ini secara global ke seluruh pengunjung website"
+            title="Save and apply this configuration globally for all site visitors"
           >
             <Check size={14} />
-            <span>{isSavingGlobal ? "Menyimpan Global..." : "Simpan & Terapkan Global"}</span>
+            <span>{isSavingGlobal ? "Saving Globally..." : "Save & Apply Globally"}</span>
           </button>
         </div>
       </div>
@@ -273,6 +277,13 @@ export function NavigationCustomizationView() {
         <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs sm:text-sm flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
           <Check size={16} className="shrink-0" />
           <span>{savedSuccessMsg}</span>
+        </div>
+      )}
+
+      {saveErrorMsg && (
+        <div className="p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs sm:text-sm flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+          <AlertTriangle size={16} className="shrink-0" />
+          <span>{saveErrorMsg}</span>
         </div>
       )}
 
@@ -315,7 +326,7 @@ export function NavigationCustomizationView() {
           </div>
 
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-text-secondary text-[11px] hidden sm:inline">Latar Preview:</span>
+            <span className="text-text-secondary text-[11px] hidden sm:inline">Preview Backdrop:</span>
             <button
               type="button"
               onClick={() => setPreviewBgTheme("molten")}
@@ -355,10 +366,10 @@ export function NavigationCustomizationView() {
               onClick={handleSaveGlobal}
               disabled={isSavingGlobal}
               className="px-3 py-1 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 cursor-pointer shadow-md transition-all border border-emerald-400/40 ml-2 shrink-0 disabled:opacity-50"
-              title="Simpan dan terapkan langsung ke seluruh pengunjung"
+              title="Save and apply immediately for all visitors"
             >
               <Check size={12} />
-              <span>{isSavingGlobal ? "Menyimpan..." : "Terapkan Global"}</span>
+              <span>{isSavingGlobal ? "Saving..." : "Apply Globally"}</span>
             </button>
           </div>
         </div>
@@ -488,8 +499,7 @@ export function NavigationCustomizationView() {
                 
                 <div className="relative z-10 flex flex-col gap-1">
                   {[
-                    { id: "qna", label: "Tanya & Jawab (QnA)", icon: <IOSCommentsIcon size={14} /> },
-                    { id: "certificate", label: "Sertifikat Keaslian", icon: <ShieldCheck size={14} /> },
+                    { id: "certificate", label: "Certificate of Authenticity", icon: <ShieldCheck size={14} /> },
                   ].map((item) => {
                     const isActive = previewDropdownLink === item.id;
                     return (
@@ -598,10 +608,10 @@ export function NavigationCustomizationView() {
           <div className="flex items-center gap-2">
             <Sparkles size={16} className="text-amber-400" />
             <h3 className="text-sm font-semibold text-white uppercase tracking-wider">
-              Preset Desain Navigasi
+              Navigation Design Presets
             </h3>
           </div>
-          <span className="text-xs text-text-secondary">Pilih preset instan atau buat gaya kustom</span>
+          <span className="text-xs text-text-secondary">Choose an instant preset or craft a custom style</span>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2.5">
@@ -637,7 +647,7 @@ export function NavigationCustomizationView() {
         {/* Custom saved presets list */}
         {savedPresets.length > 0 && (
           <div className="pt-3 border-t border-white/10 flex flex-col gap-2">
-            <span className="text-xs text-text-secondary font-medium">Preset Kustom Anda:</span>
+            <span className="text-xs text-text-secondary font-medium">Your Custom Presets:</span>
             <div className="flex flex-wrap gap-2">
               {savedPresets.map((preset) => (
                 <div 
@@ -655,7 +665,7 @@ export function NavigationCustomizationView() {
                     type="button"
                     onClick={() => deleteCustomPreset(preset.id)}
                     className="text-rose-400 hover:text-rose-300 p-0.5 rounded cursor-pointer ml-1"
-                    title="Hapus preset ini"
+                    title="Delete this preset"
                   >
                     <Trash2 size={12} />
                   </button>
@@ -681,8 +691,8 @@ export function NavigationCustomizationView() {
                 <Palette size={16} />
               </div>
               <div>
-                <h3 className="text-sm sm:text-base font-semibold text-white">1. Background & Warna</h3>
-                <p className="text-xs text-text-secondary">Warna dasar, transparansi opasitas, gradien, arah, dan kecerahan.</p>
+                <h3 className="text-sm sm:text-base font-semibold text-white">1. Background & Colors</h3>
+                <p className="text-xs text-text-secondary">Base color, opacity transparency, gradients, direction, and substrate mode.</p>
               </div>
             </div>
             {collapsedSections.background ? <ChevronDown size={18} className="text-text-secondary" /> : <ChevronUp size={18} className="text-text-secondary" />}
@@ -755,7 +765,7 @@ export function NavigationCustomizationView() {
                 {/* Opacity Slider */}
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between text-xs font-medium text-text-secondary">
-                    <span>Background Opacity (Transparansi)</span>
+                    <span>Background Opacity (Transparency)</span>
                     <span className="font-mono text-blue-400 font-semibold">{config.bgOpacity}%</span>
                   </div>
                   <input
@@ -767,9 +777,9 @@ export function NavigationCustomizationView() {
                     className="w-full accent-blue-500 cursor-pointer"
                   />
                   <div className="flex justify-between text-[10px] text-text-secondary">
-                    <span>0% (Full Transparan)</span>
+                    <span>0% (Fully Transparent)</span>
                     <span>50%</span>
-                    <span>100% (Solid Pekat)</span>
+                    <span>100% (Solid Opaque)</span>
                   </div>
                 </div>
               </div>
@@ -855,8 +865,8 @@ export function NavigationCustomizationView() {
                 <Sparkles size={16} />
               </div>
               <div>
-                <h3 className="text-sm sm:text-base font-semibold text-white">2. Blur & Efek Kaca (Glass / Backdrop Blur)</h3>
-                <p className="text-xs text-text-secondary">Backdrop blur, saturasi warna kaca, kontras, dan tingkat kejernihan refraksi.</p>
+                <h3 className="text-sm sm:text-base font-semibold text-white">2. Glass & Backdrop Blur</h3>
+                <p className="text-xs text-text-secondary">Backdrop blur, glass color saturation, contrast, and optical refraction clarity.</p>
               </div>
             </div>
             {collapsedSections.glass ? <ChevronDown size={18} className="text-text-secondary" /> : <ChevronUp size={18} className="text-text-secondary" />}
@@ -882,8 +892,8 @@ export function NavigationCustomizationView() {
                     className="w-full accent-cyan-400 cursor-pointer"
                   />
                   <div className="flex justify-between text-[10px] text-text-secondary">
-                    <span>0px (Jernih)</span>
-                    <span>13px (Pas)</span>
+                    <span>0px (Clear)</span>
+                    <span>13px (Balanced)</span>
                     <span>40px (Milky Frosted)</span>
                   </div>
                 </div>
@@ -891,7 +901,7 @@ export function NavigationCustomizationView() {
                 {/* Saturation */}
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between text-xs font-medium text-text-secondary">
-                    <span>Saturation (Ketajaman Warna)</span>
+                    <span>Saturation (Color Vibrancy)</span>
                     <span className="font-mono text-cyan-400 font-semibold">{config.saturation}%</span>
                   </div>
                   <input
@@ -967,8 +977,8 @@ export function NavigationCustomizationView() {
                 <Box size={16} />
               </div>
               <div>
-                <h3 className="text-sm sm:text-base font-semibold text-white">3. Border & Rim Highlight Kaca</h3>
-                <p className="text-xs text-text-secondary">Ketebalan garis tepi, warna, opasitas, radius pembulatan sudut (capsule/pill).</p>
+                <h3 className="text-sm sm:text-base font-semibold text-white">3. Glass Border & Rim Highlight</h3>
+                <p className="text-xs text-text-secondary">Edge stroke thickness, color, opacity, and corner rounding radius (capsule/pill).</p>
               </div>
             </div>
             {collapsedSections.border ? <ChevronDown size={18} className="text-text-secondary" /> : <ChevronUp size={18} className="text-text-secondary" />}
@@ -978,7 +988,7 @@ export function NavigationCustomizationView() {
             <div className="p-4 sm:p-5 pt-0 border-t border-white/5 flex flex-col gap-6">
               
               <GlassSwitch
-                label="Aktifkan Rim Border Kaca"
+                label="Enable Glass Rim Border"
                 checked={config.borderEnabled}
                 onChange={(checked) => updateConfig({ borderEnabled: checked })}
                 activeColor="purple"
@@ -1059,7 +1069,7 @@ export function NavigationCustomizationView() {
                       className="w-full accent-indigo-400 cursor-pointer"
                     />
                     <div className="flex justify-between text-[10px] text-text-secondary">
-                      <span>0px (Kotak)</span>
+                      <span>0px (Square)</span>
                       <span>16px (Rounded)</span>
                       <span>999px (Capsule/Pill)</span>
                     </div>
@@ -1083,8 +1093,8 @@ export function NavigationCustomizationView() {
                 <Layers size={16} />
               </div>
               <div>
-                <h3 className="text-sm sm:text-base font-semibold text-white">4. Shadow & Kedalaman Ambient</h3>
-                <p className="text-xs text-text-secondary">Bayangan bawah, blur radius, spread, dan posisi X/Y untuk efek floating.</p>
+                <h3 className="text-sm sm:text-base font-semibold text-white">4. Shadow & Ambient Depth</h3>
+                <p className="text-xs text-text-secondary">Drop shadow color, blur radius, opacity, and vertical offset for spatial elevation.</p>
               </div>
             </div>
             {collapsedSections.shadow ? <ChevronDown size={18} className="text-text-secondary" /> : <ChevronUp size={18} className="text-text-secondary" />}
@@ -1094,7 +1104,7 @@ export function NavigationCustomizationView() {
             <div className="p-4 sm:p-5 pt-0 border-t border-white/5 flex flex-col gap-6">
               
               <GlassSwitch
-                label="Aktifkan Ambient Shadow & Depth"
+                label="Enable Ambient Shadow & Depth"
                 checked={config.shadowEnabled}
                 onChange={(checked) => updateConfig({ shadowEnabled: checked })}
                 activeColor="purple"
@@ -1161,7 +1171,7 @@ export function NavigationCustomizationView() {
                   {/* Shadow Y Position */}
                   <div className="flex flex-col gap-2">
                     <div className="flex justify-between text-xs font-medium text-text-secondary">
-                      <span>Shadow Y (Offset Vertikal)</span>
+                      <span>Shadow Y (Vertical Offset)</span>
                       <span className="font-mono text-purple-400 font-semibold">{config.shadowY}px</span>
                     </div>
                     <input
@@ -1192,8 +1202,8 @@ export function NavigationCustomizationView() {
                 <Type size={16} />
               </div>
               <div>
-                <h3 className="text-sm sm:text-base font-semibold text-white">5. Navigation Items & Tipografi</h3>
-                <p className="text-xs text-text-secondary">Ukuran font, bobot teks, warna hover/aktif, padding item, dan efek highlight.</p>
+                <h3 className="text-sm sm:text-base font-semibold text-white">5. Navigation Items & Typography</h3>
+                <p className="text-xs text-text-secondary">Font size, weight, active/hover colors, item padding, and highlight styling.</p>
               </div>
             </div>
             {collapsedSections.items ? <ChevronDown size={18} className="text-text-secondary" /> : <ChevronUp size={18} className="text-text-secondary" />}
@@ -1204,10 +1214,10 @@ export function NavigationCustomizationView() {
               
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 
-                {/* Warna Teks Inaktif (Normal Text Color) */}
+                {/* Normal Text Color */}
                 <div className="flex flex-col gap-2">
                   <label className="text-xs font-medium text-text-secondary flex justify-between">
-                    <span>Warna Teks (Inaktif)</span>
+                    <span>Text Color (Inactive)</span>
                     <span className="font-mono text-white">{config.textColor}</span>
                   </label>
                   <div className="flex items-center gap-2">
@@ -1226,10 +1236,10 @@ export function NavigationCustomizationView() {
                   </div>
                 </div>
 
-                {/* Warna Teks Aktif (Active Text Color) */}
+                {/* Active Text Color */}
                 <div className="flex flex-col gap-2">
                   <label className="text-xs font-medium text-text-secondary flex justify-between">
-                    <span>Warna Teks (Aktif/Hold)</span>
+                    <span>Text Color (Active/Hold)</span>
                     <span className="font-mono text-emerald-400 font-semibold">{config.activeTextColor}</span>
                   </label>
                   <div className="flex items-center gap-2">
@@ -1248,10 +1258,10 @@ export function NavigationCustomizationView() {
                   </div>
                 </div>
 
-                {/* Opasitas Teks Inaktif */}
+                {/* Inactive Text Opacity */}
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between text-xs font-medium text-text-secondary">
-                    <span>Opasitas Teks (Inaktif)</span>
+                    <span>Text Opacity (Inactive)</span>
                     <span className="font-mono text-emerald-400 font-semibold">{config.textOpacity}%</span>
                   </div>
                   <input
@@ -1305,7 +1315,7 @@ export function NavigationCustomizationView() {
                 {/* Font Size */}
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between text-xs font-medium text-text-secondary">
-                    <span>Font Size (Ukuran Teks)</span>
+                    <span>Font Size</span>
                     <span className="font-mono text-emerald-400 font-semibold">{config.fontSize}px</span>
                   </div>
                   <input
@@ -1322,7 +1332,7 @@ export function NavigationCustomizationView() {
                 {/* Font Weight */}
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between text-xs font-medium text-text-secondary">
-                    <span>Font Weight (Ketebalan)</span>
+                    <span>Font Weight</span>
                     <span className="font-mono text-emerald-400 font-semibold">{config.fontWeight}</span>
                   </div>
                   <select
@@ -1343,7 +1353,7 @@ export function NavigationCustomizationView() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-2">
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between text-xs font-medium text-text-secondary">
-                    <span>Item Spacing (Gap Antar Tab)</span>
+                    <span>Item Spacing (Tab Gap)</span>
                     <span className="font-mono text-emerald-400 font-semibold">{config.itemSpacing}px</span>
                   </div>
                   <input
@@ -1358,7 +1368,7 @@ export function NavigationCustomizationView() {
 
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between text-xs font-medium text-text-secondary">
-                    <span>Item Padding Vertikal</span>
+                    <span>Item Vertical Padding</span>
                     <span className="font-mono text-emerald-400 font-semibold">{config.itemPaddingY}px</span>
                   </div>
                   <input
@@ -1373,7 +1383,7 @@ export function NavigationCustomizationView() {
 
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between text-xs font-medium text-text-secondary">
-                    <span>Item Padding Horizontal</span>
+                    <span>Item Horizontal Padding</span>
                     <span className="font-mono text-emerald-400 font-semibold">{config.itemPaddingX}px</span>
                   </div>
                   <input
@@ -1402,8 +1412,8 @@ export function NavigationCustomizationView() {
                 <Zap size={16} />
               </div>
               <div>
-                <h3 className="text-sm sm:text-base font-semibold text-white">6. Ikon Navigasi</h3>
-                <p className="text-xs text-text-secondary">Ukuran ikon, warna, opasitas, dan jarak antara ikon dan label teks.</p>
+                <h3 className="text-sm sm:text-base font-semibold text-white">6. Navigation Icons</h3>
+                <p className="text-xs text-text-secondary">Icon size, colors, opacity, and spacing between icon and text label.</p>
               </div>
             </div>
             {collapsedSections.icons ? <ChevronDown size={18} className="text-text-secondary" /> : <ChevronUp size={18} className="text-text-secondary" />}
@@ -1413,10 +1423,10 @@ export function NavigationCustomizationView() {
             <div className="p-4 sm:p-5 pt-0 border-t border-white/5 flex flex-col gap-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 
-                {/* Warna Ikon Inaktif (Normal Icon Color) */}
+                {/* Normal Icon Color */}
                 <div className="flex flex-col gap-2">
                   <label className="text-xs font-medium text-text-secondary flex justify-between">
-                    <span>Warna Ikon (Inaktif)</span>
+                    <span>Icon Color (Inactive)</span>
                     <span className="font-mono text-white">{config.iconColor}</span>
                   </label>
                   <div className="flex items-center gap-2">
@@ -1435,10 +1445,10 @@ export function NavigationCustomizationView() {
                   </div>
                 </div>
 
-                {/* Warna Ikon Aktif (Active Icon Color) */}
+                {/* Active Icon Color */}
                 <div className="flex flex-col gap-2">
                   <label className="text-xs font-medium text-text-secondary flex justify-between">
-                    <span>Warna Ikon (Aktif/Hold)</span>
+                    <span>Icon Color (Active/Hold)</span>
                     <span className="font-mono text-amber-400 font-semibold">{config.activeIconColor}</span>
                   </label>
                   <div className="flex items-center gap-2">
@@ -1460,7 +1470,7 @@ export function NavigationCustomizationView() {
                 {/* Icon Size */}
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between text-xs font-medium text-text-secondary">
-                    <span>Ukuran Ikon</span>
+                    <span>Icon Size</span>
                     <span className="font-mono text-amber-400 font-semibold">{config.iconSize}px</span>
                   </div>
                   <input
@@ -1476,7 +1486,7 @@ export function NavigationCustomizationView() {
                 {/* Icon Opacity */}
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between text-xs font-medium text-text-secondary">
-                    <span>Opasitas Ikon (Inaktif)</span>
+                    <span>Icon Opacity (Inactive)</span>
                     <span className="font-mono text-amber-400 font-semibold">{config.iconOpacity}%</span>
                   </div>
                   <input
@@ -1492,7 +1502,7 @@ export function NavigationCustomizationView() {
                 {/* Icon Spacing */}
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between text-xs font-medium text-text-secondary">
-                    <span>Jarak Ikon ke Label</span>
+                    <span>Icon-to-Label Gap</span>
                     <span className="font-mono text-amber-400 font-semibold">{config.iconSpacing}px</span>
                   </div>
                   <input
@@ -1510,7 +1520,7 @@ export function NavigationCustomizationView() {
           )}
         </div>
 
-        {/* 7. POSITION & DIMENSIONS (PANJANG, LEBAR & TINGGI NAV) */}
+        {/* 7. POSITION & DIMENSIONS */}
         <div className="rounded-2xl bg-[rgba(6,15,35,0.4)] border border-white/10 backdrop-blur-md overflow-hidden">
           <button
             type="button"
@@ -1522,8 +1532,8 @@ export function NavigationCustomizationView() {
                 <Move size={16} />
               </div>
               <div>
-                <h3 className="text-sm sm:text-base font-semibold text-white">7. Posisi & Dimensi Dock (Panjang, Lebar & Tinggi)</h3>
-                <p className="text-xs text-text-secondary">Atur panjang/lebar maksimal dock, tinggi (padding vertikal), padding samping, dan jarak dari bawah layar.</p>
+                <h3 className="text-sm sm:text-base font-semibold text-white">7. Dock Position & Dimensions (Width & Height)</h3>
+                <p className="text-xs text-text-secondary">Configure max dock width, vertical height padding, side padding, and bottom viewport offset.</p>
               </div>
             </div>
             {collapsedSections.position ? <ChevronDown size={18} className="text-text-secondary" /> : <ChevronUp size={18} className="text-text-secondary" />}
@@ -1533,10 +1543,10 @@ export function NavigationCustomizationView() {
             <div className="p-4 sm:p-5 pt-0 border-t border-white/5 flex flex-col gap-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 
-                {/* Max Width / Panjang Lebar Dock */}
+                {/* Max Width */}
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between text-xs font-medium text-text-secondary">
-                    <span>Panjang / Lebar Maksimal</span>
+                    <span>Maximum Dock Width</span>
                     <span className="font-mono text-pink-400 font-semibold">{config.maxWidth}px</span>
                   </div>
                   <input
@@ -1550,10 +1560,10 @@ export function NavigationCustomizationView() {
                   />
                 </div>
 
-                {/* Vertical Padding / Tinggi Nav Dock */}
+                {/* Vertical Padding */}
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between text-xs font-medium text-text-secondary">
-                    <span>Tinggi Dock (Padding Vertikal)</span>
+                    <span>Dock Height (Vertical Padding)</span>
                     <span className="font-mono text-pink-400 font-semibold">{config.verticalPadding}px</span>
                   </div>
                   <input
@@ -1566,10 +1576,10 @@ export function NavigationCustomizationView() {
                   />
                 </div>
 
-                {/* Horizontal Padding Dock */}
+                {/* Horizontal Padding */}
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between text-xs font-medium text-text-secondary">
-                    <span>Padding Horizontal Samping</span>
+                    <span>Horizontal Side Padding</span>
                     <span className="font-mono text-pink-400 font-semibold">{config.horizontalPadding}px</span>
                   </div>
                   <input
@@ -1585,7 +1595,7 @@ export function NavigationCustomizationView() {
                 {/* Bottom Offset */}
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between text-xs font-medium text-text-secondary">
-                    <span>Bottom Offset (Jarak Bawah)</span>
+                    <span>Bottom Offset</span>
                     <span className="font-mono text-pink-400 font-semibold">{config.bottomOffset}px</span>
                   </div>
                   <input
@@ -1615,8 +1625,8 @@ export function NavigationCustomizationView() {
                 <Sparkles size={16} />
               </div>
               <div>
-                <h3 className="text-sm sm:text-base font-semibold text-white">8. Kustomisasi Kapsul Kaca Dinamis (Living Glass Capsule)</h3>
-                <p className="text-xs text-text-secondary">Atur dimensi kapsul saat aktif interaktif (hold / geser / klik). Saat statis dan dilepas (release), kapsul otomatis mengecil rapi di dalam nav dock.</p>
+                <h3 className="text-sm sm:text-base font-semibold text-white">8. Living Glass Capsule Indicator</h3>
+                <p className="text-xs text-text-secondary">Configure dynamic capsule expansion during interactive gestures (hold / drag / tap). At rest, the capsule settles neatly inside the navigation dock.</p>
               </div>
             </div>
             {collapsedSections.capsule ? <ChevronDown size={18} className="text-text-secondary" /> : <ChevronUp size={18} className="text-text-secondary" />}
@@ -1629,10 +1639,10 @@ export function NavigationCustomizationView() {
                 {/* Capsule Extra Width */}
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between items-center text-xs font-medium text-text-secondary">
-                    <span>Ekstra Lebar Kapsul</span>
+                    <span>Extra Capsule Width</span>
                     <div className="flex items-center gap-1.5">
                       {(config.capsuleExtraWidth ?? 24) > 40 && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-semibold">Di Luar Nav</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-semibold">Beyond Dock</span>
                       )}
                       <span className="font-mono text-cyan-400 font-semibold">{(config.capsuleExtraWidth ?? 24) > 0 ? `+${config.capsuleExtraWidth ?? 24}` : config.capsuleExtraWidth ?? 24}px</span>
                     </div>
@@ -1646,16 +1656,16 @@ export function NavigationCustomizationView() {
                     onChange={(e) => updateConfig({ capsuleExtraWidth: Number(e.target.value) })}
                     className="w-full accent-cyan-400 cursor-pointer"
                   />
-                  <span className="text-[11px] text-text-muted">Rentang: -20px s/d +200px (dapat meluas bebas ke samping luar dock)</span>
+                  <span className="text-[11px] text-text-muted">Range: -20px to +200px (can expand freely past the dock edges)</span>
                 </div>
 
                 {/* Capsule Extra Height */}
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between items-center text-xs font-medium text-text-secondary">
-                    <span>Ekstra Tinggi Vertikal Kapsul</span>
+                    <span>Extra Capsule Vertical Height</span>
                     <div className="flex items-center gap-1.5">
                       {(config.capsuleExtraHeight ?? 3) > 16 && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-semibold">Melayang di Luar Dock</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-semibold">Floating Outside Dock</span>
                       )}
                       <span className="font-mono text-cyan-400 font-semibold">{(config.capsuleExtraHeight ?? 3) > 0 ? `+${config.capsuleExtraHeight ?? 3}` : config.capsuleExtraHeight ?? 3}px</span>
                     </div>
@@ -1669,13 +1679,13 @@ export function NavigationCustomizationView() {
                     onChange={(e) => updateConfig({ capsuleExtraHeight: Number(e.target.value) })}
                     className="w-full accent-cyan-400 cursor-pointer"
                   />
-                  <span className="text-[11px] text-text-muted">Rentang: -16px s/d +100px (dapat mengambang jauh di atas & bawah dock)</span>
+                  <span className="text-[11px] text-text-muted">Range: -16px to +100px (can float above and below the dock)</span>
                 </div>
 
                 {/* Static Capsule Inset X */}
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between items-center text-xs font-medium text-text-secondary">
-                    <span>Padding Samping Kapsul Statis</span>
+                    <span>Static Capsule Side Inset</span>
                     <span className="font-mono text-cyan-400 font-semibold">{config.capsuleStaticPaddingX ?? 0.4}px</span>
                   </div>
                   <input
@@ -1687,13 +1697,13 @@ export function NavigationCustomizationView() {
                     onChange={(e) => updateConfig({ capsuleStaticPaddingX: Number(e.target.value) })}
                     className="w-full accent-cyan-400 cursor-pointer"
                   />
-                  <span className="text-[11px] text-text-muted">Jarak inset horizontal kapsul di dalam batas nav saat diam (default: 0.4px ~ 0.1mm)</span>
+                  <span className="text-[11px] text-text-muted">Horizontal inset within dock bounds when at rest (default: 0.4px)</span>
                 </div>
 
                 {/* Static Capsule Inset Y */}
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between items-center text-xs font-medium text-text-secondary">
-                    <span>Padding Atas/Bawah Kapsul Statis</span>
+                    <span>Static Capsule Top/Bottom Inset</span>
                     <span className="font-mono text-cyan-400 font-semibold">{config.capsuleStaticPaddingY ?? 0.4}px</span>
                   </div>
                   <input
@@ -1705,19 +1715,19 @@ export function NavigationCustomizationView() {
                     onChange={(e) => updateConfig({ capsuleStaticPaddingY: Number(e.target.value) })}
                     className="w-full accent-cyan-400 cursor-pointer"
                   />
-                  <span className="text-[11px] text-text-muted">Jarak inset vertikal kapsul di dalam batas nav saat diam (default: 0.4px ~ 0.1mm)</span>
+                  <span className="text-[11px] text-text-muted">Vertical inset within dock bounds when at rest (default: 0.4px)</span>
                 </div>
 
                 {/* Chromatic Prism Rim Toggle */}
                 <div className="flex flex-col gap-2">
-                  <span className="text-xs font-medium text-text-secondary">Refraksi Spektrum Pelangi (Prism Rim)</span>
+                  <span className="text-xs font-medium text-text-secondary">Chromatic Spectrum Refraction (Prism Rim)</span>
                   <div className="flex items-center gap-3 pt-1">
                     <GlassSwitch
                       checked={config.capsuleChromaticEnabled ?? true}
                       onChange={(checked) => updateConfig({ capsuleChromaticEnabled: checked })}
                     />
                     <span className="text-xs font-semibold text-white">
-                      {(config.capsuleChromaticEnabled ?? true) ? "Aktif (Rainbow Rim)" : "Nonaktif"}
+                      {(config.capsuleChromaticEnabled ?? true) ? "Enabled (Rainbow Rim)" : "Disabled"}
                     </span>
                   </div>
                 </div>
@@ -1725,7 +1735,7 @@ export function NavigationCustomizationView() {
                 {/* Chromatic Opacity */}
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between text-xs font-medium text-text-secondary">
-                    <span>Opasitas Refraksi Pelangi</span>
+                    <span>Chromatic Refraction Opacity</span>
                     <span className="font-mono text-cyan-400 font-semibold">{config.capsuleChromaticOpacity ?? 80}%</span>
                   </div>
                   <input
@@ -1744,7 +1754,7 @@ export function NavigationCustomizationView() {
                 {/* Glow Intensity */}
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between text-xs font-medium text-text-secondary">
-                    <span>Intensitas Kilau Glow Kapsul</span>
+                    <span>Capsule Glow Intensity</span>
                     <span className="font-mono text-cyan-400 font-semibold">{config.capsuleGlowIntensity ?? 60}%</span>
                   </div>
                   <input
@@ -1755,21 +1765,21 @@ export function NavigationCustomizationView() {
                     onChange={(e) => updateConfig({ capsuleGlowIntensity: Number(e.target.value) })}
                     className="w-full accent-cyan-400 cursor-pointer"
                   />
-                  <span className="text-[11px] text-text-muted">Pancaran aura cahaya neon di sekitar tepi kapsul</span>
+                  <span className="text-[11px] text-text-muted">Luminous halo aura around the active capsule rim</span>
                 </div>
               </div>
 
               {/* Quick Presets for Capsule Size */}
               <div className="flex flex-col gap-2.5 pt-2 border-t border-white/5">
-                <span className="text-xs font-medium text-text-secondary">Preset Cepat Ukuran Kapsul (Termasuk Ukuran Di Luar Nav):</span>
+                <span className="text-xs font-medium text-text-secondary">Quick Capsule Size Presets (Including Oversized Dock Expansion):</span>
                 <div className="flex flex-wrap gap-2">
                   {[
-                    { label: "Kompak", w: 10, h: 1, desc: "Pas Tab (+10px / +1px)" },
-                    { label: "Standar", w: 24, h: 3, desc: "Elegan (+24px / +3px)" },
-                    { label: "Lebar", w: 45, h: 8, desc: "Menonjol (+45px / +8px)" },
-                    { label: "Di Luar Nav (Medium)", w: 75, h: 22, desc: "Keluar Dock (+75px / +22px)" },
-                    { label: "Di Luar Nav (Besar)", w: 120, h: 38, desc: "Melayang Bebas (+120px / +38px)" },
-                    { label: "Ekstra Maksimal", w: 180, h: 65, desc: "Ultra Floating (+180px / +65px)" },
+                    { label: "Compact", w: 10, h: 1, desc: "Snug Tab (+10px / +1px)" },
+                    { label: "Standard", w: 24, h: 3, desc: "Balanced (+24px / +3px)" },
+                    { label: "Wide", w: 45, h: 8, desc: "Prominent (+45px / +8px)" },
+                    { label: "Beyond Dock (Medium)", w: 75, h: 22, desc: "Overflows Dock (+75px / +22px)" },
+                    { label: "Beyond Dock (Large)", w: 120, h: 38, desc: "Free Floating (+120px / +38px)" },
+                    { label: "Ultra Maximum", w: 180, h: 65, desc: "Ultra Floating (+180px / +65px)" },
                   ].map((preset) => {
                     const isSelected = (config.capsuleExtraWidth ?? 24) === preset.w && (config.capsuleExtraHeight ?? 3) === preset.h;
                     return (
@@ -1795,8 +1805,8 @@ export function NavigationCustomizationView() {
               <div className="p-3.5 rounded-xl bg-cyan-950/30 border border-cyan-500/20 text-xs text-cyan-200/90 flex items-start gap-2.5">
                 <span className="text-base select-none shrink-0">💡</span>
                 <div className="leading-relaxed">
-                  <strong className="text-cyan-300 font-semibold block mb-0.5">Dinamika Interaktif vs Kondisi Statis:</strong>
-                  Sebesar apa pun pengaturan kapsul yang Anda pilih (hingga <code className="text-cyan-300 bg-cyan-900/40 px-1 py-0.5 rounded">+200px</code> lebar dan <code className="text-cyan-300 bg-cyan-900/40 px-1 py-0.5 rounded">+100px</code> tinggi keluar dock), kapsul <strong>hanya membesar saat Anda tahan (hold), geser (drag), atau klik</strong>. Saat dilepaskan (release) dan dalam kondisi diam/statis, kapsul <strong>otomatis mengecil kembali dan wajib berada rapi di dalam batas dock navigasi</strong>.
+                  <strong className="text-cyan-300 font-semibold block mb-0.5">Interactive Expansion vs. Resting State:</strong>
+                  Regardless of how large you set the capsule expansion (up to <code className="text-cyan-300 bg-cyan-900/40 px-1 py-0.5 rounded">+200px</code> width and <code className="text-cyan-300 bg-cyan-900/40 px-1 py-0.5 rounded">+100px</code> height beyond the dock), the capsule <strong>only expands while held, dragged, or tapped</strong>. Once released at rest, it <strong>automatically contracts neatly inside the navigation dock bounds</strong>.
                 </div>
               </div>
             </div>
@@ -1815,8 +1825,8 @@ export function NavigationCustomizationView() {
                 <Box size={16} />
               </div>
               <div>
-                <h3 className="text-sm sm:text-base font-semibold text-white">8. Dropdown Popover Menu (Pengaturan Terpisah)</h3>
-                <p className="text-xs text-text-secondary">Atur warna, transparansi, border, bayangan, dan teks khusus untuk menu popover tanpa mempengaruhi Nav Dock.</p>
+                <h3 className="text-sm sm:text-base font-semibold text-white">9. Dropdown Popover Menu (Independent Styling)</h3>
+                <p className="text-xs text-text-secondary">Configure colors, transparency, border, shadow, and typography exclusively for the popover menu without affecting the bottom dock.</p>
               </div>
             </div>
             {collapsedSections.dropdown ? <ChevronDown size={18} className="text-text-secondary" /> : <ChevronUp size={18} className="text-text-secondary" />}
@@ -1828,7 +1838,7 @@ export function NavigationCustomizationView() {
                 
                 {/* Dropdown Background Color */}
                 <div className="flex flex-col gap-2">
-                  <span className="text-xs font-medium text-text-secondary">Warna Latar Popover</span>
+                  <span className="text-xs font-medium text-text-secondary">Popover Background Color</span>
                   <div className="flex items-center gap-3">
                     <input
                       type="color"
@@ -1848,7 +1858,7 @@ export function NavigationCustomizationView() {
                 {/* Dropdown Opacity */}
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between text-xs font-medium text-text-secondary">
-                    <span>Opasitas Latar Popover</span>
+                    <span>Popover Background Opacity</span>
                     <span className="font-mono text-indigo-400 font-semibold">{config.dropdownBgOpacity}%</span>
                   </div>
                   <input
@@ -1864,7 +1874,7 @@ export function NavigationCustomizationView() {
                 {/* Dropdown Backdrop Blur */}
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between text-xs font-medium text-text-secondary">
-                    <span>Backdrop Blur Popover</span>
+                    <span>Popover Backdrop Blur</span>
                     <span className="font-mono text-indigo-400 font-semibold">{config.dropdownBackdropBlur}px</span>
                   </div>
                   <input
@@ -1879,7 +1889,7 @@ export function NavigationCustomizationView() {
 
                 {/* Dropdown Border Color */}
                 <div className="flex flex-col gap-2">
-                  <span className="text-xs font-medium text-text-secondary">Warna Border Popover</span>
+                  <span className="text-xs font-medium text-text-secondary">Popover Border Color</span>
                   <div className="flex items-center gap-3">
                     <input
                       type="color"
@@ -1898,7 +1908,7 @@ export function NavigationCustomizationView() {
 
                 {/* Dropdown Active Background Color */}
                 <div className="flex flex-col gap-2">
-                  <span className="text-xs font-medium text-text-secondary">Warna Background Item Aktif</span>
+                  <span className="text-xs font-medium text-text-secondary">Active Item Background Color</span>
                   <div className="flex items-center gap-3">
                     <input
                       type="color"
@@ -1917,7 +1927,7 @@ export function NavigationCustomizationView() {
 
                 {/* Dropdown Active Text Color */}
                 <div className="flex flex-col gap-2">
-                  <span className="text-xs font-medium text-text-secondary">Warna Teks Item Aktif</span>
+                  <span className="text-xs font-medium text-text-secondary">Active Item Text Color</span>
                   <div className="flex items-center gap-3">
                     <input
                       type="color"
@@ -1937,7 +1947,7 @@ export function NavigationCustomizationView() {
                 {/* Dropdown Border Radius */}
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between text-xs font-medium text-text-secondary">
-                    <span>Border Radius Popover</span>
+                    <span>Popover Border Radius</span>
                     <span className="font-mono text-indigo-400 font-semibold">{config.dropdownBorderRadius}px</span>
                   </div>
                   <input
@@ -1953,7 +1963,7 @@ export function NavigationCustomizationView() {
                 {/* Dropdown Font Size */}
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between text-xs font-medium text-text-secondary">
-                    <span>Ukuran Teks Popover</span>
+                    <span>Popover Font Size</span>
                     <span className="font-mono text-indigo-400 font-semibold">{config.dropdownFontSize}px</span>
                   </div>
                   <input
@@ -1971,7 +1981,7 @@ export function NavigationCustomizationView() {
           )}
         </div>
 
-        {/* 8. MOBILE NAVIGATION SPECIFIC CONTROLS */}
+        {/* 10. MOBILE NAVIGATION SPECIFIC CONTROLS */}
         <div className="rounded-2xl bg-[rgba(6,15,35,0.4)] border border-white/10 backdrop-blur-md overflow-hidden">
           <button
             type="button"
@@ -1983,8 +1993,8 @@ export function NavigationCustomizationView() {
                 <Smartphone size={16} />
               </div>
               <div>
-                <h3 className="text-sm sm:text-base font-semibold text-white">8. Mobile Navigation Override (Khusus HP/Tablet)</h3>
-                <p className="text-xs text-text-secondary">Pengaturan khusus saat situs dibuka di layar ponsel &lt; 640px.</p>
+                <h3 className="text-sm sm:text-base font-semibold text-white">10. Mobile Navigation Override (Small Screens)</h3>
+                <p className="text-xs text-text-secondary">Dedicated overrides when the site is viewed on mobile viewports &lt; 640px.</p>
               </div>
             </div>
             {collapsedSections.mobile ? <ChevronDown size={18} className="text-text-secondary" /> : <ChevronUp size={18} className="text-text-secondary" />}
@@ -1994,8 +2004,8 @@ export function NavigationCustomizationView() {
             <div className="p-4 sm:p-5 pt-0 border-t border-white/5 flex flex-col gap-6">
               
               <GlassSwitch
-                label="Aktifkan Pengaturan Khusus Mobile"
-                description="Jika dimatikan, tampilan di mobile akan otomatis mengikuti pengaturan desktop."
+                label="Enable Mobile Custom Overrides"
+                description="When disabled, mobile screens automatically inherit your desktop navigation styling."
                 checked={config.mobileCustomEnabled}
                 onChange={(checked) => updateConfig({ mobileCustomEnabled: checked })}
                 activeColor="teal"
@@ -2062,17 +2072,17 @@ export function NavigationCustomizationView() {
           <div className="w-full max-w-md rounded-2xl bg-[rgba(10,20,45,0.95)] border border-blue-500/30 p-6 shadow-2xl flex flex-col gap-4">
             <div className="flex items-center gap-2.5 text-white font-semibold text-base">
               <Save size={18} className="text-blue-400" />
-              <span>Simpan Preset Navigasi Kustom</span>
+              <span>Save Custom Navigation Preset</span>
             </div>
             <p className="text-xs text-text-secondary">
-              Simpan semua nilai warna, blur, border, dan bayangan saat ini ke dalam preset yang dapat Anda muat kapan saja.
+              Save all current color, blur, border, and shadow values into a reusable preset you can load anytime.
             </p>
 
             <form onSubmit={handleSavePreset} className="flex flex-col gap-4 mt-2">
               <input
                 type="text"
                 required
-                placeholder="Contoh: Neon Glass Theme v2"
+                placeholder="e.g. Neon Glass Theme v2"
                 value={presetNameInput}
                 onChange={(e) => setPresetNameInput(e.target.value)}
                 className="w-full bg-white/5 border border-white/15 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-400"
@@ -2085,13 +2095,13 @@ export function NavigationCustomizationView() {
                   onClick={() => setShowSavePresetModal(false)}
                   className="px-4 py-2 rounded-xl text-xs font-medium text-text-secondary hover:text-white cursor-pointer"
                 >
-                  Batal
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   className="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white cursor-pointer shadow-lg"
                 >
-                  Simpan Preset
+                  Save Preset
                 </button>
               </div>
             </form>
@@ -2105,10 +2115,10 @@ export function NavigationCustomizationView() {
           <div className="w-full max-w-md rounded-2xl bg-[rgba(20,10,15,0.95)] border border-rose-500/30 p-6 shadow-2xl flex flex-col gap-4">
             <div className="flex items-center gap-2.5 text-rose-400 font-semibold text-base">
               <AlertTriangle size={18} />
-              <span>Konfirmasi Reset Navigasi</span>
+              <span>Confirm Navigation Reset</span>
             </div>
             <p className="text-xs text-text-secondary leading-relaxed">
-              Apakah Anda yakin ingin mengembalikan semua kustomisasi navigasi ke konfigurasi default pabrik? Seluruh nilai warna, blur, dan bayangan kustom yang belum disimpan sebagai preset akan direset.
+              Are you sure you want to restore all navigation customizations to factory defaults? Any unsaved custom color, blur, and shadow adjustments will be reset.
             </p>
 
             <div className="flex items-center justify-end gap-3 pt-2">
@@ -2117,14 +2127,14 @@ export function NavigationCustomizationView() {
                 onClick={() => setShowResetConfirmModal(false)}
                 className="px-4 py-2 rounded-xl text-xs font-medium text-text-secondary hover:text-white cursor-pointer"
               >
-                Batal
+                Cancel
               </button>
               <button
                 type="button"
                 onClick={handleReset}
                 className="px-4 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white cursor-pointer shadow-lg"
               >
-                Ya, Reset Sekarang
+                Yes, Reset Now
               </button>
             </div>
           </div>

@@ -64,6 +64,7 @@ export function FeatureComponentsView() {
   // Delete confirm modal state
   const [componentToDelete, setComponentToDelete] = useState<FeatureComponent | null>(null);
   const [isDeletingComponent, setIsDeletingComponent] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Form inputs
   const [formData, setFormData] = useState<FeatureComponentInput>({
@@ -170,7 +171,7 @@ export function FeatureComponentsView() {
       setFormData({
         name: "",
         category: "Buttons",
-        description: "Tombol interaktif dengan animasi dua arah yang halus (klik 1 bergerak maju & aktif, klik 2 bergerak mundur kembali ke posisi awal secara berulang).",
+        description: "Interactive button with smooth bidirectional motion (first click engages forward & activates, second click returns smoothly to its initial state).",
         code: `import React, { useState } from 'react';
 import { Sparkles, ArrowRight } from 'lucide-react';
 
@@ -219,7 +220,7 @@ export default function InteractiveButton() {
         >
           <Sparkles size={16} />
         </span>
-        <span>{isActive ? 'Aktif (Klik untuk Mundur)' : 'Interaksi (Klik untuk Maju)'}</span>
+        <span>{isActive ? 'Active (Click to Reset)' : 'Interact (Click to Engage)'}</span>
         <span
           style={{
             display: 'inline-flex',
@@ -233,7 +234,7 @@ export default function InteractiveButton() {
         </span>
       </button>
       <span style={{ fontSize: '11px', color: '#A8B8CC', opacity: 0.6 }}>
-        {isActive ? 'Klik kedua untuk bergerak mundur kembali' : 'Klik pertama untuk interaksi maju'}
+        {isActive ? 'Second click returns smoothly to origin' : 'First click triggers forward motion'}
       </span>
     </div>
   );
@@ -270,11 +271,11 @@ export default function InteractiveButton() {
   const handleSaveComponent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) {
-      setErrorMessage("Nama komponen wajib diisi.");
+      setErrorMessage("Component name is required.");
       return;
     }
     if (!formData.code.trim()) {
-      setErrorMessage("Kode React / JSX komponen wajib diisi.");
+      setErrorMessage("Component React / JSX code is required.");
       return;
     }
 
@@ -290,25 +291,28 @@ export default function InteractiveButton() {
       setIsModalOpen(false);
     } catch (err: any) {
       console.error("Save component failed:", err);
-      setErrorMessage(err.message || "Gagal menyimpan komponen.");
+      setErrorMessage(err.message || "Failed to save component.");
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDelete = (comp: FeatureComponent) => {
+    setDeleteError(null);
     setComponentToDelete(comp);
   };
 
   const handleConfirmDelete = async () => {
     if (!componentToDelete) return;
     setIsDeletingComponent(true);
+    setDeleteError(null);
     try {
       await deleteFeatureComponent(componentToDelete.id);
       setComponentToDelete(null);
     } catch (err: any) {
-      console.error("Gagal menghapus komponen:", err);
-      alert("Gagal menghapus komponen: " + (err?.message || "Periksa izin koneksi."));
+      console.error("Failed to delete component:", err);
+      setDeleteError("Failed to delete component: " + (err?.message || "Please check your connection and permissions."));
+      setComponentToDelete(null);
     } finally {
       setIsDeletingComponent(false);
     }
@@ -360,7 +364,7 @@ export default function InteractiveButton() {
             </h2>
           </div>
           <p className="text-xs sm:text-sm text-text-secondary font-light">
-            Tambahkan dan kelola komponen UI / animasi kustom yang dapat langsung dicoba dan disalin kodenya di <code className="text-[#7DB3FF]">/features</code>.
+            Create and manage custom interactive UI and motion components that visitors can test live and copy from <code className="text-[#7DB3FF]">/features</code>.
           </p>
         </div>
 
@@ -371,7 +375,7 @@ export default function InteractiveButton() {
             className="ios-glass-btn px-3.5 py-2 text-xs sm:text-sm font-medium text-white/90 hover:text-white flex items-center gap-2 cursor-pointer transition-all"
           >
             <Edit3 size={14} className="text-[#7DB3FF]" />
-            <span>{isEditingHeader ? "Tutup Edit Header" : "Edit Header Halaman"}</span>
+            <span>{isEditingHeader ? "Close Header Editor" : "Edit Page Header"}</span>
           </button>
           <button
             onClick={() => handleOpenAddModal()}
@@ -382,6 +386,23 @@ export default function InteractiveButton() {
           </button>
         </div>
       </div>
+
+      {deleteError && (
+        <div className="p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs sm:text-sm flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <AlertCircle size={15} className="shrink-0" />
+            <span>{deleteError}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setDeleteError(null)}
+            className="text-rose-300/70 hover:text-white cursor-pointer"
+            aria-label="Dismiss error"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       {/* Page Header Editor Card (h1, p, badge) */}
       <AnimatePresence>
@@ -396,12 +417,12 @@ export default function InteractiveButton() {
               <div className="flex items-center gap-2">
                 <Sparkles size={16} className="text-[#7DB3FF]" />
                 <h3 className="text-sm font-semibold text-white font-display">
-                  Edit Header Halaman /features (h1 & p)
+                  Edit /features Page Header (H1 & Subtitle)
                 </h3>
               </div>
               {headerSuccess && (
                 <span className="text-xs font-mono text-emerald-400 flex items-center gap-1">
-                  <Check size={13} /> Tersimpan ke database!
+                  <Check size={13} /> Saved to database!
                 </span>
               )}
             </div>
@@ -409,39 +430,39 @@ export default function InteractiveButton() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
                 <label className="text-[11px] font-mono text-text-muted">
-                  Badge Tagline (Teks Atas)
+                  Badge Tagline (Eyebrow Text)
                 </label>
                 <input
                   type="text"
                   value={headerContent.badge || ""}
                   onChange={(e) => setHeaderContent(prev => ({ ...prev, badge: e.target.value }))}
-                  placeholder="Contoh: Interactive UI & Motion Library"
+                  placeholder="e.g. Interactive UI & Motion Library"
                   className="px-3 py-2 text-xs rounded-xl bg-black/30 border border-white/10 focus:border-[#7DB3FF] text-white outline-none"
                 />
               </div>
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-[11px] font-mono text-text-muted">
-                  Judul Utama (H1)
+                  Main Heading (H1)
                 </label>
                 <input
                   type="text"
                   value={headerContent.title || ""}
                   onChange={(e) => setHeaderContent(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="Contoh: Feature Components"
+                  placeholder="e.g. Feature Components"
                   className="px-3 py-2 text-xs rounded-xl bg-black/30 border border-white/10 focus:border-[#7DB3FF] text-white outline-none"
                 />
               </div>
 
               <div className="flex flex-col gap-1.5 md:col-span-2">
                 <label className="text-[11px] font-mono text-text-muted">
-                  Deskripsi / Subtitle (P)
+                  Description / Subtitle (P)
                 </label>
                 <textarea
                   rows={2}
                   value={headerContent.description || ""}
                   onChange={(e) => setHeaderContent(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Tulis deskripsi atau subjudul halaman fitur..."
+                  placeholder="Write a subtitle or description for the features page..."
                   className="px-3 py-2 text-xs rounded-xl bg-black/30 border border-white/10 focus:border-[#7DB3FF] text-white outline-none resize-none leading-relaxed"
                 />
               </div>
@@ -453,7 +474,7 @@ export default function InteractiveButton() {
                 onClick={() => setIsEditingHeader(false)}
                 className="px-3.5 py-1.5 rounded-xl text-xs text-white/60 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
               >
-                Batal
+                Cancel
               </button>
               <button
                 type="button"
@@ -464,12 +485,12 @@ export default function InteractiveButton() {
                 {isSavingHeader ? (
                   <>
                     <RefreshCw size={13} className="animate-spin" />
-                    <span>Menyimpan...</span>
+                    <span>Saving...</span>
                   </>
                 ) : (
                   <>
                     <Check size={13} />
-                    <span>Simpan Perubahan Header</span>
+                    <span>Save Header Changes</span>
                   </>
                 )}
               </button>
@@ -513,7 +534,7 @@ export default function InteractiveButton() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari komponen..."
+            placeholder="Search components..."
             className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm rounded-xl bg-[rgba(6,15,35,0.5)] border border-white/10 focus:border-[#7DB3FF] text-white placeholder-white/40 outline-none transition-all"
           />
         </div>
@@ -547,13 +568,13 @@ export default function InteractiveButton() {
         <div className="p-12 text-center rounded-2xl bg-[rgba(6,15,35,0.3)] border border-white/5 flex flex-col items-center justify-center gap-3">
           <Boxes size={32} className="text-[#7DB3FF]/40" />
           <p className="text-sm text-text-secondary">
-            Belum ada komponen di kategori ini.
+            No components found in this category yet.
           </p>
           <button
             onClick={() => handleOpenAddModal()}
             className="ios-glass-btn px-4 py-2 text-xs text-[#7DB3FF] border-[#7DB3FF]/30 hover:border-[#7DB3FF] cursor-pointer"
           >
-            Tambah Komponen Sekarang
+            Add Component Now
           </button>
         </div>
       ) : (
@@ -595,7 +616,7 @@ export default function InteractiveButton() {
               {/* Description & Dependencies */}
               <div className="p-4 flex flex-col gap-3">
                 <p className="text-xs text-[#A8B8CC] line-clamp-2 font-light leading-relaxed">
-                  {comp.description || "Tidak ada deskripsi."}
+                  {comp.description || "No description provided."}
                 </p>
 
                 {comp.dependencies && comp.dependencies.length > 0 && (
@@ -614,7 +635,7 @@ export default function InteractiveButton() {
                   <button
                     onClick={() => handleCopyCode(comp.code, comp.id)}
                     className="ios-glass-btn px-3 py-1.5 text-xs text-[#7DB3FF] hover:text-white flex items-center gap-1.5 cursor-pointer"
-                    title="Salin Kode Komponen"
+                    title="Copy Component Code"
                   >
                     {copiedId === comp.id ? (
                       <>
@@ -633,14 +654,14 @@ export default function InteractiveButton() {
                     <button
                       onClick={() => handleOpenEditModal(comp)}
                       className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-                      title="Edit Komponen"
+                      title="Edit Component"
                     >
                       <Edit3 size={15} />
                     </button>
                     <button
                       onClick={() => handleDelete(comp)}
                       className="p-1.5 rounded-lg text-rose-400/70 hover:text-rose-300 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                      title="Hapus Komponen"
+                      title="Delete Component"
                     >
                       <Trash2 size={15} />
                     </button>
@@ -673,7 +694,7 @@ export default function InteractiveButton() {
                       {editingId ? "Edit Feature Component" : "Add Feature Component"}
                     </h3>
                     <p className="text-xs text-text-muted">
-                      Tambahkan kode JSX, custom CSS, dan pratinjau langsung secara terisolasi.
+                      Author JSX code, custom CSS, and test inside an isolated live preview sandbox.
                     </p>
                   </div>
                 </div>
@@ -733,7 +754,7 @@ export default function InteractiveButton() {
                     type="text"
                     value={formData.description}
                     onChange={(e) => setFormData(p => ({ ...p, description: e.target.value }))}
-                    placeholder="Deskripsi singkat fungsi, animasi, atau kegunaan komponen..."
+                    placeholder="Brief description of the component's purpose, motion, or interaction..."
                     className="px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 focus:border-[#7DB3FF] text-white text-xs sm:text-sm outline-none"
                   />
                 </div>
@@ -776,7 +797,7 @@ export default function InteractiveButton() {
                           handleAddDependency();
                         }
                       }}
-                      placeholder="Ketik nama package lalu tekan Enter atau Tambah"
+                      placeholder="Type package name and press Enter or click Add"
                       className="flex-1 px-3.5 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-xs outline-none"
                     />
                     <button
@@ -784,7 +805,7 @@ export default function InteractiveButton() {
                       onClick={handleAddDependency}
                       className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs text-white cursor-pointer font-medium"
                     >
-                      + Tambah
+                      + Add
                     </button>
                   </div>
                   {formData.dependencies && formData.dependencies.length > 0 && (
@@ -853,10 +874,10 @@ export default function InteractiveButton() {
                               }));
                             }}
                             className="px-2 py-0.5 rounded-md text-[10px] font-mono bg-[#7DB3FF]/15 text-[#7DB3FF] border border-[#7DB3FF]/30 hover:bg-[#7DB3FF]/25 cursor-pointer flex items-center gap-1 transition-all"
-                            title="Gunakan pola interaksi 2-arah: klik 1 bergerak maju, klik 2 bergerak mundur kembali"
+                            title="Use bidirectional motion pattern: first click engages forward, second click resets smoothly"
                           >
                             <Sparkles size={11} />
-                            <span>Pola 2-Arah (Maju/Mundur)</span>
+                            <span>2-Way Motion Pattern</span>
                           </button>
                         )}
                       </div>
@@ -866,7 +887,7 @@ export default function InteractiveButton() {
                       <textarea
                         value={formData.code}
                         onChange={(e) => setFormData(p => ({ ...p, code: e.target.value }))}
-                        placeholder="Tulis kode React / JSX komponen di sini..."
+                        placeholder="Write your React / JSX component code here..."
                         rows={14}
                         spellCheck={false}
                         className="w-full p-4 rounded-2xl bg-[rgba(3,8,20,0.95)] border border-white/15 focus:border-[#7DB3FF] text-[#E0EBF7] font-mono text-xs leading-relaxed outline-none shadow-inner resize-y"
@@ -876,7 +897,7 @@ export default function InteractiveButton() {
                       <textarea
                         value={formData.css || ""}
                         onChange={(e) => setFormData(p => ({ ...p, css: e.target.value }))}
-                        placeholder="/* Custom CSS untuk komponen ini (jika ada @keyframes atau custom class) */"
+                        placeholder="/* Optional custom CSS for this component (e.g. @keyframes or custom utility classes) */"
                         rows={14}
                         spellCheck={false}
                         className="w-full p-4 rounded-2xl bg-[rgba(3,8,20,0.95)] border border-white/15 focus:border-[#7DB3FF] text-[#E0EBF7] font-mono text-xs leading-relaxed outline-none shadow-inner resize-y"
@@ -915,7 +936,7 @@ export default function InteractiveButton() {
                     disabled={isSaving}
                     className="ios-glass-btn px-4 py-2 text-xs text-text-secondary hover:text-white cursor-pointer"
                   >
-                    Batal
+                    Cancel
                   </button>
                   <button
                     type="submit"
@@ -925,7 +946,7 @@ export default function InteractiveButton() {
                     {isSaving ? (
                       <>
                         <RefreshCw size={14} className="animate-spin" />
-                        <span>Menyimpan...</span>
+                        <span>Saving...</span>
                       </>
                     ) : (
                       <>
@@ -944,9 +965,9 @@ export default function InteractiveButton() {
       {/* Delete Confirmation Modal */}
       <DeleteConfirmModal
         isOpen={!!componentToDelete}
-        title="Hapus Komponen"
+        title="Delete Component"
         itemName={componentToDelete?.name}
-        description="Apakah Anda yakin ingin menghapus komponen ini? Komponen akan dihapus secara permanen dari database dan tidak lagi tampil di halaman features pengunjung."
+        description="Are you sure you want to delete this component? It will be permanently removed from the database and will no longer appear on the public /features page."
         isDeleting={isDeletingComponent}
         onConfirm={handleConfirmDelete}
         onCancel={() => setComponentToDelete(null)}

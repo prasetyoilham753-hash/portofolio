@@ -135,10 +135,10 @@ export function AboutMeView() {
         aboutTimeline: timeline,
         aboutStats: stats
       });
-      setFeedback({ type: "success", message: "Konten About Me berhasil diperbarui secara realtime!" });
+      setFeedback({ type: "success", message: "About Me content updated in real time!" });
     } catch (err: any) {
       console.error("Failed to save About Me:", err);
-      setFeedback({ type: "error", message: err.message || "Gagal menyimpan perubahan About Me." });
+      setFeedback({ type: "error", message: err.message || "Failed to save About Me changes." });
     } finally {
       setSaving(false);
     }
@@ -218,10 +218,10 @@ export function AboutMeView() {
         <div>
           <h2 className="text-2xl font-display font-medium text-white flex items-center gap-2.5">
             <User className="text-[#7DB3FF]" size={24} />
-            <span>Manajemen Halaman About Me</span>
+            <span>About Me Page Management</span>
           </h2>
           <p className="text-text-secondary text-sm font-light">
-            Kelola narasi biografi, pilar keahlian teknis & seni, serta linimasa karir.
+            Manage your biography narrative, core technical & artistic disciplines, and career timeline.
           </p>
         </div>
 
@@ -231,7 +231,7 @@ export function AboutMeView() {
           className="ios-glass-btn ios-glass-primary px-6 py-2.5 text-xs font-semibold uppercase tracking-wider cursor-pointer flex items-center gap-2 shadow-lg"
         >
           <Save size={16} />
-          <span>{saving ? "Menyimpan..." : "Simpan Perubahan"}</span>
+          <span>{saving ? "Saving..." : "Save Changes"}</span>
         </button>
       </div>
 
@@ -253,7 +253,7 @@ export function AboutMeView() {
             onClick={() => setFeedback(null)} 
             className="text-white/60 hover:text-white text-xs cursor-pointer"
           >
-            Tutup
+            Dismiss
           </button>
         </div>
       )}
@@ -262,12 +262,12 @@ export function AboutMeView() {
       <div className="glass-card p-6 sm:p-8 rounded-3xl border border-white/10 bg-[rgba(6,15,35,0.45)] flex flex-col gap-6">
         <div className="flex items-center gap-2 border-b border-white/10 pb-3">
           <FileText className="text-[#7DB3FF]" size={18} />
-          <h3 className="text-lg font-medium text-white">Header & Biografi Utama</h3>
+          <h3 className="text-lg font-medium text-white">Header & Primary Biography</h3>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-text-secondary">Judul Halaman (Hero Title)</label>
+            <label className="text-xs font-medium text-text-secondary">Page Title (Hero Title)</label>
             <input
               type="text"
               value={pageTitle}
@@ -277,7 +277,7 @@ export function AboutMeView() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-text-secondary">Ringkasan Singkat (Hero Subtitle)</label>
+            <label className="text-xs font-medium text-text-secondary">Brief Summary (Hero Subtitle)</label>
             <input
               type="text"
               value={pageSubtitle}
@@ -289,14 +289,14 @@ export function AboutMeView() {
 
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-text-secondary">
-            Narasi Filosofi & Kisah Perjalanan (Story / Long Narrative)
+            Philosophy & Journey (Long Narrative)
           </label>
           <textarea
             rows={5}
             value={pageStory}
             onChange={(e) => setPageStory(e.target.value)}
             className="w-full bg-[rgba(6,15,35,0.6)] border border-white/15 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#7DB3FF] resize-y leading-relaxed font-light"
-            placeholder="Tuliskan filosofi desain, pendekatan teknis, atau cerita Anda..."
+            placeholder="Write your design philosophy, engineering approach, or story..."
           />
         </div>
       </div>
@@ -306,7 +306,7 @@ export function AboutMeView() {
         <div className="flex items-center justify-between border-b border-white/10 pb-3">
           <div className="flex items-center gap-2">
             <Sparkles className="text-[#7DB3FF]" size={18} />
-            <h3 className="text-lg font-medium text-white">Metrik & Statistik Kunci</h3>
+            <h3 className="text-lg font-medium text-white">Key Metrics & Highlights</h3>
           </div>
           <button
             type="button"
@@ -314,7 +314,7 @@ export function AboutMeView() {
             className="ios-glass-btn px-3 py-1.5 text-xs text-[#7DB3FF] border-[#7DB3FF]/30 cursor-pointer flex items-center gap-1"
           >
             <Plus size={14} />
-            <span>Tambah Metrik</span>
+            <span>Add Metric</span>
           </button>
         </div>
 
@@ -339,7 +339,7 @@ export function AboutMeView() {
                 type="button"
                 onClick={() => handleDeleteStat(idx)}
                 className="absolute top-2 right-2 p-1 text-rose-400 opacity-0 group-hover:opacity-100 hover:bg-rose-500/20 rounded-md transition-all cursor-pointer"
-                title="Hapus"
+                title="Delete"
               >
                 <Trash2 size={13} />
               </button>
@@ -353,7 +353,7 @@ export function AboutMeView() {
         <div className="flex items-center justify-between border-b border-white/10 pb-3">
           <div className="flex items-center gap-2">
             <Layers className="text-[#7DB3FF]" size={18} />
-            <h3 className="text-lg font-medium text-white">Pilar Keahlian & Disiplin (Core Disciplines)</h3>
+            <h3 className="text-lg font-medium text-white">Core Disciplines & Focus Areas</h3>
           </div>
           <button
             type="button"
@@ -361,7 +361,7 @@ export function AboutMeView() {
             className="ios-glass-btn px-3.5 py-1.5 text-xs text-[#7DB3FF] border-[#7DB3FF]/30 cursor-pointer flex items-center gap-1.5"
           >
             <Plus size={14} />
-            <span>Tambah Pilar</span>
+            <span>Add Discipline</span>
           </button>
         </div>
 
@@ -373,13 +373,13 @@ export function AboutMeView() {
             >
               <div className="flex items-center justify-between">
                 <span className="px-2.5 py-1 rounded-md text-[11px] font-mono bg-[#7DB3FF]/15 border border-[#7DB3FF]/30 text-[#7DB3FF]">
-                  Pilar #{idx + 1}
+                  Discipline #{idx + 1}
                 </span>
                 <button
                   type="button"
                   onClick={() => handleDeleteDiscipline(idx)}
                   className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-500/20 cursor-pointer transition-colors"
-                  title="Hapus Pilar"
+                  title="Delete Discipline"
                 >
                   <Trash2 size={16} />
                 </button>
@@ -387,7 +387,7 @@ export function AboutMeView() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs text-text-secondary">Nama Pilar / Keahlian</label>
+                  <label className="text-xs text-text-secondary">Discipline Title</label>
                   <input
                     type="text"
                     value={disc.title}
@@ -397,7 +397,7 @@ export function AboutMeView() {
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs text-text-secondary">Subjudul / Sub-spesialisasi</label>
+                  <label className="text-xs text-text-secondary">Subtitle / Specialization</label>
                   <input
                     type="text"
                     value={disc.subtitle || ""}
@@ -408,7 +408,7 @@ export function AboutMeView() {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs text-text-secondary">Deskripsi Pendek</label>
+                <label className="text-xs text-text-secondary">Short Description</label>
                 <textarea
                   rows={2}
                   value={disc.description}
@@ -418,7 +418,7 @@ export function AboutMeView() {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs text-text-secondary">Tags / Keterampilan Kunci (Pisahkan dengan koma)</label>
+                <label className="text-xs text-text-secondary">Key Skills / Tags (comma-separated)</label>
                 <input
                   type="text"
                   value={disc.tags ? disc.tags.join(", ") : ""}
@@ -440,7 +440,7 @@ export function AboutMeView() {
         <div className="flex items-center justify-between border-b border-white/10 pb-3">
           <div className="flex items-center gap-2">
             <Clock className="text-[#7DB3FF]" size={18} />
-            <h3 className="text-lg font-medium text-white">Linimasa Pengalaman & Jejak Karir</h3>
+            <h3 className="text-lg font-medium text-white">Experience & Career Timeline</h3>
           </div>
           <button
             type="button"
@@ -448,7 +448,7 @@ export function AboutMeView() {
             className="ios-glass-btn px-3.5 py-1.5 text-xs text-[#7DB3FF] border-[#7DB3FF]/30 cursor-pointer flex items-center gap-1.5"
           >
             <Plus size={14} />
-            <span>Tambah Riwayat</span>
+            <span>Add Entry</span>
           </button>
         </div>
 
@@ -464,13 +464,13 @@ export function AboutMeView() {
                   value={item.year}
                   onChange={(e) => handleUpdateTimeline(idx, "year", e.target.value)}
                   className="font-mono text-xs text-[#7DB3FF] bg-transparent border-b border-transparent focus:border-[#7DB3FF] focus:outline-none w-48"
-                  placeholder="2024 — Sekarang"
+                  placeholder="2024 — Present"
                 />
                 <button
                   type="button"
                   onClick={() => handleDeleteTimeline(idx)}
                   className="p-1 rounded text-rose-400 hover:bg-rose-500/20 cursor-pointer"
-                  title="Hapus Riwayat"
+                  title="Delete Entry"
                 >
                   <Trash2 size={15} />
                 </button>
@@ -481,14 +481,14 @@ export function AboutMeView() {
                   type="text"
                   value={item.role}
                   onChange={(e) => handleUpdateTimeline(idx, "role", e.target.value)}
-                  placeholder="Jabatan / Peran (Contoh: Lead Frontend Engineer)"
+                  placeholder="Role / Position (e.g., Lead Frontend Engineer)"
                   className="w-full bg-[rgba(6,15,35,0.6)] border border-white/15 rounded-xl px-4 py-2 text-sm text-white font-medium focus:outline-none focus:border-[#7DB3FF]"
                 />
                 <input
                   type="text"
                   value={item.company}
                   onChange={(e) => handleUpdateTimeline(idx, "company", e.target.value)}
-                  placeholder="Instansi / Perusahaan (Contoh: Autonomous Studio)"
+                  placeholder="Company / Organization (e.g., Autonomous Studio)"
                   className="w-full bg-[rgba(6,15,35,0.6)] border border-white/15 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-[#7DB3FF]"
                 />
               </div>
@@ -497,7 +497,7 @@ export function AboutMeView() {
                 rows={2}
                 value={item.description || ""}
                 onChange={(e) => handleUpdateTimeline(idx, "description", e.target.value)}
-                placeholder="Pencapaian utama atau fokus tanggung jawab..."
+                placeholder="Key achievements or core responsibilities..."
                 className="w-full bg-[rgba(6,15,35,0.6)] border border-white/15 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-[#7DB3FF] resize-none"
               />
             </div>
@@ -513,7 +513,7 @@ export function AboutMeView() {
           className="ios-glass-btn ios-glass-primary px-8 py-3 text-sm font-semibold uppercase tracking-wider cursor-pointer flex items-center gap-2 shadow-xl"
         >
           <Save size={18} />
-          <span>{saving ? "Menyimpan..." : "Simpan Semua Perubahan About Me"}</span>
+          <span>{saving ? "Saving..." : "Save All About Me Changes"}</span>
         </button>
       </div>
     </form>

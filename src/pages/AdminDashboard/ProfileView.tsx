@@ -121,7 +121,11 @@ export function ProfileView() {
       } else if (type === 'photo2') {
         updatePayload = { photoUrl2: cloudinaryUrl, photoPath2: cloudinaryPath };
       } else if (type === 'cv') {
-        updatePayload = { cvUrl: cloudinaryUrl, cvPath: cloudinaryPath };
+        const formattedSize =
+          file.size < 1024 * 1024
+            ? `${Math.max(1, Math.round(file.size / 1024))} KB`
+            : `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
+        updatePayload = { cvUrl: cloudinaryUrl, cvPath: cloudinaryPath, cvFileSize: formattedSize };
       }
 
       const newProfile = { ...profile, ...updatePayload };
@@ -160,7 +164,7 @@ export function ProfileView() {
       <div className="border-b border-white/5 pb-4 mb-6">
         <h2 className="text-2xl font-display font-medium text-white">Site Content Settings</h2>
         <p className="text-sm text-text-secondary mt-1">
-          Kelola foto profil, file CV, teks hero & identitas, serta tautan media sosial.
+          Manage profile photos, CV files, hero & identity copy, and social media links.
         </p>
       </div>
       
@@ -247,7 +251,7 @@ export function ProfileView() {
 
               {/* CV Access Code Setting */}
               <div className="flex flex-col gap-1.5 mt-1 text-left">
-                <label className="text-[11px] text-text-secondary font-medium">Kode Akses Unduh CV (Visitor PIN)</label>
+                <label className="text-[11px] text-text-secondary font-medium">CV Download Access Code (Visitor PIN)</label>
                 <input 
                   type="text" 
                   value={profile.cvAccessCode ?? '19112191'} 
@@ -255,7 +259,7 @@ export function ProfileView() {
                   className="glass-input px-3 py-2 rounded-lg w-full text-xs font-mono text-[#7DB3FF]" 
                   placeholder="19112191" 
                 />
-                <span className="text-[10px] text-text-muted">Kode akses 8 digit yang wajib dimasukkan pengunjung untuk mengunduh CV.</span>
+                <span className="text-[10px] text-text-muted">Access code required for visitors to unlock and download the CV.</span>
               </div>
             </div>
           </div>
@@ -287,11 +291,11 @@ export function ProfileView() {
                 
                 {/* Text Alignment Toolbar */}
                 <div className="flex items-center gap-1 bg-black/40 border border-white/10 rounded-lg p-1">
-                  <span className="text-[11px] text-text-muted px-1.5 hidden sm:inline">Perataan Teks:</span>
+                  <span className="text-[11px] text-text-muted px-1.5 hidden sm:inline">Text Alignment:</span>
                   {[
-                    { id: 'left' as const, label: 'Kiri', icon: AlignLeft },
-                    { id: 'center' as const, label: 'Tengah', icon: AlignCenter },
-                    { id: 'right' as const, label: 'Kanan', icon: AlignRight },
+                    { id: 'left' as const, label: 'Left', icon: AlignLeft },
+                    { id: 'center' as const, label: 'Center', icon: AlignCenter },
+                    { id: 'right' as const, label: 'Right', icon: AlignRight },
                     { id: 'justify' as const, label: 'Justify', icon: AlignJustify },
                   ].map(({ id, label, icon: Icon }) => {
                     const isActive = (profile.heroDescriptionAlign || 'left') === id;
@@ -305,7 +309,7 @@ export function ProfileView() {
                             ? 'bg-[#00F0FF]/20 text-[#00F0FF] border border-[#00F0FF]/40 shadow-[0_0_10px_rgba(0,240,255,0.2)]'
                             : 'text-text-muted hover:text-white hover:bg-white/5 border border-transparent'
                         }`}
-                        title={`Format: Rata ${label}`}
+                        title={`Align ${label}`}
                       >
                         <Icon size={14} />
                         <span className="text-[11px]">{label}</span>
@@ -315,7 +319,7 @@ export function ProfileView() {
                 </div>
 
                 <span className={`text-xs font-mono ${(profile.heroDescription?.length || 0) >= 320 ? 'text-amber-400 font-semibold' : 'text-text-muted'}`}>
-                  {(profile.heroDescription?.length || 0)} / 320 karakter
+                  {(profile.heroDescription?.length || 0)} / 320 characters
                 </span>
               </div>
               <textarea 
@@ -341,10 +345,10 @@ export function ProfileView() {
               />
               <div className="flex flex-wrap justify-between items-center gap-2 text-[11px] text-text-muted">
                 <span>
-                  Format saat ini: <strong className="text-white capitalize">{profile.heroDescriptionAlign === 'justify' ? 'Rata Kiri-Kanan (Justify)' : profile.heroDescriptionAlign === 'right' ? 'Rata Kanan (Right)' : profile.heroDescriptionAlign === 'center' ? 'Rata Tengah (Center)' : 'Rata Kiri (Left)'}</strong>. Dibatasi maks 320 karakter.
+                  Current alignment: <strong className="text-white capitalize">{profile.heroDescriptionAlign === 'justify' ? 'Justify' : profile.heroDescriptionAlign === 'right' ? 'Right' : profile.heroDescriptionAlign === 'center' ? 'Center' : 'Left'}</strong>. Maximum 320 characters.
                 </span>
                 {(profile.heroDescription?.length || 0) >= 320 && (
-                  <span className="text-amber-400 font-medium shrink-0 ml-2">Batas maksimum 320 karakter tercapai</span>
+                  <span className="text-amber-400 font-medium shrink-0 ml-2">320-character limit reached</span>
                 )}
               </div>
             </div>
@@ -356,7 +360,7 @@ export function ProfileView() {
           <div className="border-b border-white/5 pb-2">
             <h3 className="text-lg font-display text-[#7DB3FF]">Social Links</h3>
             <p className="text-xs text-text-secondary mt-1">
-              Tautan yang dikonfigurasi akan muncul pada dock profil kiri (Instagram, X, Reddit, LinkedIn, GitHub, Email).
+              Configured links appear on the profile card dock (Instagram, X, Reddit, LinkedIn, GitHub, Email).
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

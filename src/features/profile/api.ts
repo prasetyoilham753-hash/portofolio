@@ -138,10 +138,10 @@ const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB max
 export async function uploadFileToCloudinary(file: File): Promise<{ url: string, path: string }> {
   // Validate file size and type
   if (file.size > MAX_FILE_SIZE) {
-    throw new Error(`File terlalu besar (maksimal 25 MB). Ukuran file: ${(file.size / (1024 * 1024)).toFixed(2)} MB`);
+    throw new Error(`File exceeds the 25 MB limit. Current size: ${(file.size / (1024 * 1024)).toFixed(2)} MB`);
   }
   if (file.type && !ALLOWED_MIME_TYPES.has(file.type)) {
-    throw new Error(`Tipe file tidak didukung: ${file.type}. Harap gunakan gambar (JPG, PNG, WebP, GIF, AVIF), PDF, atau video (MP4, WebM).`);
+    throw new Error(`Unsupported file type: ${file.type}. Please upload an image (JPG, PNG, WebP, GIF, AVIF), PDF, or video (MP4, WebM).`);
   }
 
   const formData = new FormData();
@@ -170,11 +170,11 @@ export async function uploadFileToCloudinary(file: File): Promise<{ url: string,
 export async function uploadProfilePhoto(file: File, oldPhotoPath?: string): Promise<{ url: string, path: string }> {
   // Validate file size and type (photos only)
   if (file.size > 10 * 1024 * 1024) {
-    throw new Error(`Foto profil terlalu besar (maksimal 10 MB).`);
+    throw new Error(`Profile photo exceeds the 10 MB limit.`);
   }
   const allowedPhotoTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
   if (file.type && !allowedPhotoTypes.has(file.type)) {
-    throw new Error(`Format foto profil harus berupa JPG, PNG, WebP, atau AVIF.`);
+    throw new Error(`Profile photo must be in JPG, PNG, WebP, or AVIF format.`);
   }
 
   const formData = new FormData();

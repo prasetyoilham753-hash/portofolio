@@ -50,21 +50,21 @@ export default function AdminLogin() {
       console.error("Login Error:", err);
       
       if (err.code === 'auth/invalid-email') {
-        setError(`Format email tidak valid. (${err.code})`);
+        setError(`Invalid email format. (${err.code})`);
       } else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        setError(`Email atau password salah. Silakan periksa kembali akun admin Anda. (${err.code})`);
+        setError(`Incorrect email or password. Please verify your administrator credentials. (${err.code})`);
       } else if (err.code === 'auth/unauthorized-domain') {
-        setError(`Domain '${window.location.hostname}' belum didaftarkan di Firebase Console -> Authentication -> Settings -> Authorized Domains. (${err.code})`);
+        setError(`Domain '${window.location.hostname}' is not authorized in Firebase Console -> Authentication -> Settings -> Authorized Domains. (${err.code})`);
       } else if (err.code === 'auth/too-many-requests') {
-        setError(`Terlalu banyak percobaan gagal. Silakan coba lagi beberapa saat lagi. (${err.code})`);
+        setError(`Too many failed attempts. Please wait a moment and try again. (${err.code})`);
       } else if (err.code === 'auth/network-request-failed') {
-        setError(`Gagal terhubung ke server Firebase. Periksa koneksi internet Anda. (${err.code})`);
+        setError(`Unable to reach Firebase servers. Please check your internet connection. (${err.code})`);
       } else if (err.code === 'auth/user-disabled') {
-        setError(`Akun ini telah dinonaktifkan. (${err.code})`);
+        setError(`This account has been disabled. (${err.code})`);
       } else if (err.code === 'auth/operation-not-allowed') {
-        setError(`Metode login Email/Password belum diaktifkan di Firebase Console. (${err.code})`);
+        setError(`Email/Password sign-in is not enabled in Firebase Console. (${err.code})`);
       } else {
-        setError(`Gagal login: ${err.message || err.code || 'Terjadi kesalahan'}`);
+        setError(`Sign-in failed: ${err.message || err.code || 'An unexpected error occurred.'}`);
       }
     } finally {
       setIsLoading(false);

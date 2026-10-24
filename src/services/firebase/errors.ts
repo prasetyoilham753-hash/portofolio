@@ -47,15 +47,15 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   }
 
   // Sanitize message returned to user
-  let safeMessage = "Terjadi kendala saat memproses data. Silakan coba beberapa saat lagi.";
+  let safeMessage = "An issue occurred while processing your request. Please try again shortly.";
   if (rawMsg.includes("Missing or insufficient permissions") || rawMsg.includes("permission-denied")) {
-    safeMessage = "Akses ditolak atau sesi Anda tidak memiliki izin untuk tindakan ini.";
+    safeMessage = "Access denied or your current session does not have permission for this action.";
   } else if (rawMsg.includes("quota-exceeded") || rawMsg.includes("resource-exhausted")) {
-    safeMessage = "Batas permintaan server tercapai. Mohon tunggu sejenak sebelum mencoba lagi.";
+    safeMessage = "Server request limit reached. Please wait a moment before trying again.";
   } else if (rawMsg.includes("not-found")) {
-    safeMessage = "Data yang diminta tidak ditemukan.";
+    safeMessage = "The requested data could not be found.";
   } else if (rawMsg.includes("unavailable") || rawMsg.includes("offline")) {
-    safeMessage = "Koneksi ke database terputus. Pastikan koneksi internet Anda stabil.";
+    safeMessage = "Database connection lost. Please check that your internet connection is stable.";
   }
 
   throw new Error(safeMessage);

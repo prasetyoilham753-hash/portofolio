@@ -57,7 +57,7 @@ export function CvAccessModal({
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!passcode.trim()) {
-      setError("Silakan masukkan kode akses.");
+      setError("Please enter an access code.");
       inputRef.current?.focus();
       return;
     }
@@ -89,7 +89,7 @@ export function CvAccessModal({
       }, 500);
     } else {
       setIsSubmitting(false);
-      setError("Kode akses salah. Silakan masukkan kode akses yang benar.");
+      setError("Incorrect access code. Please enter a valid authorization code.");
       inputRef.current?.select();
     }
   };
@@ -121,10 +121,10 @@ export function CvAccessModal({
             </div>
             <div>
               <h3 className="text-lg font-bold text-white tracking-tight">
-                {isSuccess ? "Akses Diterima" : "Kode Akses Diperlukan"}
+                {isSuccess ? "Access Granted" : "Access Code Required"}
               </h3>
               <p className="text-xs text-text-muted">
-                {isSuccess ? "Menyiapkan berkas Curriculum Vitae..." : "Proteksi Unduh CV & Resume"}
+                {isSuccess ? "Preparing Curriculum Vitae document..." : "Protected CV & Resume Download"}
               </p>
             </div>
           </div>
@@ -132,7 +132,7 @@ export function CvAccessModal({
             type="button"
             onClick={onClose}
             className="text-white/40 hover:text-white p-1.5 rounded-xl bg-white/[0.04] border border-white/10 hover:border-white/20 transition-colors cursor-pointer"
-            title="Tutup dialog"
+            title="Close dialog"
           >
             <X size={18} />
           </button>
@@ -143,7 +143,7 @@ export function CvAccessModal({
           <form onSubmit={handleSubmit} className="flex flex-col gap-4 relative z-10">
             <div className="flex flex-col gap-1.5">
               <p className="text-xs sm:text-sm text-[#A8B8CC] font-light leading-relaxed">
-                Untuk mengunduh dokumen resmi CV <strong>{candidateName}</strong>, silakan masukkan kode akses otorisasi:
+                To download the official CV for <strong>{candidateName}</strong>, please enter your authorization access code:
               </p>
             </div>
 
@@ -162,7 +162,7 @@ export function CvAccessModal({
                     setPasscode(e.target.value);
                     if (error) setError(null);
                   }}
-                  placeholder="Masukkan kode akses otorisasi..."
+                  placeholder="Enter authorization access code..."
                   autoComplete="off"
                   disabled={isSubmitting}
                   className={`w-full pl-10 pr-11 py-3 rounded-xl bg-white/[0.05] border ${
@@ -173,7 +173,7 @@ export function CvAccessModal({
                   type="button"
                   onClick={() => setShowPasscode(!showPasscode)}
                   className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-white/40 hover:text-white transition-colors cursor-pointer"
-                  title={showPasscode ? "Sembunyikan" : "Tampilkan"}
+                  title={showPasscode ? "Hide code" : "Show code"}
                 >
                   {showPasscode ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -197,7 +197,7 @@ export function CvAccessModal({
 
             <div className="flex items-center gap-2 text-[11px] text-[#A8B8CC]/70 bg-white/[0.02] border border-white/5 px-3.5 py-2.5 rounded-xl">
               <ShieldCheck size={14} className="text-[#7DB3FF] shrink-0" />
-              <span>Dokumen CV terproteksi. Masukkan kode akses otorisasi yang telah diberikan.</span>
+              <span>This CV document is protected. Please enter the access code provided to you.</span>
             </div>
 
             {/* Actions */}
@@ -208,7 +208,7 @@ export function CvAccessModal({
                 disabled={isSubmitting}
                 className="px-4 py-2 rounded-xl text-xs font-medium bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all duration-200 cursor-pointer"
               >
-                <span>Batal</span>
+                <span>Cancel</span>
               </button>
               <button
                 id="submit-cv-passcode-btn"
@@ -216,7 +216,7 @@ export function CvAccessModal({
                 disabled={isSubmitting}
                 className="px-4 py-2 rounded-xl text-xs font-medium bg-[#205BF0] hover:bg-[#1A4ED4] text-white transition-all duration-200 flex items-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50"
               >
-                <span>Verifikasi & Unduh</span>
+                <span>Verify & Download</span>
                 <ArrowRight size={13} />
               </button>
             </div>
@@ -227,9 +227,9 @@ export function CvAccessModal({
               <Download size={28} />
             </div>
             <div className="flex flex-col gap-1">
-              <p className="text-base font-semibold text-white">Otorisasi Berhasil</p>
+              <p className="text-base font-semibold text-white">Authorization Successful</p>
               <p className="text-xs text-[#A8B8CC]">
-                Pengunduhan berkas sedang berjalan. Jendela baru akan terbuka.
+                Your download is starting. The document will open shortly.
               </p>
             </div>
             {cvUrl && (
@@ -239,7 +239,7 @@ export function CvAccessModal({
                 rel="noopener noreferrer"
                 className="text-xs text-[#7DB3FF] hover:underline flex items-center gap-1 mt-1"
               >
-                <span>Klik di sini jika unduhan tidak otomatis dimulai</span>
+                <span>Click here if the download does not start automatically</span>
               </a>
             )}
           </div>

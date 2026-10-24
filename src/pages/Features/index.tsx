@@ -92,7 +92,7 @@ export default function Features() {
       .filter((c) => Boolean(c && c.name && c.name.trim().length > 0))
       .map((c) => ({
         ...c,
-        code: c.code && c.code.trim() ? c.code : '// Komponen interaktif'
+        code: c.code && c.code.trim() ? c.code : '// Interactive component'
       }));
   }, [components]);
 
@@ -244,7 +244,7 @@ export default function Features() {
                             type="button"
                             onClick={() => toggleExpandCode(comp.id)}
                             className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#7DB3FF]/40 text-white/70 hover:text-white transition-all cursor-pointer flex items-center gap-1 text-xs"
-                            title={isCodeExpanded ? "Sembunyikan Kode" : "Lihat Kode"}
+                            title={isCodeExpanded ? "Hide Code" : "View Code"}
                           >
                             <Code2 size={14} className={isCodeExpanded ? "text-[#7DB3FF]" : ""} />
                             {isCodeExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
@@ -254,7 +254,7 @@ export default function Features() {
                             type="button"
                             onClick={() => handleCopyCode(comp.code, comp.id)}
                             className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#7DB3FF]/40 text-white/70 hover:text-white transition-all cursor-pointer flex items-center gap-1.5 text-xs group"
-                            title={isCopied ? "Tersalin!" : "Salin Kode Komponen"}
+                            title={isCopied ? "Copied!" : "Copy Component Code"}
                           >
                             {isCopied ? (
                               <>
