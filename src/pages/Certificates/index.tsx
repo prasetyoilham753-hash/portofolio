@@ -16,8 +16,12 @@ import {
 } from "lucide-react";
 import { subscribeToCertificates } from "../../features/certificates/api";
 import { CertificateItem } from "../../features/certificates/types";
-import { getProfile } from "../../features/profile/api";
+import { getCachedProfile, subscribeToProfile } from "../../features/profile/api";
 import { getOptimizedImageUrl } from "../../utils/imageUrl";
+
+export const DEFAULT_CERTIFICATES_TITLE = "Certificates & Credentials";
+export const DEFAULT_CERTIFICATES_SUBTITLE =
+  "Verified professional certifications, technical proficiencies, and specialized competencies in modern software engineering and spatial design.";
 
 interface CertificateCardProps {
   key?: React.Key;
@@ -258,11 +262,17 @@ export default function Certificates() {
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [copiedId, setCopiedId] = useState(false);
 
-  // Title & description synced from profile if available
-  const [title, setTitle] = useState("Certificates & Credentials");
-  const [description, setDescription] = useState(
-    "Verified professional certifications, technical proficiencies, and specialized competencies in modern software engineering and spatial design."
-  );
+  // Title & subtitle synced in real time from site_content/profile
+  const [title, setTitle] = useState<string>(() => {
+    const cached = getCachedProfile();
+    return cached.certificatesTitle?.trim() || DEFAULT_CERTIFICATES_TITLE;
+  });
+  const [description, setDescription] = useState<string>(() => {
+    const cached = getCachedProfile();
+    return typeof cached.certificatesDescription === "string"
+      ? cached.certificatesDescription.trim()
+      : DEFAULT_CERTIFICATES_SUBTITLE;
+  });
 
   // Lightbox Modal State
   const [activeCert, setActiveCert] = useState<CertificateItem | null>(null);
@@ -273,15 +283,20 @@ export default function Certificates() {
   const lightboxTouchStartX = useRef<number | null>(null);
 
   useEffect(() => {
-    // Load Header Info
-    getProfile()
-      .then((profile) => {
+    // Subscribe to Header Info in real time
+    const unsubProfile = subscribeToProfile(
+      (profile) => {
         if (profile) {
-          if ((profile as any).certificatesTitle) setTitle((profile as any).certificatesTitle);
-          if ((profile as any).certificatesDescription) setDescription((profile as any).certificatesDescription);
+          setTitle(profile.certificatesTitle?.trim() || DEFAULT_CERTIFICATES_TITLE);
+          setDescription(
+            typeof profile.certificatesDescription === "string"
+              ? profile.certificatesDescription.trim()
+              : DEFAULT_CERTIFICATES_SUBTITLE
+          );
         }
-      })
-      .catch((err) => console.error("Error loading certificates header:", err));
+      },
+      (err) => console.error("Error loading certificates header:", err)
+    );
 
     // Subscribe to Certificates realtime collection
     const unsubscribe = subscribeToCertificates(
@@ -296,7 +311,10 @@ export default function Certificates() {
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      unsubProfile();
+      unsubscribe();
+    };
   }, []);
 
   const categories = ["All", ...Array.from(new Set(certificates.map((c) => c.category).filter(Boolean))) as string[]];
@@ -405,9 +423,11 @@ export default function Certificates() {
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-medium text-white tracking-tight leading-[1.12]">
           {title}
         </h1>
-        <p className="text-[#A8B8CC] text-base sm:text-lg font-light leading-relaxed max-w-2xl">
-          {description}
-        </p>
+        {description ? (
+          <p className="text-[#A8B8CC] text-base sm:text-lg font-light leading-relaxed max-w-2xl">
+            {description}
+          </p>
+        ) : null}
       </header>
 
       {/* Category Filter Pills */}

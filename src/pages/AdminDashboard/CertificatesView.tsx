@@ -13,7 +13,9 @@ import {
   Image as ImageIcon,
   Loader2,
   RefreshCw,
-  Link2
+  Link2,
+  FileText,
+  RotateCcw
 } from "lucide-react";
 import { 
   subscribeToCertificates, 
@@ -22,7 +24,16 @@ import {
   deleteCertificate 
 } from "../../features/certificates/api";
 import { CertificateItem } from "../../features/certificates/types";
-import { uploadFileToCloudinary } from "../../features/profile/api";
+import { 
+  uploadFileToCloudinary, 
+  getCachedProfile, 
+  subscribeToProfile, 
+  updateProfile 
+} from "../../features/profile/api";
+import { 
+  DEFAULT_CERTIFICATES_TITLE, 
+  DEFAULT_CERTIFICATES_SUBTITLE 
+} from "../Certificates";
 
 const DEFAULT_CATEGORIES = [
   "Engineering",
@@ -38,6 +49,21 @@ export function CertificatesView() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
+
+  // Certificates Page Header & Subtitle Settings (Stored in site_content/profile)
+  const [pageTitle, setPageTitle] = useState<string>(() => {
+    const cached = getCachedProfile();
+    return cached.certificatesTitle?.trim() || DEFAULT_CERTIFICATES_TITLE;
+  });
+  const [pageSubtitle, setPageSubtitle] = useState<string>(() => {
+    const cached = getCachedProfile();
+    return typeof cached.certificatesDescription === "string"
+      ? cached.certificatesDescription
+      : DEFAULT_CERTIFICATES_SUBTITLE;
+  });
+  const [loadingHeader, setLoadingHeader] = useState(true);
+  const [savingHeader, setSavingHeader] = useState(false);
+  const [headerMsg, setHeaderMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -86,6 +112,55 @@ export function CertificatesView() {
     );
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    const unsubProfile = subscribeToProfile(
+      (profile) => {
+        if (profile) {
+          setPageTitle(profile.certificatesTitle?.trim() || DEFAULT_CERTIFICATES_TITLE);
+          setPageSubtitle(
+            typeof profile.certificatesDescription === "string"
+              ? profile.certificatesDescription
+              : DEFAULT_CERTIFICATES_SUBTITLE
+          );
+        }
+        setLoadingHeader(false);
+      },
+      (err) => {
+        console.error("Error loading certificates header config:", err);
+        setLoadingHeader(false);
+      }
+    );
+    return () => unsubProfile();
+  }, []);
+
+  const handleSaveHeader = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingHeader(true);
+    setHeaderMsg(null);
+    try {
+      const normalizedTitle = pageTitle.trim() || DEFAULT_CERTIFICATES_TITLE;
+      const normalizedSubtitle = pageSubtitle.trim();
+      await updateProfile({
+        certificatesTitle: normalizedTitle,
+        certificatesDescription: normalizedSubtitle,
+      });
+      setPageTitle(normalizedTitle);
+      setPageSubtitle(normalizedSubtitle);
+      setHeaderMsg({ type: "success", text: "Certificates page subtitle & header saved!" });
+      setTimeout(() => setHeaderMsg(null), 4000);
+    } catch (err: any) {
+      console.error("Failed to save certificates header:", err);
+      setHeaderMsg({ type: "error", text: err?.message || "Failed to save header settings." });
+    } finally {
+      setSavingHeader(false);
+    }
+  };
+
+  const handleResetSubtitleDefault = () => {
+    setPageTitle(DEFAULT_CERTIFICATES_TITLE);
+    setPageSubtitle(DEFAULT_CERTIFICATES_SUBTITLE);
+  };
 
   const resetForm = () => {
     setTitle("");
@@ -392,6 +467,103 @@ export function CertificatesView() {
           <Plus size={16} />
           <span>Add Certificate</span>
         </button>
+      </div>
+
+      {/* Certificates Page Header & Subtitle Configuration */}
+      <div className="glass-card p-6 rounded-2xl border border-white/10 bg-[rgba(10,24,42,0.4)] backdrop-blur-xl flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
+          <div className="flex items-center gap-2.5">
+            <FileText size={18} className="text-[#7DB3FF]" />
+            <div>
+              <h3 className="text-lg font-display text-white">Certificates Page Header</h3>
+              <p className="text-xs text-text-secondary font-light">
+                Configure the title and subtitle displayed at the top of the public Certificates page (/certificates).
+              </p>
+            </div>
+          </div>
+          {headerMsg && (
+            <div
+              className={`px-3 py-1 rounded-lg text-xs flex items-center gap-1.5 self-start sm:self-auto ${
+                headerMsg.type === "success"
+                  ? "bg-emerald-500/15 border border-emerald-500/30 text-emerald-400"
+                  : "bg-red-500/15 border border-red-500/30 text-red-400"
+              }`}
+            >
+              {headerMsg.type === "success" ? <Check size={13} /> : <AlertCircle size={13} />}
+              <span>{headerMsg.text}</span>
+            </div>
+          )}
+        </div>
+
+        <form onSubmit={handleSaveHeader} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label
+              htmlFor="certificates-page-title"
+              className="text-xs font-semibold text-text-secondary uppercase tracking-wider"
+            >
+              Page Title
+            </label>
+            <input
+              id="certificates-page-title"
+              type="text"
+              maxLength={120}
+              value={pageTitle}
+              onChange={(e) => setPageTitle(e.target.value)}
+              placeholder={DEFAULT_CERTIFICATES_TITLE}
+              className="glass-input px-4 py-2.5 rounded-xl text-sm bg-white/5 border border-white/15 focus:border-[#7DB3FF] outline-none text-white placeholder:text-white/30"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between gap-2">
+              <label
+                htmlFor="certificates-page-subtitle"
+                className="text-xs font-semibold text-text-secondary uppercase tracking-wider"
+              >
+                Page Subtitle (Description)
+              </label>
+              <span className="text-xs text-text-muted font-mono">
+                {pageSubtitle.length}/500
+              </span>
+            </div>
+            <textarea
+              id="certificates-page-subtitle"
+              rows={2}
+              maxLength={500}
+              value={pageSubtitle}
+              onChange={(e) => setPageSubtitle(e.target.value)}
+              placeholder="Write a subtitle or description for the Certificates page..."
+              className="glass-input px-4 py-2.5 rounded-xl text-sm w-full resize-y leading-relaxed bg-white/5 border border-white/15 focus:border-[#7DB3FF] outline-none text-white placeholder:text-white/30"
+            />
+            <p className="text-[11px] text-text-muted">
+              Displayed directly beneath the heading on the public Certificates page. Leave blank and save to hide the subtitle.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-end gap-2.5 pt-1">
+            <button
+              type="button"
+              onClick={handleResetSubtitleDefault}
+              disabled={savingHeader || loadingHeader}
+              className="ios-glass-btn px-4 py-2 text-xs font-medium text-text-secondary hover:text-white cursor-pointer disabled:opacity-40 flex items-center gap-1.5"
+            >
+              <RotateCcw size={13} />
+              <span>Reset Default</span>
+            </button>
+            <button
+              type="submit"
+              disabled={savingHeader || loadingHeader}
+              className="ios-glass-btn ios-glass-primary px-5 py-2 text-xs font-semibold cursor-pointer disabled:opacity-40 flex items-center gap-1.5"
+            >
+              {savingHeader ? (
+                <Loader2 size={13} className="animate-spin" />
+              ) : (
+                <Check size={13} />
+              )}
+              <span>Save Subtitle</span>
+            </button>
+          </div>
+        </form>
       </div>
 
       {/* Feedback Banner */}

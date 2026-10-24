@@ -114,6 +114,14 @@ export async function updateProfile(data: Partial<SiteProfile>): Promise<void> {
       ...data,
       updatedAt: serverTimestamp()
     }, { merge: true });
+    if (typeof window !== "undefined") {
+      try {
+        const current = getCachedProfile();
+        localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify({ ...current, ...data }));
+      } catch {
+        // Ignore storage quota errors
+      }
+    }
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `${COLLECTION_NAME}/${PROFILE_DOC_ID}`);
     throw error;

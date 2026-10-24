@@ -60,6 +60,10 @@ export interface SiteProfile {
   heroDescription?: string;
   heroDescriptionAlign?: TextAlignment;
   projectDescription?: string;
+  galleryTitle?: string;
+  galleryDescription?: string;
+  certificatesTitle?: string;
+  certificatesDescription?: string;
   about: string;
   aboutLabel?: string;
   aboutHeading?: string;

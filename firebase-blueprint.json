@@ -118,6 +118,8 @@
         "name": { "type": "string" },
         "title": { "type": "string" },
         "about": { "type": "string" },
+        "certificatesTitle": { "type": "string" },
+        "certificatesDescription": { "type": "string" },
         "photoUrl": { "type": "string" },
         "photoPath": { "type": "string" },
         "socialLinks": {
