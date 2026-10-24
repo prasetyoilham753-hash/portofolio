@@ -256,7 +256,7 @@ export function CommentsView() {
         content: replyContent.trim(),
         imageUrl: replyImageUrl,
         imagePublicId: replyImagePublicId,
-        parentId: targetComment.parentId || targetComment.id,
+        parentId: targetComment.id,
         replyToAuthor: targetComment.authorName,
         filterConfig,
         fromAdminDashboard: true,
@@ -412,8 +412,8 @@ export function CommentsView() {
   const availableIdentities =
     adminNames.length > 0 ? adminNames : DEFAULT_ADMIN_IDENTITIES;
 
-  // Build threaded grouping & search filtering
-  const { threadedRoots, repliesMap, orphanReplies, flatFiltered } = useMemo(() => {
+  // Build multi-level threaded grouping & search filtering
+  const { threadedRoots, repliesMap, orphanReplies, flatFiltered, descendantCountMap } = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     const matchesSearch = (c: CommentItem) => {
       if (!q) return true;
@@ -430,13 +430,30 @@ export function CommentsView() {
       return timeB - timeA;
     });
 
-    const rootIds = new Set(sortedDesc.filter((c) => !c.parentId).map((c) => c.id));
+    const byId = new Map<string, CommentItem>();
+    for (const c of sortedDesc) {
+      byId.set(c.id, c);
+    }
+
+    const hasValidRootAncestor = (item: CommentItem): boolean => {
+      const visited = new Set<string>([item.id]);
+      let currParentId = item.parentId;
+      while (currParentId) {
+        if (visited.has(currParentId)) return false;
+        visited.add(currParentId);
+        const parentItem = byId.get(currParentId);
+        if (!parentItem) return false;
+        currParentId = parentItem.parentId;
+      }
+      return true;
+    };
+
     const byParent: Record<string, CommentItem[]> = {};
     const orphans: CommentItem[] = [];
 
     for (const c of sortedDesc) {
       if (c.parentId) {
-        if (rootIds.has(c.parentId)) {
+        if (hasValidRootAncestor(c)) {
           if (!byParent[c.parentId]) byParent[c.parentId] = [];
           byParent[c.parentId].push(c);
         } else if (matchesSearch(c)) {
@@ -445,7 +462,7 @@ export function CommentsView() {
       }
     }
 
-    // Chronological order for replies within a thread
+    // Chronological order for replies within each branch
     Object.keys(byParent).forEach((pid) => {
       byParent[pid].sort((a, b) => {
         const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
@@ -454,11 +471,39 @@ export function CommentsView() {
       });
     });
 
+    const countMap: Record<string, number> = {};
+    const countDescendants = (id: string, visited = new Set<string>()): number => {
+      if (visited.has(id)) return 0;
+      if (countMap[id] !== undefined) return countMap[id];
+      visited.add(id);
+      const children = byParent[id] || [];
+      let total = children.length;
+      for (const ch of children) {
+        total += countDescendants(ch.id, visited);
+      }
+      visited.delete(id);
+      countMap[id] = total;
+      return total;
+    };
+
+    const subtreeMatchesSearch = (id: string, visited = new Set<string>()): boolean => {
+      if (visited.has(id)) return false;
+      visited.add(id);
+      const children = byParent[id] || [];
+      for (const ch of children) {
+        if (matchesSearch(ch) || subtreeMatchesSearch(ch.id, visited)) return true;
+      }
+      return false;
+    };
+
+    for (const c of sortedDesc) {
+      countDescendants(c.id);
+    }
+
     const roots = sortedDesc.filter((c) => {
       if (c.parentId) return false;
       if (matchesSearch(c)) return true;
-      const childReplies = byParent[c.id] || [];
-      return childReplies.some(matchesSearch);
+      return subtreeMatchesSearch(c.id);
     });
 
     const flat = sortedDesc.filter((c) => {
@@ -472,6 +517,7 @@ export function CommentsView() {
       repliesMap: byParent,
       orphanReplies: orphans,
       flatFiltered: flat,
+      descendantCountMap: countMap,
     };
   }, [comments, searchQuery, filterType]);
 
@@ -672,6 +718,106 @@ export function CommentsView() {
             <ExternalLink size={10} /> Open original
           </span>
         </a>
+      </div>
+    );
+  };
+
+  // Recursive nested reply renderer for Admin threaded view
+  const renderAdminReplyNode = (reply: CommentItem, depth: number): React.ReactNode => {
+    const replyOfficial = isCommentOfficial(reply);
+    const isReplyingToSub = replyingTo?.id === reply.id;
+    const subReplies = repliesMap[reply.id] || [];
+    const indentClass =
+      depth < 3
+        ? "ml-2 sm:ml-3.5 pl-3 sm:pl-4"
+        : depth < 5
+          ? "ml-1.5 sm:ml-2.5 pl-2.5 sm:pl-3"
+          : "ml-0.5 sm:ml-1 pl-2 sm:pl-2.5";
+
+    return (
+      <div
+        key={reply.id}
+        id={`admin-reply-${reply.id}`}
+        className="p-3.5 rounded-xl bg-white/[0.03] border border-white/10 flex flex-col gap-2.5"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0 flex-wrap">
+            <span
+              className={`w-6 h-6 rounded-lg text-[10px] font-bold flex items-center justify-center shrink-0 border ${
+                reply.isAnonymous
+                  ? "bg-white/5 border-white/15 text-white/50"
+                  : replyOfficial
+                    ? "bg-emerald-500/25 border-emerald-500/40 text-emerald-300"
+                    : "bg-[#7DB3FF]/20 border-[#7DB3FF]/40 text-[#7DB3FF]"
+              }`}
+            >
+              {reply.isAnonymous ? (
+                "A"
+              ) : replyOfficial ? (
+                <ShieldCheck size={12} className="text-emerald-400" />
+              ) : (
+                reply.authorName.charAt(0) || "U"
+              )}
+            </span>
+            <span className="text-xs font-semibold text-white">{reply.authorName}</span>
+            {replyOfficial && (
+              <span className="text-[9.5px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-0.5">
+                <ShieldCheck size={9} /> Admin
+              </span>
+            )}
+            {reply.replyToAuthor && (
+              <span className="text-[11px] text-[#7DB3FF]/80 font-light">
+                ↳ @{reply.replyToAuthor}
+              </span>
+            )}
+            <span className="text-[10px] text-white/40 font-mono">
+              • {formatDate(reply.createdAt)}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => handleToggleReply(reply)}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium cursor-pointer flex items-center gap-1 transition-colors border ${
+                isReplyingToSub
+                  ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-300"
+                  : "bg-white/5 border-white/10 text-[#7DB3FF] hover:text-white"
+              }`}
+              title={`Reply to @${reply.authorName}`}
+            >
+              <CornerDownRight size={11} />
+              <span>{isReplyingToSub ? "Cancel" : "Reply"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setCommentToDelete(reply)}
+              disabled={deletingId === reply.id}
+              className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-white/5 hover:bg-red-500/15 border border-white/10 text-red-400 hover:text-red-300 cursor-pointer flex items-center gap-1 transition-colors"
+              title="Delete this reply"
+            >
+              <Trash2 size={11} />
+            </button>
+          </div>
+        </div>
+
+        {reply.content.trim() ? (
+          <div className="text-xs text-[#C0D3EB] font-light leading-relaxed whitespace-pre-wrap break-words pl-1">
+            {reply.content}
+          </div>
+        ) : null}
+
+        {renderAttachedSticker(reply.imageUrl, reply.authorName)}
+
+        {renderInlineReplyComposer(reply)}
+
+        {subReplies.length > 0 && (
+          <div
+            className={`mt-1 flex flex-col gap-2.5 border-l-2 border-l-[#7DB3FF]/25 ${indentClass}`}
+          >
+            {subReplies.map((child) => renderAdminReplyNode(child, depth + 1))}
+          </div>
+        )}
       </div>
     );
   };
@@ -1034,94 +1180,13 @@ export function CommentsView() {
                   {childReplies.length > 0 && (
                     <div className="mt-2 pt-3 border-t border-white/10 pl-3 sm:pl-5 border-l-2 border-l-[#7DB3FF]/25 ml-2 flex flex-col gap-3">
                       <span className="text-[11px] font-semibold uppercase tracking-wider text-[#7DB3FF]/80">
-                        {childReplies.length} {childReplies.length === 1 ? "Reply" : "Replies"}
+                        {descendantCountMap[comment.id] || childReplies.length}{" "}
+                        {(descendantCountMap[comment.id] || childReplies.length) === 1
+                          ? "Reply"
+                          : "Replies"}
                       </span>
 
-                      {childReplies.map((reply) => {
-                        const replyOfficial = isCommentOfficial(reply);
-                        const isReplyingToSub = replyingTo?.id === reply.id;
-
-                        return (
-                          <div
-                            key={reply.id}
-                            id={`admin-reply-${reply.id}`}
-                            className="p-3.5 rounded-xl bg-white/[0.03] border border-white/10 flex flex-col gap-2.5"
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                                <span
-                                  className={`w-6 h-6 rounded-lg text-[10px] font-bold flex items-center justify-center shrink-0 border ${
-                                    reply.isAnonymous
-                                      ? "bg-white/5 border-white/15 text-white/50"
-                                      : replyOfficial
-                                        ? "bg-emerald-500/25 border-emerald-500/40 text-emerald-300"
-                                        : "bg-[#7DB3FF]/20 border-[#7DB3FF]/40 text-[#7DB3FF]"
-                                  }`}
-                                >
-                                  {reply.isAnonymous ? (
-                                    "A"
-                                  ) : replyOfficial ? (
-                                    <ShieldCheck size={12} className="text-emerald-400" />
-                                  ) : (
-                                    reply.authorName.charAt(0) || "U"
-                                  )}
-                                </span>
-                                <span className="text-xs font-semibold text-white">
-                                  {reply.authorName}
-                                </span>
-                                {replyOfficial && (
-                                  <span className="text-[9.5px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-0.5">
-                                    <ShieldCheck size={9} /> Admin
-                                  </span>
-                                )}
-                                {reply.replyToAuthor && (
-                                  <span className="text-[11px] text-[#7DB3FF]/80 font-light">
-                                    ↳ @{reply.replyToAuthor}
-                                  </span>
-                                )}
-                                <span className="text-[10px] text-white/40 font-mono">
-                                  • {formatDate(reply.createdAt)}
-                                </span>
-                              </div>
-
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                <button
-                                  type="button"
-                                  onClick={() => handleToggleReply(reply)}
-                                  className={`px-2.5 py-1 rounded-lg text-[11px] font-medium cursor-pointer flex items-center gap-1 transition-colors border ${
-                                    isReplyingToSub
-                                      ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-300"
-                                      : "bg-white/5 border-white/10 text-[#7DB3FF] hover:text-white"
-                                  }`}
-                                  title={`Reply to @${reply.authorName}`}
-                                >
-                                  <CornerDownRight size={11} />
-                                  <span>{isReplyingToSub ? "Cancel" : "Reply"}</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDelete(reply)}
-                                  disabled={deletingId === reply.id}
-                                  className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-white/5 hover:bg-red-500/15 border border-white/10 text-red-400 hover:text-red-300 cursor-pointer flex items-center gap-1 transition-colors"
-                                  title="Delete this reply"
-                                >
-                                  <Trash2 size={11} />
-                                </button>
-                              </div>
-                            </div>
-
-                            {reply.content.trim() ? (
-                              <div className="text-xs text-[#C0D3EB] font-light leading-relaxed whitespace-pre-wrap break-words pl-1">
-                                {reply.content}
-                              </div>
-                            ) : null}
-
-                            {renderAttachedSticker(reply.imageUrl, reply.authorName)}
-
-                            {renderInlineReplyComposer(reply)}
-                          </div>
-                        );
-                      })}
+                      {childReplies.map((reply) => renderAdminReplyNode(reply, 1))}
                     </div>
                   )}
                 </div>

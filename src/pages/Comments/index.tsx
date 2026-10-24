@@ -10,8 +10,8 @@ import {
   Smile,
   AlertCircle,
   MessageSquare,
-  Maximize2,
-  ExternalLink,
+  Minus,
+  Plus,
 } from "lucide-react";
 import {
   subscribeToComments,
@@ -50,12 +50,7 @@ export default function Comments() {
   const [replyIsAnonymous, setReplyIsAnonymous] = useState(false);
   const [replySubmitting, setReplySubmitting] = useState(false);
   const [replyError, setReplyError] = useState<string | null>(null);
-
-  // Lightbox Modal state for viewing attached images on comments
-  const [activeLightboxImage, setActiveLightboxImage] = useState<{
-    url: string;
-    authorName: string;
-  } | null>(null);
+  const [collapsedThreads, setCollapsedThreads] = useState<Record<string, boolean>>({});
 
   const MAX_CHARS = 1000;
 
@@ -64,19 +59,6 @@ export default function Comments() {
       if (data) setProfile(data);
     });
   }, []);
-
-  // Lightbox keyboard listener (Escape to close)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setActiveLightboxImage(null);
-      }
-    };
-    if (activeLightboxImage) {
-      window.addEventListener("keydown", handleKeyDown);
-      return () => window.removeEventListener("keydown", handleKeyDown);
-    }
-  }, [activeLightboxImage]);
 
   // Real-time subscriptions
   useEffect(() => {
@@ -167,8 +149,8 @@ export default function Comments() {
     }
   };
 
-  // Group comments: top-level vs replies
-  const { rootComments, repliesByParent } = useMemo(() => {
+  // Group comments into a multi-level Reddit-style tree: top-level roots + children map + recursive descendant counts
+  const { rootComments, repliesByParent, descendantCountById } = useMemo(() => {
     const roots: CommentItem[] = [];
     const repliesMap: Record<string, CommentItem[]> = {};
 
@@ -197,13 +179,62 @@ export default function Comments() {
       });
     });
 
-    return { rootComments: roots, repliesByParent: repliesMap };
+    const countById: Record<string, number> = {};
+    const computeDescendants = (id: string, visited = new Set<string>()): number => {
+      if (visited.has(id)) return 0;
+      if (countById[id] !== undefined) return countById[id];
+      visited.add(id);
+      const direct = repliesMap[id] || [];
+      let total = direct.length;
+      for (const child of direct) {
+        total += computeDescendants(child.id, visited);
+      }
+      visited.delete(id);
+      countById[id] = total;
+      return total;
+    };
+
+    for (const c of sorted) {
+      computeDescendants(c.id);
+    }
+
+    return {
+      rootComments: roots,
+      repliesByParent: repliesMap,
+      descendantCountById: countById,
+    };
   }, [comments]);
+
+  const toggleThreadCollapse = (commentId: string) => {
+    setCollapsedThreads((prev) => ({
+      ...prev,
+      [commentId]: !prev[commentId],
+    }));
+  };
+
+  const handleToggleReplyTarget = (target: CommentItem) => {
+    if (replyingTo?.id === target.id) {
+      setReplyingTo(null);
+    } else {
+      setReplyingTo(target);
+      setReplyContent("");
+      setReplyError(null);
+      setCollapsedThreads((prev) =>
+        prev[target.id] ? { ...prev, [target.id]: false } : prev
+      );
+    }
+  };
 
   // Handle main comment submission (public visitor only)
   const handleSubmitMain = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (submitting) return;
+
+    if (!isAnonymous && !authorName.trim()) {
+      setFormError('Please enter your name or check "Post Anonymously" before sending.');
+      document.getElementById("comment-author-name")?.focus();
+      return;
+    }
 
     if (!isAnonymous && isClaimingAdmin) {
       setFormError(PUBLIC_IDENTITY_REJECTED_MESSAGE);
@@ -254,12 +285,19 @@ export default function Comments() {
     handleSubmitMain();
   };
 
-  // Handle reply submission (public visitor only)
+  // Handle reply submission at any nesting depth (public visitor only)
   const handleSubmitReply = async (parentComment: CommentItem) => {
-    if (!replyContent.trim() || replySubmitting) return;
+    if (replySubmitting) return;
+
+    if (!replyIsAnonymous && !replyAuthorName.trim()) {
+      setReplyError('Please enter your name or check "Post Anonymously" before sending.');
+      document.getElementById(`reply-author-name-${parentComment.id}`)?.focus();
+      return;
+    }
 
     if (!replyIsAnonymous && isReplyClaimingAdmin) {
       setReplyError(PUBLIC_IDENTITY_REJECTED_MESSAGE);
+      document.getElementById(`reply-author-name-${parentComment.id}`)?.focus();
       return;
     }
 
@@ -267,6 +305,12 @@ export default function Comments() {
       setReplyError(
         `Display name cannot contain restricted phrases ("${replyAuthorBannedCheck.matchedPhrases.join(", ")}"). Please choose another name.`
       );
+      document.getElementById(`reply-author-name-${parentComment.id}`)?.focus();
+      return;
+    }
+
+    if (!replyContent.trim()) {
+      setReplyError("Please write your reply before sending.");
       return;
     }
 
@@ -287,6 +331,9 @@ export default function Comments() {
 
       setReplyContent("");
       setReplyingTo(null);
+      setCollapsedThreads((prev) =>
+        prev[parentComment.id] ? { ...prev, [parentComment.id]: false } : prev
+      );
     } catch (err: any) {
       console.error("Failed to post reply:", err);
       setReplyError(err?.message || "Failed to post reply.");
@@ -295,9 +342,283 @@ export default function Comments() {
     }
   };
 
+  const isMissingAuthorIdentity = !isAnonymous && !authorName.trim();
+  const isMissingReplyAuthorIdentity = !replyIsAnonymous && !replyAuthorName.trim();
   const hasAuthorInputError = !isAnonymous && (isClaimingAdmin || authorBannedCheck.hasForbidden);
   const hasReplyAuthorError =
     !replyIsAnonymous && (isReplyClaimingAdmin || replyAuthorBannedCheck.hasForbidden);
+
+  // Reusable inline reply composer for both root comments and nested replies
+  const renderInlineReplyForm = (targetItem: CommentItem) => {
+    if (replyingTo?.id !== targetItem.id) return null;
+
+    return (
+      <div className="mt-2 p-3.5 sm:p-4 rounded-xl bg-[rgba(15,30,55,0.65)] border border-[#7DB3FF]/30 flex flex-col gap-3 relative animate-fadeIn">
+        <div className="flex items-center justify-between text-xs gap-2">
+          <span className="text-[#7DB3FF] font-medium flex items-center gap-1.5 min-w-0 truncate">
+            <CornerDownRight size={13} className="shrink-0" />
+            <span className="truncate">
+              Replying to <strong>@{targetItem.authorName}</strong>
+            </span>
+          </span>
+          <button
+            type="button"
+            onClick={() => setReplyingTo(null)}
+            className="text-white/40 hover:text-white p-1 cursor-pointer shrink-0"
+            title="Cancel reply"
+          >
+            <X size={14} />
+          </button>
+        </div>
+
+        {/* Identity for reply */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <label className="flex items-center gap-2 cursor-pointer text-xs text-[#A8B8CC] hover:text-white transition-colors select-none">
+              <input
+                type="checkbox"
+                checked={replyIsAnonymous}
+                onChange={(e) => {
+                  setReplyIsAnonymous(e.target.checked);
+                  if (replyError) setReplyError(null);
+                }}
+                className="w-3.5 h-3.5 rounded border-white/20 accent-[#7DB3FF] cursor-pointer"
+              />
+              <span>Post Anonymously</span>
+            </label>
+
+            {!replyIsAnonymous && (
+              <input
+                id={`reply-author-name-${targetItem.id}`}
+                type="text"
+                value={replyAuthorName}
+                onChange={(e) => {
+                  setReplyAuthorName(e.target.value);
+                  if (replyError) setReplyError(null);
+                }}
+                aria-invalid={hasReplyAuthorError}
+                required={!replyIsAnonymous}
+                placeholder="Name"
+                maxLength={60}
+                className={`glass-input px-3 py-1.5 rounded-lg text-xs outline-none transition-all w-full sm:w-auto sm:min-w-[220px] ${
+                  hasReplyAuthorError
+                    ? "bg-red-500/10 border-red-500/50 text-red-100 placeholder:text-red-300/40"
+                    : "bg-white/5 border border-white/10 focus:border-[#7DB3FF] text-white placeholder:text-white/35"
+                }`}
+              />
+            )}
+          </div>
+
+          {!replyIsAnonymous && isReplyClaimingAdmin && (
+            <div
+              role="alert"
+              className="flex items-center gap-1.5 text-[11px] text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2"
+            >
+              <ShieldAlert size={13} className="shrink-0 text-red-400" />
+              <span>{PUBLIC_IDENTITY_REJECTED_MESSAGE}</span>
+            </div>
+          )}
+
+          {!replyIsAnonymous && !isReplyClaimingAdmin && replyAuthorBannedCheck.hasForbidden && (
+            <span className="text-[11px] text-red-400">
+              Contains restricted phrases: "{replyAuthorBannedCheck.matchedPhrases.join(", ")}"
+            </span>
+          )}
+        </div>
+
+        <textarea
+          value={replyContent}
+          onChange={(e) => {
+            setReplyContent(e.target.value);
+            if (replyError) setReplyError(null);
+          }}
+          onKeyDown={(e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+              e.preventDefault();
+              handleSubmitReply(targetItem);
+            }
+          }}
+          rows={2}
+          maxLength={MAX_CHARS}
+          placeholder={`Write a reply to @${targetItem.authorName}...`}
+          className="glass-input w-full p-3 rounded-lg text-xs leading-relaxed bg-white/5 border border-white/15 focus:border-[#7DB3FF] outline-none text-white placeholder:text-white/35 resize-none"
+          disabled={replySubmitting}
+        />
+
+        {replyError && (
+          <div className="text-[11px] text-red-300 p-2 rounded bg-red-500/10 border border-red-500/20">
+            {replyError}
+          </div>
+        )}
+
+        <div className="flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => setReplyingTo(null)}
+            className="px-3 py-1.5 text-xs text-white/60 hover:text-white cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={
+              replySubmitting ||
+              !replyContent.trim() ||
+              isMissingReplyAuthorIdentity ||
+              hasReplyAuthorError
+            }
+            onClick={() => handleSubmitReply(targetItem)}
+            className="ios-glass-btn ios-glass-primary px-4 py-1.5 text-xs font-semibold cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+          >
+            {replySubmitting ? "Sending..." : "Post Reply"}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // Recursive Reddit-style reply renderer
+  const renderReplyNode = (reply: CommentItem, depth: number): React.ReactNode => {
+    const replyIsOfficial = isOfficialComment(reply);
+    const isReplyingToReply = replyingTo?.id === reply.id;
+    const childReplies = repliesByParent[reply.id] || [];
+    const totalNested = descendantCountById[reply.id] || childReplies.length;
+    const isCollapsed = Boolean(collapsedThreads[reply.id]);
+
+    // Cap horizontal indent on deep threads so mobile screens stay readable
+    const nestedIndentClass =
+      depth < 3
+        ? "ml-2 sm:ml-3.5 pl-3 sm:pl-4"
+        : depth < 5
+          ? "ml-1.5 sm:ml-2.5 pl-2.5 sm:pl-3.5"
+          : "ml-0.5 sm:ml-1.5 pl-2 sm:pl-3";
+
+    return (
+      <div
+        key={reply.id}
+        id={`reply-${reply.id}`}
+        className="p-3 sm:p-3.5 rounded-xl bg-white/[0.03] border border-white/10 flex flex-col gap-2"
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0 flex-wrap">
+            <span
+              className={`w-6 h-6 rounded-lg text-[10px] font-bold flex items-center justify-center shrink-0 border ${
+                reply.isAnonymous
+                  ? "bg-white/5 border-white/10 text-white/50"
+                  : replyIsOfficial
+                    ? "bg-emerald-500/25 border-emerald-500/40 text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.2)]"
+                    : "bg-[#7DB3FF]/20 border-[#7DB3FF]/30 text-[#7DB3FF]"
+              }`}
+            >
+              {reply.isAnonymous ? (
+                "A"
+              ) : replyIsOfficial ? (
+                <ShieldCheck size={12} className="text-emerald-400" />
+              ) : (
+                reply.authorName.charAt(0) || "U"
+              )}
+            </span>
+
+            <span className="text-xs font-medium text-white truncate flex items-center gap-1.5">
+              {reply.authorName}
+              {replyIsOfficial && (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-medium bg-emerald-500/20 border border-emerald-500/30 text-emerald-300">
+                  <ShieldCheck size={10} className="text-emerald-400" />
+                  Official
+                </span>
+              )}
+            </span>
+
+            {reply.isAnonymous && (
+              <span className="text-[9.5px] px-1.5 py-0.2 rounded bg-white/5 text-white/40">
+                Anonymous
+              </span>
+            )}
+
+            {reply.replyToAuthor && (
+              <span className="text-[11px] text-[#7DB3FF]/80 font-light truncate">
+                ↳ @{reply.replyToAuthor}
+              </span>
+            )}
+
+            <span className="text-[10px] text-white/40 font-mono">
+              • {formatDate(reply.createdAt)}
+            </span>
+          </div>
+
+          {filterConfig.enabled !== false && (
+            <button
+              id={`reply-btn-${reply.id}`}
+              type="button"
+              onClick={() => handleToggleReplyTarget(reply)}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium cursor-pointer transition-all duration-200 border shrink-0 ${
+                isReplyingToReply
+                  ? "bg-[#7DB3FF]/20 text-white border-[#7DB3FF]/50 shadow-[0_0_10px_rgba(125,179,255,0.2)]"
+                  : "bg-white/[0.04] text-[#7DB3FF] border-white/10 hover:bg-[#7DB3FF]/15 hover:border-[#7DB3FF]/30 hover:text-white active:scale-[0.98]"
+              }`}
+              title={`Reply to @${reply.authorName}`}
+            >
+              <CornerDownRight size={11} />
+              <span>{isReplyingToReply ? "Cancel" : "Reply"}</span>
+            </button>
+          )}
+        </div>
+
+        {reply.content.trim() ? (
+          <div className="text-xs sm:text-[13px] text-[#C0D3EB] leading-relaxed font-light whitespace-pre-wrap break-words pl-1">
+            {reply.content}
+          </div>
+        ) : null}
+
+        {/* Attached Image / Sticker in Reply */}
+        {reply.imageUrl && (
+          <div className="pl-1 self-start w-fit">
+            <div className="relative w-fit select-none">
+              <img
+                src={reply.imageUrl}
+                alt={`Reply sticker from ${reply.authorName}`}
+                loading="lazy"
+                draggable={false}
+                className="block w-auto h-auto max-w-[144px] sm:max-w-[168px] max-h-[144px] sm:max-h-[168px] object-contain rounded-xl drop-shadow-[0_6px_16px_rgba(0,0,0,0.35)] pointer-events-none"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Inline Reply Composer on this Reply */}
+        {renderInlineReplyForm(reply)}
+
+        {/* Nested Sub-Replies (Reddit-style collapsible thread rail) */}
+        {childReplies.length > 0 && (
+          <div className="mt-1 flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => toggleThreadCollapse(reply.id)}
+              className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#7DB3FF]/80 hover:text-white transition-colors w-fit cursor-pointer select-none pl-1"
+              aria-expanded={!isCollapsed}
+            >
+              <span className="w-4 h-4 rounded-md bg-white/[0.05] border border-white/15 flex items-center justify-center text-[#7DB3FF]">
+                {isCollapsed ? <Plus size={10} /> : <Minus size={10} />}
+              </span>
+              <span>
+                {isCollapsed
+                  ? `Show ${totalNested} ${totalNested === 1 ? "reply" : "replies"}`
+                  : `${totalNested} ${totalNested === 1 ? "reply" : "replies"}`}
+              </span>
+            </button>
+
+            {!isCollapsed && (
+              <div
+                className={`flex flex-col gap-2.5 border-l-2 border-l-[#7DB3FF]/25 hover:border-l-[#7DB3FF]/50 transition-colors ${nestedIndentClass}`}
+              >
+                {childReplies.map((child) => renderReplyNode(child, depth + 1))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="flex flex-col gap-10 pb-28 pt-2 sm:pt-4 w-full max-w-5xl lg:max-w-6xl 2xl:max-w-7xl mx-auto">
@@ -389,7 +710,8 @@ export default function Comments() {
                       if (formError) setFormError(null);
                     }}
                     aria-invalid={hasAuthorInputError}
-                    placeholder="Your name or alias (max 60 characters)"
+                    required={!isAnonymous}
+                    placeholder="Name"
                     maxLength={60}
                     className={`glass-input px-4 py-2.5 rounded-xl text-sm w-full outline-none transition-all ${
                       hasAuthorInputError
@@ -444,7 +766,7 @@ export default function Comments() {
                   }}
                   rows={4}
                   maxLength={MAX_CHARS}
-                  placeholder="Share your thoughts, questions, ideas, or say hello..."
+                  placeholder="Share ur thought, questions, ideas, or vent your frustation"
                   className="glass-input w-full p-4 rounded-xl text-sm leading-relaxed bg-[rgba(255,255,255,0.04)] border border-white/15 focus:border-[#7DB3FF] focus:bg-[rgba(255,255,255,0.08)] outline-none text-white placeholder:text-white/40 resize-none transition-all"
                   disabled={submitting}
                   required
@@ -480,7 +802,7 @@ export default function Comments() {
                 id="submit-comment-button"
                 type="button"
                 onClick={handleSendButtonClick}
-                disabled={submitting || !content.trim() || hasAuthorInputError}
+                disabled={submitting || !content.trim() || isMissingAuthorIdentity || hasAuthorInputError}
                 className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-[#205BF0] hover:bg-[#1A4ED4] active:bg-[#1541B8] text-white shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer disabled:opacity-40 disabled:pointer-events-none disabled:cursor-not-allowed select-none group"
                 title="Send"
               >
@@ -532,8 +854,10 @@ export default function Comments() {
           <div className="flex flex-col gap-5">
             {rootComments.map((item) => {
               const replies = repliesByParent[item.id] || [];
+              const totalThreadReplies = descendantCountById[item.id] || replies.length;
               const isReplying = replyingTo?.id === item.id;
               const itemIsOfficial = isOfficialComment(item);
+              const isRootThreadCollapsed = Boolean(collapsedThreads[item.id]);
 
               return (
                 <div
@@ -593,16 +917,8 @@ export default function Comments() {
                       <button
                         id={`reply-btn-${item.id}`}
                         type="button"
-                        onClick={() => {
-                          if (isReplying) {
-                            setReplyingTo(null);
-                          } else {
-                            setReplyingTo(item);
-                            setReplyContent("");
-                            setReplyError(null);
-                          }
-                        }}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all duration-200 border ${
+                        onClick={() => handleToggleReplyTarget(item)}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all duration-200 border shrink-0 ${
                           isReplying
                             ? "bg-[#7DB3FF]/20 text-white border-[#7DB3FF]/50 shadow-[0_0_12px_rgba(125,179,255,0.25)]"
                             : "bg-white/[0.04] text-[#7DB3FF] border-white/10 hover:bg-[#7DB3FF]/15 hover:border-[#7DB3FF]/30 hover:text-white active:scale-[0.98]"
@@ -625,225 +941,45 @@ export default function Comments() {
                   {/* Attached Image / Sticker (Div hugs image dimensions like WhatsApp sticker) */}
                   {item.imageUrl && (
                     <div className="pl-1 self-start w-fit">
-                      <div
-                        onClick={() =>
-                          setActiveLightboxImage({
-                            url: item.imageUrl!,
-                            authorName: item.authorName,
-                          })
-                        }
-                        className="group relative w-fit cursor-pointer select-none transition-transform duration-200 hover:scale-[1.03] active:scale-[0.98]"
-                        title="Click to enlarge"
-                      >
+                      <div className="relative w-fit select-none">
                         <img
                           src={item.imageUrl}
                           alt={`Sticker from ${item.authorName}`}
                           loading="lazy"
-                          className="block w-auto h-auto max-w-[168px] sm:max-w-[196px] max-h-[168px] sm:max-h-[196px] object-contain rounded-xl drop-shadow-[0_8px_20px_rgba(0,0,0,0.38)]"
+                          draggable={false}
+                          className="block w-auto h-auto max-w-[168px] sm:max-w-[196px] max-h-[168px] sm:max-h-[196px] object-contain rounded-xl drop-shadow-[0_8px_20px_rgba(0,0,0,0.38)] pointer-events-none"
                         />
                       </div>
                     </div>
                   )}
 
-                  {/* Inline Reply Form when active */}
-                  {isReplying && (
-                    <div className="mt-2 p-4 rounded-xl bg-[rgba(15,30,55,0.6)] border border-[#7DB3FF]/30 flex flex-col gap-3 relative animate-fadeIn">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-[#7DB3FF] font-medium flex items-center gap-1.5">
-                          <CornerDownRight size={13} />
-                          <span>
-                            Replying to <strong>@{item.authorName}</strong>
-                          </span>
+                  {/* Inline Reply Form when active on root comment */}
+                  {renderInlineReplyForm(item)}
+
+                  {/* Threaded Replies Section (Reddit-style multi-level tree) */}
+                  {replies.length > 0 && (
+                    <div className="mt-2 pt-3 border-t border-white/10 flex flex-col gap-3">
+                      <button
+                        type="button"
+                        onClick={() => toggleThreadCollapse(item.id)}
+                        className="inline-flex items-center gap-2 text-[11px] font-semibold text-[#7DB3FF]/85 hover:text-white uppercase tracking-wider w-fit cursor-pointer select-none transition-colors"
+                        aria-expanded={!isRootThreadCollapsed}
+                      >
+                        <span className="w-4 h-4 rounded-md bg-white/[0.05] border border-white/15 flex items-center justify-center text-[#7DB3FF]">
+                          {isRootThreadCollapsed ? <Plus size={10} /> : <Minus size={10} />}
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => setReplyingTo(null)}
-                          className="text-white/40 hover:text-white p-1"
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
+                        <span>
+                          {isRootThreadCollapsed
+                            ? `Show ${totalThreadReplies} ${totalThreadReplies === 1 ? "Reply" : "Replies"}`
+                            : `${totalThreadReplies} ${totalThreadReplies === 1 ? "Reply" : "Replies"}`}
+                        </span>
+                      </button>
 
-                      {/* Identity for reply */}
-                      <div className="flex flex-col gap-2">
-                        <div className="flex items-center justify-between gap-2 flex-wrap">
-                          <label className="flex items-center gap-2 cursor-pointer text-xs text-[#A8B8CC]">
-                            <input
-                              type="checkbox"
-                              checked={replyIsAnonymous}
-                              onChange={(e) => {
-                                setReplyIsAnonymous(e.target.checked);
-                                if (replyError) setReplyError(null);
-                              }}
-                              className="w-3.5 h-3.5 rounded border-white/20 accent-[#7DB3FF]"
-                            />
-                            <span>Post Anonymously</span>
-                          </label>
-
-                          {!replyIsAnonymous && (
-                            <input
-                              type="text"
-                              value={replyAuthorName}
-                              onChange={(e) => {
-                                setReplyAuthorName(e.target.value);
-                                if (replyError) setReplyError(null);
-                              }}
-                              aria-invalid={hasReplyAuthorError}
-                              placeholder="Your name (optional)"
-                              maxLength={60}
-                              className={`glass-input px-3 py-1.5 rounded-lg text-xs outline-none transition-all sm:min-w-[220px] ${
-                                hasReplyAuthorError
-                                  ? "bg-red-500/10 border-red-500/50 text-red-100 placeholder:text-red-300/40"
-                                  : "bg-white/5 border border-white/10 text-white placeholder:text-white/30"
-                              }`}
-                            />
-                          )}
-                        </div>
-
-                        {!replyIsAnonymous && isReplyClaimingAdmin && (
-                          <div
-                            role="alert"
-                            className="flex items-center gap-1.5 text-[11px] text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2"
-                          >
-                            <ShieldAlert size={13} className="shrink-0 text-red-400" />
-                            <span>{PUBLIC_IDENTITY_REJECTED_MESSAGE}</span>
-                          </div>
-                        )}
-
-                        {!replyIsAnonymous && !isReplyClaimingAdmin && replyAuthorBannedCheck.hasForbidden && (
-                          <span className="text-[11px] text-red-400">
-                            Contains restricted phrases: "{replyAuthorBannedCheck.matchedPhrases.join(", ")}"
-                          </span>
-                        )}
-                      </div>
-
-                      <textarea
-                        value={replyContent}
-                        onChange={(e) => setReplyContent(e.target.value)}
-                        rows={2}
-                        maxLength={MAX_CHARS}
-                        placeholder={`Write a reply to @${item.authorName}...`}
-                        className="glass-input w-full p-3 rounded-lg text-xs leading-relaxed bg-white/5 border border-white/15 focus:border-[#7DB3FF] outline-none text-white resize-none"
-                        disabled={replySubmitting}
-                      />
-
-                      {replyError && (
-                        <div className="text-[11px] text-red-300 p-2 rounded bg-red-500/10 border border-red-500/20">
-                          {replyError}
+                      {!isRootThreadCollapsed && (
+                        <div className="flex flex-col gap-3 pl-3 sm:pl-5 border-l-2 border-l-[#7DB3FF]/25 hover:border-l-[#7DB3FF]/45 transition-colors ml-2">
+                          {replies.map((reply) => renderReplyNode(reply, 1))}
                         </div>
                       )}
-
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setReplyingTo(null)}
-                          className="px-3 py-1.5 text-xs text-white/60 hover:text-white"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="button"
-                          disabled={replySubmitting || !replyContent.trim() || hasReplyAuthorError}
-                          onClick={() => handleSubmitReply(item)}
-                          className="ios-glass-btn ios-glass-primary px-4 py-1.5 text-xs font-semibold cursor-pointer disabled:opacity-40"
-                        >
-                          {replySubmitting ? "Sending..." : "Post Reply"}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Threaded Replies Section */}
-                  {replies.length > 0 && (
-                    <div className="mt-2 pt-3 border-t border-white/10 flex flex-col gap-3 pl-3 sm:pl-5 border-l-2 border-l-[#7DB3FF]/25 ml-2">
-                      <div className="text-[11px] font-semibold text-[#7DB3FF]/80 uppercase tracking-wider">
-                        {replies.length} {replies.length === 1 ? "Reply" : "Replies"}
-                      </div>
-
-                      {replies.map((reply) => {
-                        const replyIsOfficial = isOfficialComment(reply);
-
-                        return (
-                          <div
-                            key={reply.id}
-                            id={`reply-${reply.id}`}
-                            className="p-3.5 rounded-xl bg-white/[0.03] border border-white/10 flex flex-col gap-2"
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <span
-                                  className={`w-6 h-6 rounded-lg text-[10px] font-bold flex items-center justify-center shrink-0 border ${
-                                    reply.isAnonymous
-                                      ? "bg-white/5 border-white/10 text-white/50"
-                                      : replyIsOfficial
-                                        ? "bg-emerald-500/25 border-emerald-500/40 text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.2)]"
-                                        : "bg-[#7DB3FF]/20 border-[#7DB3FF]/30 text-[#7DB3FF]"
-                                  }`}
-                                >
-                                  {reply.isAnonymous ? (
-                                    "A"
-                                  ) : replyIsOfficial ? (
-                                    <ShieldCheck size={12} className="text-emerald-400" />
-                                  ) : (
-                                    reply.authorName.charAt(0) || "U"
-                                  )}
-                                </span>
-                                <span className="text-xs font-medium text-white truncate flex items-center gap-1.5">
-                                  {reply.authorName}
-                                  {replyIsOfficial && (
-                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-medium bg-emerald-500/20 border border-emerald-500/30 text-emerald-300">
-                                      <ShieldCheck size={10} className="text-emerald-400" />
-                                      Official
-                                    </span>
-                                  )}
-                                </span>
-                                {reply.isAnonymous && (
-                                  <span className="text-[9.5px] px-1.5 py-0.2 rounded bg-white/5 text-white/40">
-                                    Anonymous
-                                  </span>
-                                )}
-                                {reply.replyToAuthor && (
-                                  <span className="text-[11px] text-[#7DB3FF]/80 font-light truncate">
-                                    ↳ @{reply.replyToAuthor}
-                                  </span>
-                                )}
-                              </div>
-                              <span className="text-[10px] text-white/40 font-mono shrink-0">
-                                {formatDate(reply.createdAt)}
-                              </span>
-                            </div>
-
-                            {reply.content.trim() ? (
-                              <div className="text-xs sm:text-[13px] text-[#C0D3EB] leading-relaxed font-light whitespace-pre-wrap break-words pl-1">
-                                {reply.content}
-                              </div>
-                            ) : null}
-
-                            {/* Attached Image / Sticker in Reply */}
-                            {reply.imageUrl && (
-                              <div className="pl-1 self-start w-fit">
-                                <div
-                                  onClick={() =>
-                                    setActiveLightboxImage({
-                                      url: reply.imageUrl!,
-                                      authorName: reply.authorName,
-                                    })
-                                  }
-                                  className="group relative w-fit cursor-pointer select-none transition-transform duration-200 hover:scale-[1.03] active:scale-[0.98]"
-                                  title="Click to enlarge"
-                                >
-                                  <img
-                                    src={reply.imageUrl}
-                                    alt={`Reply sticker from ${reply.authorName}`}
-                                    loading="lazy"
-                                    className="block w-auto h-auto max-w-[144px] sm:max-w-[168px] max-h-[144px] sm:max-h-[168px] object-contain rounded-xl drop-shadow-[0_6px_16px_rgba(0,0,0,0.35)]"
-                                  />
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
                     </div>
                   )}
                 </div>
@@ -852,57 +988,6 @@ export default function Comments() {
           </div>
         )}
       </section>
-
-      {/* Lightbox Modal */}
-      {activeLightboxImage && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setActiveLightboxImage(null)}
-          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-4 sm:p-6 animate-fadeIn cursor-zoom-out"
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="relative max-w-4xl max-h-[90vh] flex flex-col items-center gap-3 cursor-default"
-          >
-            {/* Top Toolbar */}
-            <div className="flex items-center justify-between w-full text-white/80 px-1">
-              <span className="text-xs font-medium text-white/90">
-                Attachment from <strong>{activeLightboxImage.authorName}</strong>
-              </span>
-              <div className="flex items-center gap-3">
-                <a
-                  href={activeLightboxImage.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-[#7DB3FF] hover:text-white transition-colors"
-                  title="Open original size"
-                >
-                  <ExternalLink size={13} />
-                  <span>Full Size</span>
-                </a>
-                <button
-                  type="button"
-                  onClick={() => setActiveLightboxImage(null)}
-                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
-                  title="Close (Esc)"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-            </div>
-
-            {/* Main Image */}
-            <div className="overflow-hidden rounded-2xl border border-white/20 shadow-2xl bg-black/60 max-h-[80vh] flex items-center justify-center">
-              <img
-                src={activeLightboxImage.url}
-                alt="Full-size attachment"
-                className="max-h-[80vh] max-w-full object-contain select-none"
-              />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
